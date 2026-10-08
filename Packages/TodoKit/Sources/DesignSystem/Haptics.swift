@@ -15,7 +15,7 @@ public enum Haptics {
             try engine.start()
 
             var events: [CHHapticEvent] = []
-            for step in 0..<3 {
+            for step in 0 ..< 3 {
                 events.append(
                     CHHapticEvent(
                         eventType: .hapticTransient,

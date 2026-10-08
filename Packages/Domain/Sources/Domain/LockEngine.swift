@@ -47,7 +47,7 @@ public struct LockEngine: Sendable {
             .map(\.endsAt)
             .max()
         let week = clock.week(containing: now)
-        let passesUsed = world.passUses.filter { week.start <= $0.usedAt && $0.usedAt < week.end }.count
+        let passesUsed = world.passUses.count(where: { week.start <= $0.usedAt && $0.usedAt < week.end })
 
         let phase: LockStatus.Phase
         if active.isEmpty {
@@ -125,7 +125,7 @@ public struct LockEngine: Sendable {
 
     /// 明日以降で、最初に目標がロックの理由になる時刻。
     private func nextGoalLock(after today: DateInterval, world: World, clock: DayClock) -> Date? {
-        for offset in 1...Self.lookaheadDays {
+        for offset in 1 ... Self.lookaheadDays {
             let dayStart = clock.offset(today.start, days: offset)
             let weekday = clock.weekday(ofDayStarting: dayStart)
             let earliest = world.activeGoals
@@ -155,7 +155,12 @@ public struct LockEngine: Sendable {
             if task.isOpen {
                 // 今日のうちに着手リミットが来るものと、すでに過ぎているもの。
                 guard at < today.end else { return nil }
-                return ForecastEntry(source: .task(task.id), title: task.title, at: at, state: at <= now ? .active : .upcoming)
+                return ForecastEntry(
+                    source: .task(task.id),
+                    title: task.title,
+                    at: at,
+                    state: at <= now ? .active : .upcoming
+                )
             }
             // 今日片づけたものは、済んだ印として残す。
             guard let completedAt = task.completedAt, today.contains(completedAt), completedAt < today.end else {

@@ -17,7 +17,7 @@ public struct EstimateCalibration: Equatable, Sendable {
     /// 直近の何件を見るか。古い癖に引きずられないように絞る。
     public static let window = 10
     /// 倍率の範囲。1 未満(見積もりより早く終わる人)でも、前倒しをやめるだけで後ろ倒しはしない。
-    public static let factorRange = 1.0...3.0
+    public static let factorRange = 1.0 ... 3.0
 
     public init(factor: Double, sampleCount: Int) {
         self.factor = factor

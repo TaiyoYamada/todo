@@ -1,5 +1,4 @@
 import Foundation
-
 @testable import Domain
 
 /// テスト用の暦。東京時間のグレゴリオ暦に固定して、実行する場所で結果が変わらないようにする。

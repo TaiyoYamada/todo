@@ -20,7 +20,7 @@ public struct DayOutlook: Identifiable, Equatable, Sendable {
     public var firstLockAt: Date? { pending.map(\.at).min() }
 
     public var pendingTaskCount: Int {
-        pending.filter { if case .task = $0.source { true } else { false } }.count
+        pending.count(where: { if case .task = $0.source { true } else { false } })
     }
 
     public var pendingGoalCount: Int { pending.count - pendingTaskCount }
@@ -47,16 +47,16 @@ public struct DayOutlook: Identifiable, Equatable, Sendable {
     }
 }
 
-extension LockEngine {
+public extension LockEngine {
     /// 今日から `days` 日ぶんの、ロックの見込み。
     ///
     /// 先の予定を自分で組まなくても、どの日が荒れそうかを先に見られるようにする。
-    public func weekOutlook(world: World, now: Date, days: Int = 7) -> [DayOutlook] {
+    func weekOutlook(world: World, now: Date, days: Int = 7) -> [DayOutlook] {
         let clock = DayClock(calendar: calendar, dayStartHour: world.preferences.dayStartHour)
         let status = status(world: world, now: now)
         let factor = world.estimateFactor
 
-        return (0..<days).map { offset in
+        return (0 ..< days).map { offset in
             let dayStart = clock.offset(status.today.start, days: offset)
             // 今日のぶんは、済んだものも含めた正確な内容がすでにある。
             guard offset > 0 else { return DayOutlook(dayStart: dayStart, entries: status.forecast) }

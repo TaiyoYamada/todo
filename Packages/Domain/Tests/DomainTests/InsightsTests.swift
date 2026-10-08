@@ -1,6 +1,5 @@
 import Foundation
 import Testing
-
 @testable import Domain
 
 @Suite("振り返りの集計")

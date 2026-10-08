@@ -42,7 +42,7 @@ public struct CelebrationBurst: View {
         // 勢いよく飛び出して、ゆっくり止まる。
         let eased = 1 - pow(1 - progress, 3)
 
-        for index in 0..<Self.particleCount {
+        for index in 0 ..< Self.particleCount {
             // 粒ごとの違いは、番号から決まる疑似乱数で作る。毎フレーム同じ値になる必要があるため。
             let seed = Double(index)
             let angle = Self.noise(seed * 12.9898) * 2 * .pi
@@ -61,7 +61,12 @@ public struct CelebrationBurst: View {
             particle.opacity = opacity
             particle.addFilter(.blur(radius: radius * 0.35))
             particle.fill(
-                Path(ellipseIn: CGRect(x: point.x - radius, y: point.y - radius, width: radius * 2, height: radius * 2)),
+                Path(ellipseIn: CGRect(
+                    x: point.x - radius,
+                    y: point.y - radius,
+                    width: radius * 2,
+                    height: radius * 2
+                )),
                 with: .color(color)
             )
         }
