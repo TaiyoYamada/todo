@@ -1820,6 +1820,40 @@
         }
       }
     },
+    "task.exactEstimate.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your apps lock at this time if it isn't done. No extra margin is added for this task."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この時刻までに終わっていなければロックします。このタスクには、余裕を上乗せしていません。"
+          }
+        }
+      }
+    },
+    "task.exactEstimate.label" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use my estimate as is"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "見積もりどおりの時刻にする"
+          }
+        }
+      }
+    },
     "task.locksImmediately" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1871,19 +1905,19 @@
         }
       }
     },
-    "task.startLimit.footer" : {
+    "task.startLimit.explain" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Your apps lock at this time if it isn't done. Calculated at %@× your estimate, because things take longer than planned."
+            "value" : "Your apps lock at this time if it isn't done. You estimated %1$@, but things have been taking about %2$@× as long, so %3$@ is set aside."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "この時刻までに終わっていなければロックします。予定より長くかかるものなので、見積もりの%@倍で計算しています。"
+            "value" : "この時刻までに終わっていなければロックします。見積もりは%1$@ですが、これまで約%2$@倍かかっているので、%3$@を見込んでいます。"
           }
         }
       }

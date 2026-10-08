@@ -76,9 +76,24 @@ struct TaskEditorView: View {
                                 Image(systemName: store.locksImmediately ? "lock.fill" : "lock.open")
                             }
                         }
+                        Toggle(isOn: $store.task.usesExactEstimate) {
+                            Text(.taskExactEstimateLabel)
+                        }
+                        .accessibilityIdentifier("taskEditor.exactEstimate")
                     } footer: {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(.taskStartLimitFooter(factorText))
+                            if store.task.usesExactEstimate {
+                                Text(.taskExactEstimateFooter)
+                            } else {
+                                // なぜこの時刻なのかを、その場で説明する。黙って前倒しすると、理不尽に見える。
+                                Text(
+                                    .taskStartLimitExplain(
+                                        DurationText.compact(minutes: store.task.estimateMinutes),
+                                        factorText,
+                                        DurationText.compact(minutes: paddedMinutes)
+                                    )
+                                )
+                            }
                             if store.locksImmediately {
                                 Text(.taskLocksImmediately)
                                     .foregroundStyle(.red)
@@ -166,6 +181,11 @@ struct TaskEditorView: View {
         ]
         .compactMap(\.self)
         .joined(separator: " · ")
+    }
+
+    /// 倍率を掛けたあとの、着手リミットから締切までの時間(分)。
+    private var paddedMinutes: Int {
+        Int((Double(store.task.estimateMinutes) * store.board.world.estimateFactor).rounded())
     }
 
     private var factorText: String {
