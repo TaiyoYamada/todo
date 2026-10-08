@@ -37,7 +37,7 @@ make format        # SwiftFormat で整形
 
 ```
 App/                  アプリ本体(薄い。起動と、見本データの起動引数の読み取りだけ)
-Extensions/           ウィジェット、Live Activity、スクリーンタイムの拡張機能(予定。まだない)
+Extensions/           ウィジェット、Live Activity、スクリーンタイムの拡張機能(入口だけ。中身はパッケージにある)
 Packages/Domain/      純粋なロジックと型(ローカルの Swift パッケージ。macOS でテストできる)
 Packages/TodoKit/     それ以外のほぼすべてのコード(ローカルの Swift パッケージ)
 UITests/              UI テスト
@@ -53,10 +53,13 @@ docs/                 仕様、設計、調査
 | `DesignSystem` | `Packages/TodoKit` | 色、文字、部品、演出 | Domain、SwiftUI |
 | `SharedCore` | `Packages/TodoKit` | 拡張機能にも入れる部分。App Group、保存データの写し、スクリーンタイム API の呼び出し | Domain、Apple 標準のみ |
 | `DatabaseClient` | `Packages/TodoKit` | 保存データの窓口(SQLiteData)。メモリ上の実装もある | Domain、Dependencies、SQLiteData、GRDB |
-| `ShieldClient` | `Packages/TodoKit` | アプリをロックする仕組みとの境界。実機用と模擬の実装 | Domain、SharedCore、Dependencies |
-| `AppFeature` | `Packages/TodoKit` | すべての画面の Reducer と View、文言カタログ、見本データ | 上のすべて、TCA |
+| `ShieldClient` | `Packages/TodoKit` | アプリをロックする仕組みとの境界。実機用と模擬の実装、アプリを選ぶ画面 | Domain、SharedCore、Dependencies |
+| `NotificationClient` | `Packages/TodoKit` | 端末の通知の窓口 | Dependencies |
+| `LiveActivityClient` | `Packages/TodoKit` | 集中の計測を Live Activity として出す窓口 | Domain、SharedCore、Dependencies |
+| `WidgetUI` | `Packages/TodoKit` | ウィジェットと Live Activity の見た目。拡張機能に入るので TCA を入れない | Domain、SharedCore、DesignSystem |
+| `AppFeature` | `Packages/TodoKit` | すべての画面の Reducer と View、文言カタログ、見本データ | `WidgetUI` を除く上のすべて、TCA |
 
-画面は、いまはすべて `AppFeature` という1つのターゲットにあり、フォルダで分けている(`Today/`、`Plan/`、`Focus/` など)。画面ごとのターゲットには分けていない。通知や Live Activity の `*Client` はまだない。
+画面は、いまはすべて `AppFeature` という1つのターゲットにあり、フォルダで分けている(`Today/`、`Plan/`、`Focus/` など)。画面ごとのターゲットには分けていない。
 
 設計の詳細は `docs/engineering/architecture.md`。
 
