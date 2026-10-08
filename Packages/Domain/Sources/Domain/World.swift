@@ -4,7 +4,7 @@ import Foundation
 ///
 /// データ量は小さい(目標とタスクは数十件、記録は直近のぶんだけ)ので、
 /// 変更のたびに丸ごと読み直して各画面に配る。
-public struct World: Equatable, Sendable {
+public struct World: Equatable, Sendable, Codable {
     public var goals: [Goal]
     public var tasks: [TaskItem]
     public var sessions: [FocusSession]
