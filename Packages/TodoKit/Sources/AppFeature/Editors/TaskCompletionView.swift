@@ -24,9 +24,20 @@ struct TaskCompletionView: View {
                 ChipRow(values: store.options, selection: store.actualMinutes, tint: mood.accent) {
                     store.send(.optionTapped($0))
                 }
-                Text(.completionEstimate(DurationText.compact(minutes: store.task.estimateMinutes)))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                Group {
+                    if let measured = store.measuredMinutes {
+                        Text(
+                            .completionMeasured(
+                                DurationText.compact(minutes: measured),
+                                DurationText.compact(minutes: store.task.estimateMinutes)
+                            )
+                        )
+                    } else {
+                        Text(.completionEstimate(DurationText.compact(minutes: store.task.estimateMinutes)))
+                    }
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
             }
 
             Spacer(minLength: 0)

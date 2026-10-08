@@ -13,21 +13,22 @@ struct TaskCompletionFeature {
     struct State: Equatable {
         let task: TaskItem
         var actualMinutes: Int
+        /// 「始める」を押してから完了までの時間。押していなければ nil。
+        let measuredMinutes: Int?
 
-        init(task: TaskItem) {
+        /// - Parameter measuredMinutes: 取りかかってからの時間。分かっていれば、それを初期値にする。
+        init(task: TaskItem, measuredMinutes: Int? = nil) {
             self.task = task
-            actualMinutes = task.estimateMinutes
+            self.measuredMinutes = measuredMinutes
+            actualMinutes = measuredMinutes ?? task.estimateMinutes
         }
 
-        /// 見積もりを基準にした選択肢。半分、ちょうど、1.5 倍、2 倍、3 倍。
+        /// 見積もりを基準にした選択肢。半分、ちょうど、1.5 倍、2 倍、3 倍。測った時間があれば、それも入れる。
         var options: [Int] {
             let estimate = task.estimateMinutes
-            let raw = [estimate / 2, estimate, estimate * 3 / 2, estimate * 2, estimate * 3]
-            // 5 分刻みに丸め、重複を除く。
-            var seen = Set<Int>()
-            return raw
-                .map { max(5, Int((Double($0) / 5).rounded()) * 5) }
-                .filter { seen.insert($0).inserted }
+            let raw = [estimate / 2, estimate, estimate * 3 / 2, estimate * 2, estimate * 3] + [measuredMinutes].compactMap(\.self)
+            // 5 分刻みに丸め、重複を除いて、短い順に並べる。
+            return Set(raw.map { max(5, Int((Double($0) / 5).rounded()) * 5) }).sorted()
         }
     }
 
