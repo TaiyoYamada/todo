@@ -85,4 +85,17 @@ struct DayClockTests {
         #expect(clock.weekday(ofDayStarting: at(11, 1, 4)) == .sunday)
         #expect(clock.week(containing: at(11, 1, 12)).start == at(10, 26, 4))
     }
+
+    @Test("切り替えが30分の地域でも、1日が丸1日ぶん飛ばない")
+    func halfHourDaylightSaving() throws {
+        var lordHowe = Calendar(identifier: .gregorian)
+        lordHowe.timeZone = try #require(TimeZone(identifier: "Australia/Lord_Howe"))
+        let clock = DayClock(calendar: lordHowe, dayStartHour: 2)
+        // 2026-10-04 の 2:00 に時計が 30 分進む。
+        let noon = try #require(lordHowe.date(from: DateComponents(year: 2026, month: 10, day: 4, hour: 12)))
+        let day = clock.day(containing: noon)
+        #expect(day.contains(noon))
+        #expect(day.duration < 26 * 3600)
+        #expect(day.duration > 22 * 3600)
+    }
 }

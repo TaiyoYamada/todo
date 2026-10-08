@@ -107,6 +107,8 @@ struct TaskEditorFeature {
                 task.completedAt = nil
                 task.actualMinutes = nil
                 task.withdrawnAt = nil
+                // 取りかかった時刻も消す。残すと、前回の開始からずっと作業中だったことになってしまう。
+                task.startedAt = nil
                 return save(task)
 
             case .deleteConfirmed:

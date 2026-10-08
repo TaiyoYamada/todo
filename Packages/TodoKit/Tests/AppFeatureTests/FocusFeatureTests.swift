@@ -30,7 +30,8 @@ struct FocusFeatureTests {
         baseSeconds: Int = 0,
         isResumed: Bool = false,
         startedAt: Date? = nil,
-        dayStartHour: Int? = nil
+        dayStartHour: Int? = nil,
+        dayEnd: Date = .distantFuture
     ) -> TestStoreOf<FocusFeature> {
         var world = World.exact(goals: [goal])
         if let dayStartHour {
@@ -42,7 +43,8 @@ struct FocusFeatureTests {
                 goal: goal,
                 startedAt: startedAt ?? start,
                 baseSeconds: baseSeconds,
-                isResumed: isResumed
+                isResumed: isResumed,
+                dayEnd: dayEnd
             )
         ) {
             FocusFeature()
@@ -231,6 +233,48 @@ struct FocusFeatureTests {
                 ]),
             ]
         )
+    }
+
+    @Test("達する前に日付が変わるなら、変わったあとに1日の量をやり終えるまで続ける")
+    func targetMovesWhenDayChangesFirst() async {
+        // 3:50 に始めて、残りは 30 分。4:00 に日付が変わり、そこから数え直しになるので、4:30 に達する。
+        let begin = date(10, 3, 50)
+        now.setValue(begin)
+        let store = makeStore(startedAt: begin, dayEnd: date(10, 4))
+        #expect(store.state.endsAt == date(10, 4, 30))
+
+        await store.send(.task)
+        now.setValue(date(10, 4, 30))
+        await clock.advance(by: .seconds(40 * 60))
+        await store.receive(\.targetReached) {
+            $0.phase = .finished(.init(sessionSeconds: 40 * 60, reachedTarget: true))
+        }
+        await store.finish()
+
+        #expect(
+            spy.writes == [
+                .setActiveFocus(ActiveFocus(goalID: goal.id, startedAt: begin)),
+                .finishFocus([
+                    session(0, startedAt: begin, seconds: 10 * 60),
+                    session(1, startedAt: date(10, 4), seconds: 30 * 60),
+                ]),
+            ]
+        )
+    }
+
+    @Test("日付が変わったあとに止めたら、変わってからの量だけで達したかを決める")
+    func stoppingAfterDayChangeJudgesByNewDay() async {
+        let begin = date(10, 3, 50)
+        now.setValue(begin)
+        let store = makeStore(startedAt: begin, dayEnd: date(10, 4))
+
+        await store.send(.task)
+        // 4:20 に止める。始めてから 30 分たったが、新しい日のぶんは 20 分で、まだ足りない。
+        now.setValue(date(10, 4, 20))
+        await store.send(.stopTapped) {
+            $0.phase = .finished(.init(sessionSeconds: 30 * 60, reachedTarget: false))
+        }
+        await store.finish()
     }
 
     @Test("今日の分に達して自動で止まるときも、区切りをまたいでいれば分ける")

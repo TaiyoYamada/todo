@@ -22,8 +22,7 @@ public struct ShieldPlan: Equatable, Sendable, Codable {
         self.wakeTimes = wakeTimes
     }
 
-    /// - Parameter activeFocus: 計測中の集中。あれば、今日の分に達する時刻にも見直す。
-    public init(status: LockStatus, activeFocus: ActiveFocus? = nil) {
+    public init(status: LockStatus) {
         let primary = status.activeReasons.first
         var times = status.upcomingReasons.map(\.startsAt)
         // パスが切れる時刻にも見直す。ロックに戻すため。
@@ -31,15 +30,8 @@ public struct ShieldPlan: Equatable, Sendable, Codable {
             times.append(until)
         }
         // 計測が今日の分に達する時刻にも見直す。アプリを閉じて勉強していても、達した時点でロックを外すため。
-        // 時刻は「計測を始めた時刻 + 始めた時点の残り」で求める。「いま + 残り」で求めると、
-        // 残りを秒に丸めているぶん毎回わずかにずれ、内容が変わったと見なされて予約をやり直すことになる。
-        if let activeFocus,
-           let progress = status.goals.first(where: { $0.id == activeFocus.goalID }),
-           progress.remainingSeconds > 0
-        {
-            let countedFrom = max(activeFocus.startedAt, status.today.start)
-            let remainingAtStart = progress.targetSeconds - progress.recordedSeconds
-            times.append(countedFrom.addingTimeInterval(Double(remainingAtStart)))
+        if let focusTargetAt = status.focusTargetAt {
+            times.append(focusTargetAt)
         }
         self.init(
             isLocked: status.isLocked,

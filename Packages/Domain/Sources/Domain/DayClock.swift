@@ -64,7 +64,14 @@ public struct DayClock: Equatable, Sendable {
     private func time(_ minutes: Int, onCalendarDayOf date: Date) -> Date {
         let midnight = calendar.startOfDay(for: date)
         // 切り替えで存在しない時刻(2:30 など)は、その次に来る時刻になる。
-        return calendar.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: midnight) ?? midnight
+        if let exact = calendar.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: midnight),
+           calendar.isDate(exact, inSameDayAs: midnight)
+        {
+            return exact
+        }
+        // 一部の地域(切り替えが 30 分の地域など)では、上の求め方が翌日に飛んでしまう。
+        // そのときは、0 時からの経過時間で求める。
+        return calendar.date(byAdding: .minute, value: minutes, to: midnight) ?? midnight
     }
 
     /// `date` を含む週の区間。週は月曜の1日の開始から始まる。

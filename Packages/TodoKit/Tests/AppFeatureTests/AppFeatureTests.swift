@@ -48,7 +48,7 @@ struct AppFeatureTests {
     }
 
     private func plan(_ world: World) -> ShieldPlan {
-        ShieldPlan(status: status(world), activeFocus: world.activeFocus)
+        ShieldPlan(status: status(world))
     }
 
     /// 読み込みを済ませた状態から始める。画面の移動だけを確かめるテストで使う。
@@ -114,7 +114,13 @@ struct AppFeatureTests {
             $0.$board.withLock { $0 = .loaded(world, now: start) }
             // 計測中のぶんは含めず、記録済みの 10 分だけを「すでにやった量」とする。
             $0.destination = .focus(
-                FocusFeature.State(goal: goal, startedAt: date(9, 13, 50), baseSeconds: 10 * 60, isResumed: true)
+                FocusFeature.State(
+                    goal: goal,
+                    startedAt: date(9, 13, 50),
+                    baseSeconds: 10 * 60,
+                    isResumed: true,
+                    dayEnd: date(10, 4)
+                )
             )
             // ロックの判定には計測中の 10 分も数えるので、残りは 10 分。達する 14:10 に見直してもらう。
             $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試", wakeTimes: [date(9, 14, 10)])
@@ -370,7 +376,12 @@ struct AppFeatureTests {
 
         await store.send(.today(.startFocusTapped(goal.id)))
         await store.receive(\.today.delegate, .startFocus(goal.id)) {
-            $0.destination = .focus(FocusFeature.State(goal: goal, startedAt: start, baseSeconds: 12 * 60))
+            $0.destination = .focus(FocusFeature.State(
+                goal: goal,
+                startedAt: start,
+                baseSeconds: 12 * 60,
+                dayEnd: date(10, 4)
+            ))
         }
     }
 

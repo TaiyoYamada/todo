@@ -48,7 +48,7 @@ struct AppFeatureSyncTests {
     }
 
     private func plan(_ world: World) -> ShieldPlan {
-        ShieldPlan(status: status(world), activeFocus: world.activeFocus)
+        ShieldPlan(status: status(world))
     }
 
     /// `world` を伝えるときの、ひとまとまりの連絡。写し → ロックの指示 → 通知 の順。

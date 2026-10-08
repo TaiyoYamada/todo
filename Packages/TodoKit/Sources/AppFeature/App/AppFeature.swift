@@ -155,11 +155,13 @@ struct AppFeature {
     /// (たとえば、今日作った目標は今日はロックしないが、明日の朝の予約は要る)。
     /// 時間の経過だけのときは、ロックの状態が変わった場合に限る。
     private func syncOutside(_ state: inout State, worldChanged: Bool) -> Effect<Action> {
-        let plan = ShieldPlan(status: state.board.status, activeFocus: state.board.world.activeFocus)
+        let plan = ShieldPlan(status: state.board.status)
         guard worldChanged || plan != state.appliedPlan else { return .none }
         state.appliedPlan = plan
         let warnings = Self.warnings(for: state.board.status)
         return .run { [world = state.board.world] _ in
+            // 始める前から取り消されていることもある(すぐ次の変更が来たとき)。古い写しを書かないように確かめる。
+            guard !Task.isCancelled else { return }
             // 写しを先に書く。スクリーンタイムの拡張機能が、予約の時刻に最新の状況で判定できるように。
             await snapshot.save(world)
             // 取り消されても、呼び出しの途中で勝手に止まりはしない。次へ進む前に、自分で確かめる。
@@ -228,13 +230,17 @@ struct AppFeature {
             state.onboarding = OnboardingFeature.State()
         } else if let focus = world.activeFocus, let goal = world.goal(id: focus.goalID) {
             // 計測中にアプリを閉じていた場合は、計測の画面に戻す。
-            let progress = LockEngine(calendar: calendar).progress(of: goal, world: world, now: now)
+            // 進み具合と1日の終わりは、計測を始めた時点のものを使う。閉じている間に日付が変わっていても、
+            // 始めた日の分と、変わったあとの分を正しく分けられるように。
+            let progress = LockEngine(calendar: calendar).progress(of: goal, world: world, now: focus.startedAt)
+            let dayClock = DayClock(calendar: calendar, dayStartHour: world.preferences.dayStartHour)
             state.destination = .focus(
                 FocusFeature.State(
                     goal: goal,
                     startedAt: focus.startedAt,
                     baseSeconds: progress.recordedSeconds,
-                    isResumed: true
+                    isResumed: true,
+                    dayEnd: dayClock.day(containing: focus.startedAt).end
                 )
             )
         }
@@ -258,7 +264,12 @@ struct AppFeature {
             guard let goal = world.goal(id: id) else { return }
             let progress = LockEngine(calendar: calendar).progress(of: goal, world: world, now: now)
             state.destination = .focus(
-                FocusFeature.State(goal: goal, startedAt: now, baseSeconds: progress.recordedSeconds)
+                FocusFeature.State(
+                    goal: goal,
+                    startedAt: now,
+                    baseSeconds: progress.recordedSeconds,
+                    dayEnd: state.board.status.today.end
+                )
             )
 
         case let .editGoal(id):

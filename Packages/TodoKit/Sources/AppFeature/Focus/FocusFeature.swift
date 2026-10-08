@@ -20,6 +20,8 @@ struct FocusFeature {
         /// アプリを開き直して計測に戻ってきた。
         var isResumed = false
         var phase = Phase.running
+        /// 計測を始めた日が終わる時刻。これを過ぎたぶんは、次の日の分として数える。
+        var dayEnd = Date.distantFuture
 
         enum Phase: Equatable {
             case running
@@ -36,7 +38,21 @@ struct FocusFeature {
 
         /// 今日の分に達する時刻。すでに達していれば nil(好きなだけ続ける計測になる)。
         var endsAt: Date? {
-            remainingAtStart > 0 ? startedAt.addingTimeInterval(Double(remainingAtStart)) : nil
+            guard remainingAtStart > 0 else { return nil }
+            let target = startedAt.addingTimeInterval(Double(remainingAtStart))
+            if target <= dayEnd { return target }
+            // 達する前に日付が変わる。変わったあとは新しい日の分として数え直されるので、
+            // そこから1日の量をやり終える時刻が目標になる。ロックの判定(LockEngine)と同じ数え方にそろえる。
+            return dayEnd.addingTimeInterval(Double(goal.dailySeconds))
+        }
+
+        /// `end` で止めたとき、その時点の「今日の分」に達しているか。
+        func reachesTarget(endingAt end: Date) -> Bool {
+            if end > dayEnd {
+                // 日付が変わったあとは、変わってからやった量だけで判定する。
+                return Int(end.timeIntervalSince(dayEnd)) >= goal.dailySeconds
+            }
+            return baseSeconds + max(0, Int(end.timeIntervalSince(startedAt))) >= goal.dailySeconds
         }
     }
 
@@ -132,7 +148,7 @@ struct FocusFeature {
         state.phase = .finished(
             State.Summary(
                 sessionSeconds: seconds,
-                reachedTarget: state.baseSeconds + seconds >= state.goal.dailySeconds
+                reachedTarget: state.reachesTarget(endingAt: end)
             )
         )
         // 1日の区切りをまたいだ計測は、区切りで分けて記録する。またいだあとのぶんを、今日の分として数えるため。

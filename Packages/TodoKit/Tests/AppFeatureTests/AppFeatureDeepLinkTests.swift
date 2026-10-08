@@ -48,7 +48,12 @@ struct AppFeatureDeepLinkTests {
         let store = makeLoadedStore(world)
 
         await store.send(.openDeepLink(.focus)) {
-            $0.destination = .focus(FocusFeature.State(goal: locked, startedAt: start, baseSeconds: 5 * 60))
+            $0.destination = .focus(FocusFeature.State(
+                goal: locked,
+                startedAt: start,
+                baseSeconds: 5 * 60,
+                dayEnd: date(10, 4)
+            ))
         }
     }
 
@@ -64,7 +69,12 @@ struct AppFeatureDeepLinkTests {
         let store = makeLoadedStore(world)
 
         await store.send(.openDeepLink(.focus)) {
-            $0.destination = .focus(FocusFeature.State(goal: pending, startedAt: start, baseSeconds: 0))
+            $0.destination = .focus(FocusFeature.State(
+                goal: pending,
+                startedAt: start,
+                baseSeconds: 0,
+                dayEnd: date(10, 4)
+            ))
         }
     }
 
@@ -77,7 +87,12 @@ struct AppFeatureDeepLinkTests {
         #expect(store.state.board.status.isLocked)
 
         await store.send(.openDeepLink(.focus)) {
-            $0.destination = .focus(FocusFeature.State(goal: pending, startedAt: start, baseSeconds: 0))
+            $0.destination = .focus(FocusFeature.State(
+                goal: pending,
+                startedAt: start,
+                baseSeconds: 0,
+                dayEnd: date(10, 4)
+            ))
         }
     }
 
@@ -148,7 +163,12 @@ struct AppFeatureDeepLinkTests {
             $0.$board.withLock { $0 = .loaded(world, now: start) }
             $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試")
             $0.pendingDeepLink = nil
-            $0.destination = .focus(FocusFeature.State(goal: goal, startedAt: start, baseSeconds: 5 * 60))
+            $0.destination = .focus(FocusFeature.State(
+                goal: goal,
+                startedAt: start,
+                baseSeconds: 5 * 60,
+                dayEnd: date(10, 4)
+            ))
         }
         await store.cancelRemainingEffects()
     }
@@ -168,7 +188,12 @@ struct AppFeatureDeepLinkTests {
             $0.$board.withLock { $0 = .loaded(world, now: start) }
             $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試")
             $0.pendingDeepLink = nil
-            $0.destination = .focus(FocusFeature.State(goal: goal, startedAt: start, baseSeconds: 0))
+            $0.destination = .focus(FocusFeature.State(
+                goal: goal,
+                startedAt: start,
+                baseSeconds: 0,
+                dayEnd: date(10, 4)
+            ))
         }
         await store.cancelRemainingEffects()
     }
@@ -235,7 +260,13 @@ struct AppFeatureDeepLinkTests {
             $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試", wakeTimes: [date(9, 14, 20)])
             $0.pendingDeepLink = nil
             $0.destination = .focus(
-                FocusFeature.State(goal: goal, startedAt: date(9, 13, 50), baseSeconds: 0, isResumed: true)
+                FocusFeature.State(
+                    goal: goal,
+                    startedAt: date(9, 13, 50),
+                    baseSeconds: 0,
+                    isResumed: true,
+                    dayEnd: date(10, 4)
+                )
             )
         }
         await store.cancelRemainingEffects()

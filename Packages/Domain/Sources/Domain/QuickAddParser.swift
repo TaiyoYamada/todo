@@ -34,6 +34,9 @@ public struct QuickAddParser: Sendable {
         // 全角の数字や記号を半角にそろえてから読む。
         var rest = Self.halfWidthASCII(text)
 
+        // どの規則も、読み取る部分の前後の空白までは取り込まない。取り込むと、空白で離れていた言葉が
+        // 跡にじかに付いたように見え、名前の先頭の「の」や「は」を落としてしまう。
+
         // 「2時間」を先に取り除く。あとで「18時」を時刻として読むときに、取り違えないため。
         let minutes = extractDuration(from: &rest)
         let day = extractDay(from: &rest, now: now)
@@ -63,7 +66,7 @@ public struct QuickAddParser: Sendable {
     private func extractDuration(from text: inout String) -> Int? {
         // 「1時間30分」「1時間半」「2h」「1.5時間」「1h30m」
         if let match = Self.firstMatch(
-            #"(\d+(?:\.\d+)?)\s*(?:時間|hours?|hrs?|h(?![a-z]))\s*(?:(\d+)\s*(?:分|minutes?|mins?|m(?![a-z]))|(半))?"#,
+            #"(\d+(?:\.\d+)?)\s*(?:時間|hours?|hrs?|h(?![a-z]))(?:\s*(\d+)\s*(?:分|minutes?|mins?|m(?![a-z]))|(半))?"#,
             in: text
         ) {
             let hours = Double(match.groups[0] ?? "") ?? 0
@@ -115,7 +118,7 @@ public struct QuickAddParser: Sendable {
         }
 
         // 「金曜」「来週の月曜日」
-        if let match = Self.firstMatch(#"(来週の?)?\s*([月火水木金土日])曜日?"#, in: text),
+        if let match = Self.firstMatch(#"(?:(来週の?)\s*)?([月火水木金土日])曜日?"#, in: text),
            let symbol = match.groups[1], let weekday = Self.japaneseWeekdays[symbol]
         {
             text.replaceSubrange(match.range, with: Self.marker)
@@ -152,7 +155,7 @@ public struct QuickAddParser: Sendable {
 
     private func extractTime(from text: inout String) -> (hour: Int, minute: Int)? {
         // 「23:59」「午後6:30」「6:30pm」
-        if let match = Self.firstMatch(#"(午前|午後|am|pm)?\s*(\d{1,2}):(\d{2})\s*(am|pm)?"#, in: text),
+        if let match = Self.firstMatch(#"(?:(午前|午後|am|pm)\s*)?(\d{1,2}):(\d{2})(?:\s*(am|pm))?"#, in: text),
            let hour = Int(match.groups[1] ?? ""), let minute = Int(match.groups[2] ?? ""),
            let time = Self.time(hour: hour, minute: minute, marker: match.groups[0] ?? match.groups[3])
         {
@@ -160,7 +163,7 @@ public struct QuickAddParser: Sendable {
             return time
         }
         // 「18時」「午後6時半」「9時30分」
-        if let match = Self.firstMatch(#"(午前|午後)?\s*(\d{1,2})時(?:(\d{1,2})分|(半))?"#, in: text),
+        if let match = Self.firstMatch(#"(?:(午前|午後)\s*)?(\d{1,2})時(?:(\d{1,2})分|(半))?"#, in: text),
            let hour = Int(match.groups[1] ?? "")
         {
             let minute = Int(match.groups[2] ?? "") ?? (match.groups[3] != nil ? 30 : 0)
@@ -216,33 +219,24 @@ public struct QuickAddParser: Sendable {
     /// 読み取った部分を取り除いた跡に置く目印。名前には現れない制御文字を使う。
     private static let marker = "\u{1F}"
 
-    /// 日付などを取り除いた跡の、すぐ隣にあるつなぎの言葉だけを落とす。
+    /// 日付などを取り除いた跡に、じかに付いているつなぎの言葉だけを落とす。
     ///
-    /// 名前のどこにあっても落とすと、「はがきを出す」の「は」のように、言葉の一部まで削ってしまう。
+    /// 落とすのは1回だけで、空白をはさんだ言葉には触れない。くり返したり、離れた言葉まで落としたりすると、
+    /// 「明日の中間テスト」の「中」や「明日 はがきを出す」の「は」のように、名前の一部まで削ってしまう。
     private static func cleanTitle(_ text: String) -> String {
-        var title = text
         let rules = [
-            // 跡のうしろ:「(金曜)までに」「(今日)中に」「(18時)に」
-            #"\u001F\s*(?:までに|まで|迄に|迄|中に|中|締切|〆切|に|の|は)"#,
+            // 跡のうしろ:「(金曜)までに」「(今日)中に」「(18時)に」「(明日)の」
+            // 「中」は、あとに「に」か区切りが続くときだけ(「中間」「中国語」を削らないため)。
+            #"\u001F(?:までに|まで|迄に|迄|中に|中(?=\s|\u001F|$)|締切|〆切|に|の|は)"#,
             // 跡のまえ:「レポートを(明日)」「締切(明日)」
-            #"(?:締切|〆切|を|は)\s*\u001F"#,
-            // 英語は、単語として独立したつなぎ言葉が跡のまえにあるときだけ。
-            #"(?<![A-Za-z])(?:by|due|until|before|on|at|for|in)\s*\u001F"#,
+            #"(?:締切|〆切|を|は)\u001F"#,
+            // 英語は、日時の前に置く言葉が、単語として独立して跡のまえにあるときだけ。
+            // in や for は「Sign in」のように名前の一部であることが多いので、落とさない。
+            #"(?<![A-Za-z])(?:by|due|until|before|on|at)\s*\u001F"#,
         ]
-        var changed = true
-        while changed {
-            changed = false
-            for rule in rules {
-                let replaced = title.replacingOccurrences(
-                    of: rule,
-                    with: marker,
-                    options: [.regularExpression, .caseInsensitive]
-                )
-                if replaced != title {
-                    title = replaced
-                    changed = true
-                }
-            }
+        var title = text
+        for rule in rules {
+            title = title.replacingOccurrences(of: rule, with: marker, options: [.regularExpression, .caseInsensitive])
         }
         let trimSet = CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: "、。,.・-:;()()"))
         return title

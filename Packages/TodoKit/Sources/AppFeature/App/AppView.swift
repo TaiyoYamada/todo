@@ -62,13 +62,21 @@ struct AppView: View {
                 store.send(.openDeepLink(link))
             }
         }
-        .onChange(of: scenePhase, initial: true) {
+        .onChange(of: scenePhase) {
             if scenePhase == .active {
                 store.send(.becameActive)
-                // コントロールセンターのボタンから開かれたときは、行き先が共有の置き場に書かれている。
+            }
+        }
+        .task(id: scenePhase) {
+            // コントロールセンターのボタンから開かれたときは、行き先が共有の置き場に書かれている。
+            // ボタンの処理と、アプリが前面に来るのと、どちらが先かは決まっていないので、少しの間くり返し確かめる。
+            guard scenePhase == .active else { return }
+            for _ in 0 ..< 8 {
                 if let link = PendingDeepLink.take() {
                     store.send(.openDeepLink(link))
+                    return
                 }
+                try? await Task.sleep(for: .milliseconds(250))
             }
         }
         .fullScreenCover(item: $store.scope(state: \.destination?.focus, action: \.destination.focus)) { store in

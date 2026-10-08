@@ -398,6 +398,18 @@ struct TaskEditorFeatureTests {
         #expect(dismissed.value == 1)
     }
 
+    @Test("未完了に戻すと、取りかかった時刻も消える")
+    func reopenClearsStartedAt() async {
+        var task = TaskItem.fixture(actualMinutes: 150, completedAt: date(9, 12))
+        task.startedAt = date(9, 9)
+        let store = makeStore(task)
+
+        await store.send(.reopenTapped)
+        await store.finish()
+
+        #expect(spy.writes == [.saveTask(.fixture())])
+    }
+
     @Test("取り下げたタスクを未完了に戻すと、取り下げた時刻が消える")
     func reopenWithdrawnTask() async {
         let store = makeStore(.fixture(withdrawnAt: date(9, 12)))
