@@ -36,6 +36,19 @@ public struct Preferences: Equatable, Sendable, Codable {
         }
     }
 
+    /// 保存済みの JSON に項目が欠けていても読めるようにする。
+    /// 設定を足すたびに、古いデータが読めなくなるのを防ぐ。
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = Preferences()
+        dayStartHour = try container.decodeIfPresent(Int.self, forKey: .dayStartHour) ?? defaults.dayStartHour
+        buffer = try container.decodeIfPresent(Buffer.self, forKey: .buffer) ?? defaults.buffer
+        weeklyPassLimit = try container.decodeIfPresent(Int.self, forKey: .weeklyPassLimit) ?? defaults.weeklyPassLimit
+        passMinutes = try container.decodeIfPresent(Int.self, forKey: .passMinutes) ?? defaults.passMinutes
+        hasCompletedOnboarding =
+            try container.decodeIfPresent(Bool.self, forKey: .hasCompletedOnboarding) ?? defaults.hasCompletedOnboarding
+    }
+
     public static let weeklyPassLimitRange = 0...5
     public static let dayStartHourRange = 0...8
 }
