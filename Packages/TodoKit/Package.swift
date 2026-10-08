@@ -27,6 +27,7 @@ let package = Package(
                 "DatabaseClient",
                 "DesignSystem",
                 "LiveActivityClient",
+                "NotificationClient",
                 "ShieldClient",
                 .product(name: "Domain", package: "Domain"),
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
@@ -47,6 +48,13 @@ let package = Package(
         .target(
             name: "SharedCore",
             dependencies: [.product(name: "Domain", package: "Domain")]
+        ),
+        .target(
+            name: "NotificationClient",
+            dependencies: [
+                .product(name: "Dependencies", package: "swift-dependencies"),
+                .product(name: "DependenciesMacros", package: "swift-dependencies"),
+            ]
         ),
         .target(
             name: "LiveActivityClient",
