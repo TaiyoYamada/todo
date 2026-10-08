@@ -19,7 +19,26 @@ struct TaskEditorView: View {
                     }
                     .font(.title3.weight(.semibold))
                     .focused($isTitleFocused)
+                    if let suggestion = store.suggestion {
+                        Button {
+                            store.send(.applySuggestionTapped)
+                        } label: {
+                            Label {
+                                Text(.taskSuggestionApply(suggestionText(suggestion)))
+                                    .multilineTextAlignment(.leading)
+                            } icon: {
+                                Image(systemName: "sparkles")
+                            }
+                            .font(.subheadline.weight(.semibold))
+                        }
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                } footer: {
+                    if store.isNew {
+                        Text(.taskTitleFooter)
+                    }
                 }
+                .animation(.snappy, value: store.suggestion)
 
                 Section {
                     DatePicker(selection: $store.task.dueAt) {
@@ -133,6 +152,16 @@ struct TaskEditorView: View {
             .listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
         }
+    }
+
+    /// 読み取れた内容を「明日 18:00 · 1時間30分」の形にする。
+    private func suggestionText(_ suggestion: QuickAdd) -> String {
+        [
+            suggestion.dueAt.map { TimeText.dayAndClock($0) },
+            suggestion.estimateMinutes.map { DurationText.compact(minutes: $0) },
+        ]
+        .compactMap(\.self)
+        .joined(separator: " · ")
     }
 
     private var factorText: String {

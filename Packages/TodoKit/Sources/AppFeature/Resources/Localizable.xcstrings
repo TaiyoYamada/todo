@@ -1888,19 +1888,53 @@
         }
       }
     },
+    "task.suggestion.apply" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ に設定"
+          }
+        }
+      }
+    },
+    "task.title.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Write the deadline and how long it takes in the same line, and they're filled in for you."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "締切とかかる時間を続けて書くと、下の欄に反映できます。"
+          }
+        }
+      }
+    },
     "task.title.placeholder" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "e.g. Statistics report"
+            "value" : "e.g. Report by Friday 2h"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "例: 統計学のレポート"
+            "value" : "例: 金曜までにレポート 2時間"
           }
         }
       }
@@ -1969,6 +2003,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "タスクを追加"
+          }
+        }
+      }
+    },
+    "today.cta.advance" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do %2$@ of “%1$@”"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%1$@」を%2$@進める"
           }
         }
       }
@@ -2279,6 +2330,40 @@
         }
       }
     },
+    "today.outlook.free" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish it and you're free for the rest of today."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "終えると、今日はもうロックされません。"
+          }
+        }
+      }
+    },
+    "today.outlook.next" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish it and your next lock moves to %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "終えると、次のロックは %@ まで延びます。"
+          }
+        }
+      }
+    },
     "today.pass.button" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2462,6 +2547,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "今日"
+          }
+        }
+      }
+    },
+    "today.week.clear" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No locks"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ロックなし"
+          }
+        }
+      }
+    },
+    "today.week.deadlines" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld deadlines"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "締切が%lld件"
+          }
+        }
+      }
+    },
+    "today.week.routine" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Goals only"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いつもの目標だけ"
+          }
+        }
+      }
+    },
+    "today.week.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next 7 days"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "これからの7日"
           }
         }
       }

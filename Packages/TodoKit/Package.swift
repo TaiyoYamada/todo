@@ -86,7 +86,8 @@ let package = Package(
         ),
         .target(
             name: "DesignSystem",
-            dependencies: [.product(name: "Domain", package: "Domain")]
+            dependencies: [.product(name: "Domain", package: "Domain")],
+            resources: [.process("Shaders")]
         ),
         .testTarget(
             name: "DatabaseClientTests",
