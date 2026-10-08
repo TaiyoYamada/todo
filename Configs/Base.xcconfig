@@ -1,0 +1,16 @@
+// すべての構成に共通する設定。
+// 値を変えるときは、Dev.xcconfig と Prod.xcconfig の両方に影響することに注意する。
+
+MARKETING_VERSION = 0.1.0
+CURRENT_PROJECT_VERSION = 1
+
+IPHONEOS_DEPLOYMENT_TARGET = 26.0
+TARGETED_DEVICE_FAMILY = 1
+SWIFT_VERSION = 6.0
+
+// 識別子の共通部分。環境ごとの接尾辞は Dev / Prod の側で付ける。
+APP_BUNDLE_ID_BASE = com.taiyoyamada.todo
+
+STRING_CATALOG_GENERATE_SYMBOLS = YES
+LOCALIZATION_PREFERS_STRING_CATALOGS = YES
+SWIFT_EMIT_LOC_STRINGS = YES
