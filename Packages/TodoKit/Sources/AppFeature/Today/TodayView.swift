@@ -21,6 +21,7 @@ struct TodayView: View {
                     suggestedGoal: status.goals.first { !$0.isComplete },
                     onStartFocus: { store.send(.startFocusTapped($0)) },
                     onCompleteTask: { store.send(.completeTaskTapped($0)) },
+                    onStartTask: { store.send(.startTaskTapped($0)) },
                     onUsePass: { store.send(.usePassConfirmed) },
                     onAddGoal: { store.send(.addGoalTapped) }
                 )
@@ -136,6 +137,7 @@ private struct HeroView: View {
     let suggestedGoal: GoalProgress?
     let onStartFocus: (Goal.ID) -> Void
     let onCompleteTask: (TaskItem.ID) -> Void
+    let onStartTask: (TaskItem.ID) -> Void
     let onUsePass: () -> Void
     let onAddGoal: () -> Void
 
@@ -275,12 +277,39 @@ private struct HeroView: View {
             .buttonStyle(.hero)
 
         case let .task(id):
-            Button {
-                onCompleteTask(id)
-            } label: {
-                Label { Text(.todayCtaCompleteTask) } icon: { Image(systemName: "checkmark") }
+            if let startedAt = world.task(id: id)?.startedAt {
+                // 取りかかったあとは、経過時間を見せながら、終わったら押せるようにしておく。
+                Label {
+                    HStack(spacing: 6) {
+                        Text(.todayTaskWorking)
+                        Text(startedAt, style: .timer)
+                    }
+                } icon: {
+                    Image(systemName: "figure.run")
+                }
+                .font(.footnote.weight(.semibold))
+                .monospacedDigit()
+                .foregroundStyle(mood.accent)
+                Button {
+                    onCompleteTask(id)
+                } label: {
+                    Label { Text(.todayCtaCompleteTask) } icon: { Image(systemName: "checkmark") }
+                }
+                .buttonStyle(.hero)
+            } else {
+                Button {
+                    onStartTask(id)
+                } label: {
+                    Label { Text(.todayCtaStartTask) } icon: { Image(systemName: "play.fill") }
+                }
+                .buttonStyle(.hero)
+                Button {
+                    onCompleteTask(id)
+                } label: {
+                    Text(.todayCtaAlreadyDone)
+                }
+                .buttonStyle(.quiet)
             }
-            .buttonStyle(.hero)
         }
         outlook(resolving: reason.source)
     }
