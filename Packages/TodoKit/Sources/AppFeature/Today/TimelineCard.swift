@@ -55,7 +55,10 @@ private struct TimelineRow: View {
                 .font(.subheadline.weight(.semibold))
                 .monospacedDigit()
                 .foregroundStyle(.white.opacity(isCleared ? 0.4 : 0.85))
-                .frame(width: 54, alignment: .leading)
+                // 英語の「5:26 AM」が折り返さない幅にする。
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+                .frame(width: 68, alignment: .leading)
                 .padding(.top, 11)
 
             // 時刻順に印を縦線でつなぎ、1日の流れとして見せる。
