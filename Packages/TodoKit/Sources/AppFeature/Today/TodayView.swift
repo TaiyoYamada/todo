@@ -189,7 +189,12 @@ private struct HeroView: View {
                     .font(.system(size: 34, weight: .heavy, design: .rounded))
                     .multilineTextAlignment(.center)
                 if let nextLockAt {
-                    Text(.todayFreeNext(TimeText.dayAndClock(nextLockAt)))
+                    // 24 時間以内なら時刻だけを出す。深夜に「今日はもうない/次は今日 4:00」と矛盾して見えるのを避ける。
+                    Text(
+                        nextLockAt.timeIntervalSince(status.now) < 24 * 3600
+                            ? .todayFreeNextTime(TimeText.clock(nextLockAt))
+                            : .todayFreeNext(TimeText.dayAndClock(nextLockAt))
+                    )
                         .font(.callout.weight(.medium))
                         .foregroundStyle(.white.opacity(0.75))
                 }

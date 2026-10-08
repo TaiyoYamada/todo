@@ -78,6 +78,10 @@ struct AppFeature {
                 refresh(&state)
                 if isFirstLoad {
                     restore(&state)
+                } else if !world.preferences.hasCompletedOnboarding, state.onboarding == nil {
+                    // 設定から「はじめの説明をもう一度見る」を選んだとき。
+                    state.destination = nil
+                    state.onboarding = OnboardingFeature.State()
                 }
                 return scheduleTick(state)
 
