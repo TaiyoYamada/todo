@@ -42,6 +42,22 @@ public struct TaskItem: Identifiable, Equatable, Hashable, Sendable, Codable {
         self.createdAt = createdAt
     }
 
+    /// 保存済みの JSON に、あとから足した項目が欠けていても読めるようにする。
+    /// 拡張機能は、アプリの更新の直後に、古い版が書いた写しを読むことがある。
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        dueAt = try container.decode(Date.self, forKey: .dueAt)
+        estimateMinutes = try container.decode(Int.self, forKey: .estimateMinutes)
+        usesExactEstimate = try container.decodeIfPresent(Bool.self, forKey: .usesExactEstimate) ?? false
+        startedAt = try container.decodeIfPresent(Date.self, forKey: .startedAt)
+        actualMinutes = try container.decodeIfPresent(Int.self, forKey: .actualMinutes)
+        completedAt = try container.decodeIfPresent(Date.self, forKey: .completedAt)
+        withdrawnAt = try container.decodeIfPresent(Date.self, forKey: .withdrawnAt)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+    }
+
     /// まだ片づいていない(完了も取り下げもしていない)。
     public var isOpen: Bool { completedAt == nil && withdrawnAt == nil }
 
@@ -51,8 +67,14 @@ public struct TaskItem: Identifiable, Equatable, Hashable, Sendable, Codable {
     public func elapsedMinutes(until now: Date) -> Int? {
         guard let startedAt else { return nil }
         let minutes = now.timeIntervalSince(startedAt) / 60
-        return max(5, Int((minutes / 5).rounded()) * 5)
+        let rounded = max(5, Int((minutes / 5).rounded()) * 5)
+        // 何日も前に「始める」を押したままのときに、とんでもない値を出さないようにする。
+        return min(rounded, max(estimateMinutes * Self.elapsedCapFactor, Self.elapsedCapFloor))
     }
+
+    /// 取りかかってからの時間として出す上限。見積もりの 4 倍か 2 時間の、長いほう。
+    private static let elapsedCapFactor = 4
+    private static let elapsedCapFloor = 120
 
     /// これ以上遅らせると間に合わない時刻。
     ///
