@@ -22,12 +22,20 @@ public struct ShieldPlan: Equatable, Sendable, Codable {
         self.wakeTimes = wakeTimes
     }
 
-    public init(status: LockStatus) {
+    /// - Parameter activeFocus: 計測中の集中。あれば、今日の分に達する時刻にも見直す。
+    public init(status: LockStatus, activeFocus: ActiveFocus? = nil) {
         let primary = status.activeReasons.first
         var times = status.upcomingReasons.map(\.startsAt)
         // パスが切れる時刻にも見直す。ロックに戻すため。
         if case let .onPass(until) = status.phase {
             times.append(until)
+        }
+        // 計測が今日の分に達する時刻にも見直す。アプリを閉じて勉強していても、達した時点でロックを外すため。
+        if let activeFocus,
+           let progress = status.goals.first(where: { $0.id == activeFocus.goalID }),
+           progress.remainingSeconds > 0
+        {
+            times.append(status.now.addingTimeInterval(Double(progress.remainingSeconds)))
         }
         self.init(
             isLocked: status.isLocked,
