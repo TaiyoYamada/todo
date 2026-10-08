@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import DatabaseClient
 import Domain
 import Foundation
 import ShieldClient
@@ -160,11 +161,39 @@ struct OnboardingFeatureTests {
 
         #expect(
             spy.writes == [
+                // 済ませた印を先に保存する(順番の理由は次のテスト)。
+                .savePreferences(Preferences(hasCompletedOnboarding: true)),
                 // 名前は前後の空白を除く。ほかは目標の初期値(毎日、朝からロック)。
                 .saveGoal(Goal(id: uuid(0), title: "院試", dailyMinutes: 45, createdAt: now)),
-                .savePreferences(Preferences(hasCompletedOnboarding: true)),
             ]
         )
+    }
+
+    @Test("終えるときに流れる保存データには、目標だけが増えて印がまだ、という途中の状態が現れない")
+    func finishNeverPublishesGoalWithoutFlag() async {
+        // 親は「印が付いていない保存データ」を、初回設定のやり直しの依頼として扱う。
+        // 途中の状態が終了の知らせより遅れて届くと、終えた直後に最初の画面へ戻されてしまう。
+        let database = DatabaseClient.inMemory(World())
+        var worlds = database.observeWorld().makeAsyncIterator()
+        #expect(await worlds.next() == World())
+
+        prepareBoard(World(), now: now)
+        let store = TestStore(initialState: state(at: .ready, title: "院試")) {
+            OnboardingFeature()
+        } withDependencies: {
+            $0.fix(now: LockIsolated(now), database: spy)
+            $0.database = database
+        }
+        await store.send(.finishTapped)
+        await store.receive(\.delegate, .finished)
+        await store.finish()
+
+        let first = await worlds.next()
+        #expect(first?.preferences.hasCompletedOnboarding == true)
+        #expect(first?.goals.isEmpty == true)
+        let second = await worlds.next()
+        #expect(second?.preferences.hasCompletedOnboarding == true)
+        #expect(second?.goals.map(\.title) == ["院試"])
     }
 
     @Test("名前を入れずに終えると、目標は作らず、初回設定を済ませたことだけを保存する")
