@@ -68,12 +68,12 @@ public struct QuickAddParser: Sendable {
         ) {
             let hours = Double(match.groups[0] ?? "") ?? 0
             let extra = Int(match.groups[1] ?? "") ?? (match.groups[2] != nil ? 30 : 0)
-            text.removeSubrange(match.range)
+            text.replaceSubrange(match.range, with: Self.marker)
             return Int((hours * 60).rounded()) + extra
         }
-        // 「90分」「45min」
-        if let match = Self.firstMatch(#"(\d+)\s*(?:分|minutes?|mins?|m(?![a-z]))"#, in: text) {
-            text.removeSubrange(match.range)
+        // 「90分」「45min」。ただし「9時30分」の 30 分は時刻の一部なので、所要時間として読まない。
+        if let match = Self.firstMatch(#"(?<![\d時:])(\d+)\s*(?:分|minutes?|mins?|m(?![a-z]))"#, in: text) {
+            text.replaceSubrange(match.range, with: Self.marker)
             return Int(match.groups[0] ?? "")
         }
         return nil
@@ -96,7 +96,7 @@ public struct QuickAddParser: Sendable {
                 if date < today {
                     date = calendar.date(byAdding: .year, value: 1, to: date) ?? date
                 }
-                text.removeSubrange(match.range)
+                text.replaceSubrange(match.range, with: Self.marker)
                 return date
             }
         }
@@ -109,7 +109,7 @@ public struct QuickAddParser: Sendable {
         ]
         for entry in relative {
             if let match = Self.firstMatch(entry.pattern, in: text) {
-                text.removeSubrange(match.range)
+                text.replaceSubrange(match.range, with: Self.marker)
                 return calendar.date(byAdding: .day, value: entry.offset, to: today)
             }
         }
@@ -118,7 +118,7 @@ public struct QuickAddParser: Sendable {
         if let match = Self.firstMatch(#"(来週の?)?\s*([月火水木金土日])曜日?"#, in: text),
            let symbol = match.groups[1], let weekday = Self.japaneseWeekdays[symbol]
         {
-            text.removeSubrange(match.range)
+            text.replaceSubrange(match.range, with: Self.marker)
             return nextDate(weekday: weekday, nextWeek: match.groups[0] != nil, from: today)
         }
         // "Friday", "next Mon"
@@ -126,20 +126,23 @@ public struct QuickAddParser: Sendable {
             #"\b(next\s+)?(mon|tue|wed|thu|fri|sat|sun)(?:day|sday|nesday|rsday|urday)?\b"#,
             in: text
         ), let symbol = match.groups[1]?.lowercased(), let weekday = Self.englishWeekdays[symbol] {
-            text.removeSubrange(match.range)
+            text.replaceSubrange(match.range, with: Self.marker)
             return nextDate(weekday: weekday, nextWeek: match.groups[0] != nil, from: today)
         }
         return nil
     }
 
-    /// 次に来るその曜日。今日がその曜日なら今日。「来週」と書かれていれば、さらに1週間先。
+    /// 次に来るその曜日。今日がその曜日なら今日。
+    /// 「来週」と書かれていれば、月曜から始まる次の週の、その曜日。
     private func nextDate(weekday: Int, nextWeek: Bool, from today: Date) -> Date? {
         let current = calendar.component(.weekday, from: today)
-        var offset = (weekday - current + 7) % 7
-        if nextWeek {
-            offset += 7
+        guard nextWeek else {
+            return calendar.date(byAdding: .day, value: (weekday - current + 7) % 7, to: today)
         }
-        return calendar.date(byAdding: .day, value: offset, to: today)
+        // 月曜を 0 とした曜日の番号に直す(`Calendar` の weekday は日曜が 1)。
+        let currentFromMonday = (current + 5) % 7
+        let targetFromMonday = (weekday + 5) % 7
+        return calendar.date(byAdding: .day, value: 7 - currentFromMonday + targetFromMonday, to: today)
     }
 
     private static let japaneseWeekdays = ["日": 1, "月": 2, "火": 3, "水": 4, "木": 5, "金": 6, "土": 7]
@@ -153,7 +156,7 @@ public struct QuickAddParser: Sendable {
            let hour = Int(match.groups[1] ?? ""), let minute = Int(match.groups[2] ?? ""),
            let time = Self.time(hour: hour, minute: minute, marker: match.groups[0] ?? match.groups[3])
         {
-            text.removeSubrange(match.range)
+            text.replaceSubrange(match.range, with: Self.marker)
             return time
         }
         // 「18時」「午後6時半」「9時30分」
@@ -162,7 +165,7 @@ public struct QuickAddParser: Sendable {
         {
             let minute = Int(match.groups[2] ?? "") ?? (match.groups[3] != nil ? 30 : 0)
             if let time = Self.time(hour: hour, minute: minute, marker: match.groups[0]) {
-                text.removeSubrange(match.range)
+                text.replaceSubrange(match.range, with: Self.marker)
                 return time
             }
         }
@@ -171,7 +174,7 @@ public struct QuickAddParser: Sendable {
            let hour = Int(match.groups[0] ?? ""),
            let time = Self.time(hour: hour, minute: 0, marker: match.groups[1])
         {
-            text.removeSubrange(match.range)
+            text.replaceSubrange(match.range, with: Self.marker)
             return time
         }
         return nil
@@ -210,56 +213,42 @@ public struct QuickAddParser: Sendable {
 
     // MARK: - 名前の整理
 
-    /// 日付などを取り除いたあとに残る、つなぎの言葉と記号を落とす。
-    private static func cleanTitle(_ text: String) -> String {
-        let particles = [
-            "までに",
-            "まで",
-            "迄に",
-            "迄",
-            "締切",
-            "〆切",
-            "に",
-            "の",
-            "は",
-            "を",
-            "で",
-            "by",
-            "due",
-            "until",
-            "before",
-            "on",
-            "at",
-            "for",
-            "in",
-        ]
-        let trimSet = CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: "、。,.・-:;()()"))
-        var title = text.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
-            .trimmingCharacters(in: trimSet)
+    /// 読み取った部分を取り除いた跡に置く目印。名前には現れない制御文字を使う。
+    private static let marker = "\u{1F}"
 
+    /// 日付などを取り除いた跡の、すぐ隣にあるつなぎの言葉だけを落とす。
+    ///
+    /// 名前のどこにあっても落とすと、「はがきを出す」の「は」のように、言葉の一部まで削ってしまう。
+    private static func cleanTitle(_ text: String) -> String {
+        var title = text
+        let rules = [
+            // 跡のうしろ:「(金曜)までに」「(今日)中に」「(18時)に」
+            #"\u001F\s*(?:までに|まで|迄に|迄|中に|中|締切|〆切|に|の|は)"#,
+            // 跡のまえ:「レポートを(明日)」「締切(明日)」
+            #"(?:締切|〆切|を|は)\s*\u001F"#,
+            // 英語は、単語として独立したつなぎ言葉が跡のまえにあるときだけ。
+            #"(?<![A-Za-z])(?:by|due|until|before|on|at|for|in)\s*\u001F"#,
+        ]
         var changed = true
         while changed {
             changed = false
-            for particle in particles {
-                let lowered = title.lowercased()
-                // 英語のつなぎ言葉は、単語として独立しているときだけ落とす(「Design」の末尾の in などを削らない)。
-                let isWord = particle.allSatisfy(\.isASCII)
-                if lowered.hasSuffix(particle),
-                   !isWord || lowered.dropLast(particle.count).last.map({ $0 == " " }) ?? true
-                {
-                    title = String(title.dropLast(particle.count)).trimmingCharacters(in: trimSet)
-                    changed = true
-                }
-                let loweredAgain = title.lowercased()
-                if loweredAgain.hasPrefix(particle),
-                   !isWord || loweredAgain.dropFirst(particle.count).first.map({ $0 == " " }) ?? true
-                {
-                    title = String(title.dropFirst(particle.count)).trimmingCharacters(in: trimSet)
+            for rule in rules {
+                let replaced = title.replacingOccurrences(
+                    of: rule,
+                    with: marker,
+                    options: [.regularExpression, .caseInsensitive]
+                )
+                if replaced != title {
+                    title = replaced
                     changed = true
                 }
             }
         }
+        let trimSet = CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: "、。,.・-:;()()"))
         return title
+            .replacingOccurrences(of: marker, with: " ")
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: trimSet)
     }
 
     // MARK: - 正規表現
