@@ -1,0 +1,105 @@
+Copyright (c) 2026 Taiyo Yamada. All rights reserved.
+
+================================================================================
+PROPRIETARY SOFTWARE - ALL RIGHTS RESERVED
+================================================================================
+
+This repository and everything in it, including but not limited to source
+code, documentation, designs, images, text and other assets (collectively,
+the "Software"), is the proprietary property of Taiyo Yamada (the "Owner").
+
+The Software is made publicly visible for reference only. Public visibility
+does not make the Software open source, and it does not grant you any license.
+
+1. No license granted
+
+   No license or other right in the Software is granted to you, whether
+   expressly, by implication, by estoppel or otherwise. Without the prior
+   written permission of the Owner, you may not:
+
+   - use the Software, in whole or in part, for any purpose other than
+     viewing it;
+   - copy or reproduce the Software;
+   - modify, adapt, translate or create derivative works of the Software;
+   - distribute, publish, sublicense, sell, rent or otherwise make the
+     Software available to any third party.
+
+2. Rights under the GitHub Terms of Service
+
+   Nothing in this notice limits the rights that the GitHub Terms of Service
+   give to GitHub users with respect to public repositories, namely viewing
+   the Software and forking it within GitHub through the functionality that
+   GitHub provides. Those rights do not extend to any use described in
+   section 1.
+
+3. Third-party components
+
+   Third-party libraries and other materials used by the Software remain the
+   property of their respective owners and are subject to their own license
+   terms.
+
+4. No warranty
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   OWNER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+   ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+   CONNECTION WITH THE SOFTWARE.
+
+5. Permission requests
+
+   To ask for permission, open an issue in this repository:
+   https://github.com/TaiyoYamada/todo/issues
+
+================================================================================
+日本語(参考訳)
+================================================================================
+
+Copyright (c) 2026 Taiyo Yamada. All rights reserved.
+
+本リポジトリとその内容のすべて(ソースコード、文書、デザイン、画像、文章、
+その他の素材を含み、これらに限りません。以下「本ソフトウェア」)は、
+Taiyo Yamada(以下「権利者」)がすべての権利を保有しています。
+
+本ソフトウェアは、参照のためにのみ公開しています。公開されていることは、
+本ソフトウェアがオープンソースであることを意味せず、利用を許諾するものでも
+ありません。
+
+1. 許諾しないこと
+
+   明示か黙示かを問わず、本ソフトウェアに関するいかなる権利も許諾しません。
+   権利者の書面による事前の許可がない限り、次のことはできません。
+
+   - 閲覧以外の目的で、本ソフトウェアの全部または一部を使うこと
+   - 本ソフトウェアを複製すること
+   - 本ソフトウェアを改変、翻案、翻訳すること、または二次的著作物を作ること
+   - 本ソフトウェアを頒布、公開、再許諾、販売、貸与すること、その他の方法で
+     第三者が利用できるようにすること
+
+2. GitHub 利用規約による権利
+
+   本通知は、GitHub 利用規約が公開リポジトリについて GitHub の利用者に認める
+   権利(本ソフトウェアを閲覧すること、および GitHub が提供する機能によって
+   GitHub 上でフォークすること)を制限しません。ただし、その権利は第1項に
+   挙げた利用には及びません。
+
+3. 第三者の著作物
+
+   本ソフトウェアが利用する第三者のライブラリその他の素材は、それぞれの
+   権利者に帰属し、それぞれのライセンス条件に従います。
+
+4. 無保証
+
+   本ソフトウェアは「現状のまま」提供され、商品性、特定目的への適合性、
+   権利の非侵害を含め、明示か黙示かを問わず、いかなる保証もありません。
+   権利者は、契約、不法行為その他の理由を問わず、本ソフトウェアに起因または
+   関連して生じた請求、損害その他の責任を一切負いません。
+
+5. 許可の申請
+
+   許可を求める場合は、本リポジトリの Issue でご連絡ください。
+   https://github.com/TaiyoYamada/todo/issues
+
+この日本語は参考のための翻訳です。英語の文面と食い違う場合は、英語の文面を
+優先します。
