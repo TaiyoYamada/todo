@@ -37,6 +37,8 @@ extension NotificationClient: DependencyKey {
             center.removeAllPendingNotificationRequests()
             let now = Date()
             for notification in notifications where notification.fireAt > now {
+                // 次の置き換えが始まっていたら、ここでやめる。古い内容をあとから足してしまわないように。
+                if Task.isCancelled { return }
                 let content = UNMutableNotificationContent()
                 content.title = notification.title
                 content.body = notification.body
