@@ -57,6 +57,12 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: ""
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         ENABLE_USER_SCRIPT_SANDBOXING: YES
+      configs:
+        # 開発用の構成でだけ DEV を定義する。見本データの切り替えなど、本番に入れない機能の目印。
+        Debug-Dev:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) DEV
+        Release-Dev:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) DEV
 
 schemes:
   Todo-Dev:

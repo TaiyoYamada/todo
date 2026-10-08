@@ -1,14 +1,26 @@
 import ComposableArchitecture
+import DatabaseClient
 import DesignSystem
 import SwiftUI
 
 /// アプリの入口。アプリ本体からは、この View だけが見える。
 public struct RootView: View {
-    @State private var store = Store(initialState: AppFeature.State()) {
-        AppFeature()
-    }
+    @State private var store: StoreOf<AppFeature>
 
-    public init() {}
+    /// - Parameter sampleScenario: 見本データの状態の名前(`locked` など)。指定すると、
+    ///   保存データの代わりにメモリ上の見本データで動く。開発用の構成でだけ渡す。
+    public init(sampleScenario: String? = nil) {
+        let scenario = sampleScenario.flatMap(SampleData.Scenario.init(rawValue:))
+        _store = State(
+            initialValue: Store(initialState: AppFeature.State()) {
+                AppFeature()
+            } withDependencies: {
+                if let scenario {
+                    $0.database = .inMemory(SampleData.world(scenario))
+                }
+            }
+        )
+    }
 
     public var body: some View {
         AppView(store: store)
