@@ -15,11 +15,11 @@
 
 ## 決定
 
-- ロックの仕組みを `ShieldClient` という依存にする。操作は、許可の状態、許可の要求、選んだ対象の数、`apply(plan, world)` の4つ。
+- ロックの仕組みを `ShieldClient` という依存にする。操作は、許可の状態、許可の要求、選んだ対象の数、`apply(plan, world)` の4つ。アプリを選ぶ画面も、このモジュールが View の拡張(`shieldAppPicker`)として出す。
 - 実装を2つ用意し、ビルド先で切り替える。シミュレータとプレビューは模擬(`simulated`)、実機は本物(`screenTime`)。
 - `Domain` はスクリーンタイムを知らない。`LockStatus` から `ShieldPlan`(掛けるかどうか、表示する名前、起こしてほしい時刻)を作るところまでを受け持つ。
 - API を直接呼ぶコードは `SharedCore` に置く。`SharedCore` は `Domain` と Apple 標準だけに依存し、拡張機能にも入れられる。
-- 拡張機能は DB を開かない。アプリ本体が App Group に書いた写し(`snapshot.json`)を読み、同じ `LockEngine` で判定する。
+- 拡張機能とウィジェットは DB を開かない。アプリ本体が App Group に書いた写し(`snapshot.json`)を読み、同じ `LockEngine` で判定する。
 - スクリーンタイムのコードは、実機用のビルドでコンパイルが通ることだけを確認し、文書に「未検証」と書く。
 
 ## 理由
@@ -40,9 +40,9 @@
 ## 影響
 
 - **実際のロックは、まだ一度も動かしていない。** 動くと確かめるまで、公開できない([公開前の確認事項](../release-checklist.md))。
-- ロックするアプリを選ぶ画面(`FamilyActivityPicker`)がまだない。実機で許可しても、対象は 0 件のまま。
-- 拡張機能(監視、シールドの表示、シールドの操作)がまだない。予約は張るが、受け取る側がない。
-- App Group と Family Controls の権限を `project.yml` に足す必要がある。
-- 模擬の実装は、許可を求めると必ず成功し、6 件を選んだことにする。実機の動きとは違う。
+- 未検証のコードは4か所。`SharedCore/ScreenTime.swift`、`ShieldClient/Live.swift`、監視の拡張機能(`Extensions/ShieldMonitor`)、ロック画面の拡張機能(`Extensions/ShieldConfiguration`)。
+- ロック画面のボタンを受け取る拡張機能(ShieldAction)はない。
+- アプリ本体と、スクリーンタイムの2つの拡張機能に、Family Controls の権限が要る。配布には識別子ごとに Apple の承認が要る。
+- 模擬の実装は、許可を求めると必ず成功し、6 件を選んだことにする。アプリを選ぶ画面は、シミュレータでは説明だけを出す。実機の動きとは違う。
 - 実機に入れた `Todo-Dev` は本物の API を呼ぶ。
 - 実機で確かめる前に直すと分かっている点が2つある([設計](../architecture.md) 8)。写しと予約が `ShieldPlan` の変化でしか更新されないことと、ロック中の計測で予約の張り直しが 15 秒ごとに起きること。
