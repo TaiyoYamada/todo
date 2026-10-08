@@ -1,6 +1,6 @@
 # 設計の全体像
 
-最終更新: 2026-10-09(`develop` の 655508a 時点のコードに基づく。PR #13 まで)
+最終更新: 2026-10-09(`develop` の 26c5daf 時点のコードに基づく。PR #16 まで)
 
 コードがどう組まれているかをまとめます。決定の理由は [adr/](adr/README.md) にあります。
 まだ作っていないものは「未実装」、動作を確かめていないものは「未検証」と書きます。
@@ -22,15 +22,17 @@
 | パッケージ | モジュール | 役割 | 依存 |
 |---|---|---|---|
 | `Packages/Domain` | `Domain` | 純粋なロジックと型。1日の区切り、ロックの判定、余裕、ロック予報、週間の見込み、片づけたあとの見通し、ロックの指示(`ShieldPlan`)、見積もりの補正、1行入力の読み取り、振り返りの集計 | Foundation のみ |
-| `Packages/TodoKit` | `AppFeature` | すべての画面の Reducer と View、文言カタログ、見本データ、プレビュー | 下の `*Client`、`SharedCore`、`DesignSystem`、`Domain`、TCA |
+| `Packages/TodoKit` | `AppFeature` | すべての画面の Reducer と View、文言カタログ、見本データ、プレビュー | 下の `*Client`、`SharedCore`、`DesignSystem`、`WidgetUI`、`Domain`、TCA |
 | | `DatabaseClient` | 保存データの窓口。SQLite の実装とメモリ上の実装 | `Domain`、Dependencies、SQLiteData、GRDB |
 | | `ShieldClient` | アプリをロックする仕組みとの境界。実機用と模擬の実装、アプリを選ぶ画面 | `Domain`、`SharedCore`、Dependencies |
 | | `SnapshotClient` | 写しを書き出し、ウィジェットに描き直しを頼む窓口 | `Domain`、`SharedCore`、Dependencies、WidgetKit |
 | | `NotificationClient` | 端末の通知の窓口。予約済みの通知を、渡したものに置き換える | Dependencies |
 | | `LiveActivityClient` | 集中の計測を Live Activity として出す窓口 | `Domain`、`SharedCore`、Dependencies |
 | | `SharedCore` | 拡張機能にも入れる部分。中身は下の表 | `Domain`、Apple 標準のみ |
-| | `WidgetUI` | ウィジェットと Live Activity の見た目、その文言カタログ | `Domain`、`SharedCore`、`DesignSystem` |
-| | `DesignSystem` | 色(`Mood`)、背景、カード、ボタン、進み具合の輪、時間の表示、達成時の演出(Metal のシェーダーによる波紋、光の粒、Core Haptics の振動) | `Domain`、SwiftUI |
+| | `WidgetUI` | ウィジェットと Live Activity の見た目、その文言カタログ。ウィジェットの見た目をアプリの中に並べる開発用の画面(`WidgetGallery`。デバッグビルドのみ) | `Domain`、`SharedCore`、`DesignSystem` |
+| | `DesignSystem` | 色(`Mood`)、背景、カード、ボタン、進み具合の輪、時間の表示、主役の大きな文字(`Font.hero`)、達成時の演出(Metal のシェーダーによる波紋、光の粒、Core Haptics の振動) | `Domain`、SwiftUI |
+
+`AppFeature` が `WidgetUI` に依存するのは、開発用の画面 `WidgetGallery` を出すためだけです(PR #15)。`WidgetUI` は TCA に依存しないので、拡張機能に TCA が入ることはありません。ただし、開発ガイド(`CLAUDE.md`)のモジュールの表は、`AppFeature` が依存してよいものから `WidgetUI` を外しています。どちらに合わせるかは決めていません(「分かっている制限」を参照)。
 
 `SharedCore` の中身は次のとおりです。
 
@@ -46,7 +48,7 @@
 
 | ターゲット | 場所 | 中身 | 依存 |
 |---|---|---|---|
-| `Todo` | `App/`、`Extensions/Shared/` | アプリ本体。`RootView` を表示し、開発用の構成でだけ起動引数 `-sampleData` と `-sampleTab` を読む | `AppFeature`、`SharedCore` |
+| `Todo` | `App/`、`Extensions/Shared/` | アプリ本体。`RootView` を表示し、開発用の構成でだけ起動引数 `-sampleData` と `-sampleTab` を読む。どちらも `RootView` に渡すだけ | `AppFeature`、`SharedCore` |
 | `TodoWidgets` | `Extensions/Widgets/`、`Extensions/Shared/` | ウィジェットと Live Activity の入口。コントロールセンターに置くボタン(`FocusControl`)だけは、ここに実装がある | `WidgetUI`、`SharedCore` |
 | `TodoShieldMonitor` | `Extensions/ShieldMonitor/` | 予約した時刻に起こされ、ロックを掛け直す。**未検証** | `SharedCore` |
 | `TodoShieldConfiguration` | `Extensions/ShieldConfiguration/` | ロックされたアプリを開いたときの画面の文言と色を決める。**未検証** | `SharedCore` |
@@ -78,6 +80,7 @@ flowchart TD
         AppFeature --> LiveActivityClient
         AppFeature --> DesignSystem
         AppFeature --> SharedCore
+        AppFeature -->|"開発用の画面だけ"| WidgetUI
         ShieldClient --> SharedCore
         SnapshotClient --> SharedCore
         LiveActivityClient --> SharedCore
@@ -193,7 +196,7 @@ flowchart LR
 
 写しを先に書くのは、スクリーンタイムの拡張機能が、予約の時刻に最新の状況で判定できるようにするためです。
 
-続けて変更が来たら、古い連絡は途中でやめます(`cancelInFlight`)。各段階のあいだで取り消しを確かめるので、古い指示が、新しい指示のあとから伝わることはありません。ただし、段階の途中では止まりません(「分かっている制限」を参照)。
+続けて変更が来たら、古い連絡は途中でやめます(`cancelInFlight`)。各段階のあいだで取り消しを確かめるので、古い指示が、新しい指示のあとから伝わることはありません。通知の置き換えは、通知を1件予約するごとにも取り消しを確かめます。
 
 それぞれの実装は次のとおりです。
 
@@ -203,7 +206,7 @@ flowchart LR
 | | `testValue`、`previewValue` | テスト、プレビュー | 何もしない |
 | `ShieldClient` | `simulated()` | シミュレータ、プレビュー | ロックの切り替わりをログに出す。何もロックしない |
 | | `screenTime()` | 実機 | `ShieldApplier.apply` で `ManagedSettingsStore` にシールドを設定または解除する。`MonitorScheduler.reschedule` で `DeviceActivityCenter` の予約を張り直す。**未検証** |
-| `NotificationClient` | `liveValue` | アプリ本体 | 予約済みの通知をすべて消し、渡された通知のうち、これから来るものを予約する |
+| `NotificationClient` | `liveValue` | アプリ本体 | 予約済みの通知をすべて消し、渡された通知のうち、これから来るものを予約する。次の置き換えが始まっていたら、途中でやめる |
 | | `testValue`、`previewValue` | テスト、プレビュー | 何もしない |
 
 `ShieldClient` の実装は、写しを書きません。写しは、呼び出し側(`syncOutside`)が先に書いています。
@@ -227,7 +230,7 @@ App Group の識別子は `Info.plist` の `AppGroupIdentifier` から読みま�
 
 | 読む側 | すること |
 |---|---|
-| ウィジェット(`SlackWidget`) | いまの状態と、時間の経過で状態が変わる時刻ごとの状態を、8 個まで先読みして並べる。使い切ったら作り直す。アプリ本体が写しを書くたびにも作り直す |
+| ウィジェット(`SlackWidget`) | いまの状態と、時間の経過で状態が変わる時刻ごとの状態を、8 個まで先読みして並べる。使い切ったら作り直す。アプリ本体が写しを書くたびにも作り直す。横長のウィジェットは、右側に今日のロック予報(まだ片づいていないものを 3 件まで)を出す |
 | 監視の拡張機能(`ShieldMonitorExtension`) | 予約の区間の開始と終了で起こされ、`ShieldApplier.refresh` でロックを掛け直す。どの予約で起きたかは見ない。**未検証** |
 | ロック画面の拡張機能(`ShieldConfigurationExtension`) | いちばん先に片づけるものの名前と、今日の分の残りを出す。残りは、開いた時点で写しから計算する。写しが読めなければ決まった文言を出す。**未検証** |
 
@@ -252,7 +255,7 @@ Live Activity に出るのは集中の計測だけです。次のロックまで
 | 理由 | 対象 | 理由になり始める時刻 |
 |---|---|---|
 | 目標 | 保管していない目標のうち、今日が「やる曜日」で、1日の量が 0 より大きく、今日の分が終わっていないもの | 「朝から」は1日の開始時刻。「時刻を指定」はその時刻。**作った当日は理由にならない** |
-| タスク | 未完了(完了も取り下げもしていない)のタスクすべて | 着手リミット = 締切 −(見積もり × 倍率) |
+| タスク | 未完了(完了も取り下げもしていない)のタスクすべて | 着手リミット = 締切 −(見積もり × 倍率)。「見積もりどおり」にしたタスク(`usesExactEstimate`)は、倍率を掛けない |
 
 今日の分の進み具合は、今日始めた記録の合計に、計測中のぶんを足したものです。計測を止めなくても、達した時点で理由が消えます。計測が1日の区切りをまたいでいるときは、区切りより後のぶんだけを今日に数えます。
 
@@ -299,6 +302,8 @@ Live Activity に出るのは集中の計測だけです。次のロックまで
 ### 3.4 見積もりの補正
 
 着手リミットに掛ける倍率は `World.estimateFactor` で決まります。設定が固定(1 / 1.25 / 1.5 / 2 倍)ならその値、「自動」(初期値)なら `EstimateCalibration` の値です。詳しくは [ADR 0007](adr/0007-estimate-calibration.md)。
+
+タスクごとに、倍率を掛けないようにもできます(`TaskItem.usesExactEstimate`。PR #16)。`TaskItem.startLimit(factor:)` が、このタスクには倍率を 1 として計算します。タスクの編集画面の「見積もりどおりの時刻にする」で切り替えます。同じ画面で、切り替えていないタスクには、着手リミットがその時刻になる理由(見積もり、倍率、見込んでいる時間)を出します。
 
 ### 3.5 ShieldPlan
 
@@ -403,7 +408,7 @@ SQLite に保存します。場所は `SQLiteData.defaultDatabase()` が決め�
 
 表は移行 `v1: 最初の表`(`Schema.swift`)で作ります。すべて `STRICT` です。日時は 1970 年からの秒数(REAL)、ID は UUID の文字列(TEXT)です。
 
-移行は `v1` の1つだけです。`tasks.startedAt` は、まだ一度も配布していないので、新しい移行を足さずに `v1` に入れました。それより前の `v1` で作った DB が手元のシミュレータに残っているときは、アプリを消して入れ直します([開発の手順](development.md) 6)。
+移行は `v1` の1つだけです。`tasks.startedAt` と `tasks.usesExactEstimate` は、まだ一度も配布していないので、新しい移行を足さずに `v1` に入れました。それより前の `v1` で作った DB が手元のシミュレータに残っているときは、アプリを消して入れ直します([開発の手順](development.md) 6)。
 
 **`goals`**(目標)
 
@@ -427,6 +432,7 @@ SQLite に保存します。場所は `SQLiteData.defaultDatabase()` が決め�
 | `title` | TEXT | |
 | `dueAt` | REAL | 締切 |
 | `estimateMinutes` | INTEGER | 見積もり(分) |
+| `usesExactEstimate` | INTEGER、既定 0 | 着手リミットを、見積もりどおり(倍率なし)で計算するか |
 | `startedAt` | REAL、NULL 可 | 取りかかった時刻。「いま始める」を押したときに入る |
 | `actualMinutes` | INTEGER、NULL 可 | 実際にかかった時間(分)。完了のときに本人が答える。見積もりの補正に使う |
 | `completedAt` | REAL、NULL 可 | 完了した時刻 |
@@ -479,7 +485,7 @@ DB のほかに保存しているものが3つあります。どれも App Group
 
 | カタログ | 件数 | 参照のしかた |
 |---|---|---|
-| `Packages/TodoKit/Sources/AppFeature/Resources/Localizable.xcstrings` | 159 | 生成されたシンボル(`Text(.todaySlackLabel)`) |
+| `Packages/TodoKit/Sources/AppFeature/Resources/Localizable.xcstrings` | 161 | 生成されたシンボル(`Text(.todaySlackLabel)`) |
 | `Packages/TodoKit/Sources/WidgetUI/Resources/Localizable.xcstrings` | 17 | 生成されたシンボル(`Text(.widgetSlackName)`) |
 | `Extensions/ShieldConfiguration/Localizable.xcstrings` | 5 | キーの文字列(`String(localized: "shield.button")`) |
 | `Extensions/Widgets/Localizable.xcstrings` | 2 | キーの文字列(`Label("control.focus.title", …)`)。コントロールセンターのボタンの名前と説明 |
@@ -493,11 +499,11 @@ DB のほかに保存しているものが3つあります。どれも App Group
 
 ## 7. テスト
 
-2026-10-09、PR #13 の時点で、下のテストはすべて通りました(シミュレータは iPhone Air、iOS 27.0)。`make lint` も通ります。
+2026-10-09 時点で、下のテストはすべて通っています。`Domain`、Reducer、`DatabaseClient` は PR #16 の時点、UI テストは PR #14 の時点で確かめました(シミュレータは iPhone Air、iOS 27.0)。`make lint` も通ります。
 
 | 対象 | 場所 | 実行 | 件数 | 確かめていること |
 |---|---|---|---|---|
-| `Domain` | `Packages/Domain/Tests/DomainTests` | `make test-domain`(macOS、シミュレータ不要) | 66 | 1日と1週間の区切り(夏時間、区切りでの分割を含む)、ロックの判定、片づけたあとの見通し、週間の見込み、見積もりの補正、1行入力の読み取り、振り返りの集計 |
+| `Domain` | `Packages/Domain/Tests/DomainTests` | `make test-domain`(macOS、シミュレータ不要) | 67 | 1日と1週間の区切り(夏時間、区切りでの分割を含む)、ロックの判定、片づけたあとの見通し、週間の見込み、見積もりの補正、1行入力の読み取り、振り返りの集計 |
 | Reducer | `Packages/TodoKit/Tests/AppFeatureTests` | `make test-app` | 193 | すべての画面の Reducer。アプリの外への連絡の順と取り消し、外からの依頼、通知の内容、今日の行の並べ方も含む |
 | `DatabaseClient` | `Packages/TodoKit/Tests/DatabaseClientTests` | `make test-app` | 8 | 実際の SQLite(テストごとの一時データベース)に対する読み書き、連鎖削除、変更の通知 |
 | UI | `UITests` | `make test-ui`(`make test-app` にも含まれる) | 30 | 見本データで起動し、起動時の表示(4つの状態、日本語と英語)、初回設定、集中の開始と停止、目標とタスクの追加、1行入力の提案、タスクの完了、「いま始める」から完了まで、タブ、設定、振り返りを通す |
@@ -515,11 +521,11 @@ DB のほかに保存しているものが3つあります。どれも App Group
 
 | もの | 理由 |
 |---|---|
-| ウィジェット、Live Activity、コントロールセンターのボタンの見た目 | OS が描く。UI テストは、計測中にホーム画面へ出て写しを残すだけで、中身は確かめていない |
+| ウィジェット、Live Activity、コントロールセンターのボタンの見た目 | OS が描く。UI テストは、計測中にホーム画面へ出て写しを残すだけで、中身は確かめていない。ウィジェットの配置は、開発用の画面(`-sampleTab widgets`)で目で確かめる |
 | 今日の分に達したときの演出(波紋、光の粒、振動) | UI テストは、今日の分に達する前に計測を止める |
 | `SharedCore`、`*Client` の本番の実装(`DatabaseClient` を除く) | 外の世界に触るため |
 
-主要な画面は、見本データを使った Xcode のプレビューでも確かめられます(`AppFeature/Support/Previews.swift`)。
+主要な画面は、見本データを使った Xcode のプレビューでも確かめられます(`AppFeature/Support/Previews.swift`)。UI テストが撮った画面は、[画面の一覧](../screenshots/README.md)にあります。
 
 ## 8. 分かっている制限
 
@@ -534,7 +540,7 @@ DB のほかに保存しているものが3つあります。どれも App Group
 | ロックするアプリの選択 | 実機では OS の選択画面を出すコードがある(未検証)。シミュレータでは選べず、模擬の実装が 6 件を選んだことにする |
 | ロック画面のボタンの動き | シールドの操作の拡張機能(ShieldAction)がない。ボタンを押したときの動きは決めていない |
 | Family Controls の権限 | `project.yml` と entitlements に書いてある。有料の開発者登録がないので、実機向けの署名では確かめていない |
-| ウィジェットの見た目 | 画面に出た様子を、まだ見ていない |
+| ウィジェットの見た目 | 配置は、開発用の画面 `WidgetGallery` で確かめた(PR #15。小、横長、ロック画面の長方形と1行。日本語と英語)。枠と背景は OS のものを真似ただけなので、ホーム画面やロック画面に実際に置いた様子は、まだ見ていない |
 | Live Activity の見た目 | 開始の要求が通り、システムに登録されることは、シミュレータのログで確かめた。画面に出た様子は見ていない |
 | コントロールセンターのボタン | 見た目も、押してアプリが開き計測の画面まで進むことも、確かめていない。`StartFocusIntent` をアプリ本体にも入れたのは、開けないおそれへの対処で、効くかどうかは未確認 |
 | 目標の保管 | `Goal.isArchived` と列はあるが、切り替える画面がない。いまは削除だけ |
@@ -548,7 +554,6 @@ DB のほかに保存しているものが3つあります。どれも App Group
 |---|---|
 | 計測中は、15 秒ごとに連絡し直している | `ShieldPlan` に入れる「今日の分に達する時刻」を、`status.now + remainingSeconds` で求めている。`remainingSeconds` は秒未満を切り捨てた整数なので、この時刻が計算のたびに 1 秒未満ずれる。その結果、計測中は `.tick` のたびに `ShieldPlan` が「変わった」と判定され、写し、ウィジェットの描き直し、予約の張り直し、通知の作り直しが毎回走る。秒未満のある時刻で計算して確かめた。Reducer のテストは切りのよい時刻しか使っていないので、通っている。計測を始めた時刻から求めれば、ずれない。[リスクの調査](../research/risks.md)では、予約の張り直しは不具合の報告が多い操作なので、実機で確かめる前に直す |
 | 1回きりの予約は、秒未満を切り捨てる | 予約の時刻は、年月日と時分秒で渡す。パスが切れる時刻や、今日の分に達する時刻には秒未満があるので、予約は最大 1 秒早くなる。起こされた拡張機能が、まだ条件を満たさないと判定すると、区間の終わり(15 分後)まで見直されない可能性がある。実機で確かめる |
-| 通知の置き換えは、途中で止まらない | `NotificationClient.replaceAll` は、取り消しを見ない。続けて変更が来ると、古い呼び出しが残りの通知を足し続け、新しい呼び出しの結果に混ざることがある。`syncOutside` が確かめるのは、段階と段階のあいだだけ |
 | アプリの選び直しは、別の道を通る | 設定でロックするアプリを選び直すと、`SettingsFeature` が `shield.apply` を直接呼ぶ。`syncOutside` の取り消しや順序の仕組みの外にある |
 | 毎日の予約は 8 件まで | 目標ごとに違う時刻を指定して、1日の開始時刻と合わせて 9 種類以上になると、時刻の遅いものは毎日の予約に入らない。その時刻は、当日にアプリが連絡し直して1回きりの予約に入れないかぎり、起こされない |
 | 明日の目標の前触れがない | 通知の対象は、今日の目標と未完了のタスクだけ。明日の朝に始まる目標のロックは、その日にアプリが計算し直すまで、通知の対象に入らない |
@@ -560,6 +565,10 @@ DB のほかに保存しているものが3つあります。どれも App Group
 | 削除と取り下げ | タスクを削除すると、取り下げの回数に数えられずに理由が消える。目標を削除して作り直すと、その日はロックされない |
 | 許可の取り消し | スクリーンタイムの許可の状態を見るのは、初回設定と設定の画面だけ。設定アプリで許可を切られても、ほかの画面は気づかない |
 | 外からの依頼は、割り込まない | 初回設定の途中や、すでに何かを開いているときに届いた依頼は捨てる。あとで開き直しはしない |
-| 「完了にする」のボタンの読み上げ | PR #13 の作業中に、「完了にする」のボタンが VoiceOver の「選択中」の特性を持つことが分かった。コードでは付けていない(付けているのは、選択肢のチップ、記号、色、曜日だけ)。原因は調べていない |
+| 「完了にする」のボタンの読み上げ | 記号だけの完了ボタンが、VoiceOver で「選択中」と読まれていた。PR #14 で、ロック予報の行、「この先の締切」、「予定」の3か所のボタンから、その特性を外した。「今日」のいちばん上、タスクの編集画面、完了の確認にある、文字つきの「完了にする」のボタンは変えていない。こちらがどう読まれるかは確かめていない |
+| 着手リミットの説明が、実績のないときも同じ文になる | タスクの編集画面は、いつも「これまで約◯倍かかっているので」と説明する。実績が 3 件に満たず 1.5 倍を仮に使っているときも、設定で倍率を固定しているときも、同じ文が出る |
+| 「見積もりどおり」は、すぐに効く | ロック中に切り替えると、着手リミットが後ろへずれて、ロックが外れる。締切や見積もりの編集と同じ種類の抜け道で、塞いでいない |
+| 写しの形が変わると、古い写しは読めない | `TaskItem.usesExactEstimate` には、欠けていたときの既定値の読み取りがない。この項目のない古い写しは読めず、アプリ本体が次に書き直すまで、ウィジェットは「未設定」の表示になり、監視の拡張機能は何もしない。まだ配布していないので実害はない。配布したあとに項目を足すときは、欠けていても読めるようにする |
+| `AppFeature` が `WidgetUI` に依存している | 開発用の画面 `WidgetGallery` のため(PR #15)。開発ガイド(`CLAUDE.md`)のモジュールの表は、これを認めていない。表を直すか、画面の置き場を変えるかを決める |
 | 依存を通さない時刻 | `AppFeature` の中でも、`TimeText`、`GoalEditorView` の一部、見本データ、プレビューは `Calendar.current` や現在時刻を直接使う。ウィジェット、拡張機能、`*Client` の実装が直接使うのは意図どおり |
 | `World` の読み直し | 集中の記録とパスの記録を全件読む。件数の上限や古い記録の整理は決めていない |
