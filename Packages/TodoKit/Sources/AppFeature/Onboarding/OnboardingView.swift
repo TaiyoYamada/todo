@@ -52,6 +52,7 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 18) {
             Spacer()
             Text(.onboardingHookTitle)
+                .accessibilityIdentifier("onboarding.step.hook")
                 .font(.system(size: 54, weight: .heavy, design: .rounded))
                 .minimumScaleFactor(0.7)
             Text(.onboardingHookBody)
@@ -67,6 +68,7 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 26) {
             Spacer()
             Text(.onboardingMechanismTitle)
+                .accessibilityIdentifier("onboarding.step.mechanism")
                 .font(.system(size: 40, weight: .heavy, design: .rounded))
                 .minimumScaleFactor(0.7)
             VStack(alignment: .leading, spacing: 20) {
@@ -99,6 +101,7 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 22) {
             Spacer()
             Text(.onboardingGoalTitle)
+                .accessibilityIdentifier("onboarding.step.goal")
                 .font(.system(size: 36, weight: .heavy, design: .rounded))
                 .minimumScaleFactor(0.7)
             TextField(text: $store.goalTitle) {
@@ -106,6 +109,7 @@ struct OnboardingView: View {
             }
             .font(.title2.weight(.semibold))
             .focused($isTitleFocused)
+            .accessibilityIdentifier("onboarding.goalTitle")
             .submitLabel(.done)
             .padding(18)
             .glassEffect(.regular, in: .rect(cornerRadius: 20))
@@ -149,6 +153,7 @@ struct OnboardingView: View {
         VStack(alignment: .leading, spacing: 22) {
             Spacer()
             Text(.onboardingAppsTitle)
+                .accessibilityIdentifier("onboarding.step.apps")
                 .font(.system(size: 36, weight: .heavy, design: .rounded))
                 .minimumScaleFactor(0.7)
             Text(.onboardingAppsBody)
@@ -164,6 +169,7 @@ struct OnboardingView: View {
                 }
                 .font(.headline)
                 .foregroundStyle(mood.accent)
+                .accessibilityIdentifier("onboarding.apps.approved")
                 Button {
                     store.send(.chooseAppsTapped)
                 } label: {
@@ -181,6 +187,7 @@ struct OnboardingView: View {
                     Label { Text(.onboardingAppsAllow) } icon: { Image(systemName: "hourglass") }
                 }
                 .buttonStyle(.quiet)
+                .accessibilityIdentifier("onboarding.allow")
                 .disabled(store.isRequestingAuthorization)
             }
             Spacer()
@@ -207,6 +214,7 @@ struct OnboardingView: View {
                 .symbolEffect(.bounce, value: store.step)
                 .shadow(color: mood.accent.opacity(0.6), radius: 28)
             Text(.onboardingReadyTitle)
+                .accessibilityIdentifier("onboarding.step.ready")
                 .font(.system(size: 38, weight: .heavy, design: .rounded))
                 .multilineTextAlignment(.center)
             Text(.onboardingReadyBody)
@@ -240,6 +248,7 @@ struct OnboardingView: View {
                     Text(.onboardingStart)
                 }
                 .buttonStyle(.hero)
+                .accessibilityIdentifier("onboarding.start")
             } else {
                 Button {
                     isTitleFocused = false
@@ -249,6 +258,7 @@ struct OnboardingView: View {
                 }
                 .buttonStyle(.hero)
                 .disabled(!store.canAdvance)
+                .accessibilityIdentifier("onboarding.next")
             }
             Button {
                 store.send(.backTapped)
@@ -260,6 +270,7 @@ struct OnboardingView: View {
             }
             .opacity(store.step == .hook ? 0 : 1)
             .disabled(store.step == .hook)
+            .accessibilityIdentifier("onboarding.back")
         }
     }
 }
