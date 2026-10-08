@@ -1,0 +1,2 @@
+# テンプレートを使わない白紙の Issue は作れないようにする
+blank_issues_enabled: false
