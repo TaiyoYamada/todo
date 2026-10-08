@@ -1,4 +1,4 @@
-# Yoyu(仮称)— 開発ガイド
+# Lockcast(仮称)— 開発ガイド
 
 後回しにしてきた大事なことを、スマホが止まる前に終わらせる iPhone アプリ。
 仕様は `docs/product/spec.md`、決定の経緯は `docs/product/decision-log.md` にある。作業の前に仕様を読むこと。
@@ -36,21 +36,27 @@ make format        # SwiftFormat で整形
 ## 構成
 
 ```
-App/                  アプリ本体(薄い。起動と依存の組み立てだけ)
-Extensions/           ウィジェット、Live Activity、スクリーンタイムの拡張機能
-Packages/TodoKit/     ほぼすべてのコード(ローカルの Swift パッケージ)
+App/                  アプリ本体(薄い。起動と、見本データの起動引数の読み取りだけ)
+Extensions/           ウィジェット、Live Activity、スクリーンタイムの拡張機能(予定。まだない)
+Packages/Domain/      純粋なロジックと型(ローカルの Swift パッケージ。macOS でテストできる)
+Packages/TodoKit/     それ以外のほぼすべてのコード(ローカルの Swift パッケージ)
+UITests/              UI テスト
 Configs/              ビルド設定(xcconfig)。Dev と Prod を分ける
 docs/                 仕様、設計、調査
 ```
 
-`Packages/TodoKit` のモジュール:
+モジュール:
 
-| モジュール | 役割 | 依存してよいもの |
-|---|---|---|
-| `Domain` | 純粋なロジックと型。ロックの判定、余裕の計算 | Foundation のみ |
-| `DesignSystem` | 色、文字、部品、演出 | SwiftUI |
-| `*Client` | 外の世界との境界(DB、ロック、通知、Live Activity) | Domain、Dependencies |
-| `*Feature` | 画面ごとの Reducer と View | 上のすべて、TCA |
+| モジュール | パッケージ | 役割 | 依存してよいもの |
+|---|---|---|---|
+| `Domain` | `Packages/Domain` | 純粋なロジックと型。ロックの判定、余裕の計算、見積もりの補正 | Foundation のみ |
+| `DesignSystem` | `Packages/TodoKit` | 色、文字、部品、演出 | Domain、SwiftUI |
+| `SharedCore` | `Packages/TodoKit` | 拡張機能にも入れる部分。App Group、保存データの写し、スクリーンタイム API の呼び出し | Domain、Apple 標準のみ |
+| `DatabaseClient` | `Packages/TodoKit` | 保存データの窓口(SQLiteData)。メモリ上の実装もある | Domain、Dependencies、SQLiteData、GRDB |
+| `ShieldClient` | `Packages/TodoKit` | アプリをロックする仕組みとの境界。実機用と模擬の実装 | Domain、SharedCore、Dependencies |
+| `AppFeature` | `Packages/TodoKit` | すべての画面の Reducer と View、文言カタログ、見本データ | 上のすべて、TCA |
+
+画面は、いまはすべて `AppFeature` という1つのターゲットにあり、フォルダで分けている(`Today/`、`Plan/`、`Focus/` など)。画面ごとのターゲットには分けていない。通知や Live Activity の `*Client` はまだない。
 
 設計の詳細は `docs/engineering/architecture.md`。
 
@@ -75,8 +81,10 @@ docs/                 仕様、設計、調査
 
 | スキーム | 用途 | 違い |
 |---|---|---|
-| `Todo-Dev` | ローカル開発 | 別アプリとして入る(名前と識別子が違う)。ロックは模擬、見本データを投入できる |
-| `Todo-Prod` | 本番 | 本物のスクリーンタイム API を使う |
+| `Todo-Dev` | ローカル開発 | 別アプリとして入る(名前と識別子が違う)。見本データを投入できる(`-sampleData`) |
+| `Todo-Prod` | 本番 | 見本データは使えない |
+
+ロックが本物か模擬かは、スキームではなくビルド先で決まる。シミュレータでは模擬、実機では本物のスクリーンタイム API(未検証)。
 
 ## 未検証のもの
 
