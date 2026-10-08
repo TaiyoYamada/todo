@@ -53,7 +53,7 @@ make test-app DESTINATION='platform=iOS Simulator,name=iPhone 17'
 
 注意点:
 
-- `make lint` は、2026-10-09 時点で違反を報告して失敗します(行の長さ、画像のアクセシビリティ、`Date()` の直接呼び出しなど)。未解消です。
+- `make lint` は、2026-10-09 時点で違反を報告して失敗します。SwiftLint の指摘と、SwiftFormat の整形が必要なファイルが残っています。
 - CI は手動実行だけで、まだ一度も実行していません。手元の `make test` が品質の確認になります。
 
 ## 3. スキーム
@@ -65,6 +65,7 @@ make test-app DESTINATION='platform=iOS Simulator,name=iPhone 17'
 | 識別子 | `com.taiyoyamada.todo.dev` | `com.taiyoyamada.todo` |
 | 拡張機能の識別子 | 上に `.widgets`、`.shield-monitor`、`.shield-configuration` を付けたもの | 同じ |
 | App Group の識別子 | `group.com.taiyoyamada.todo.dev` | `group.com.taiyoyamada.todo` |
+| URL スキーム | `lockcast-dev` | `lockcast` |
 | コンパイル条件 `DEV` | あり | なし |
 | 起動引数 `-sampleData` | 使える | 無視される |
 | スキームに入っているテスト | あり | なし |
@@ -97,6 +98,13 @@ make test-app DESTINATION='platform=iOS Simulator,name=iPhone 17'
 - 定義は `Packages/TodoKit/Sources/AppFeature/Support/SampleData.swift`。UI テストも同じものを使う。
 - 同じ見本データで、主要な画面の Xcode プレビューを用意してある(`Support/Previews.swift`)。画面の見た目だけを直すときは、こちらのほうが速い。
 
+ウィジェットやコントロールセンターから開く動きは、URL を直接開いて試せます。
+
+```sh
+xcrun simctl openurl booted lockcast-dev://focus      # いちばん先にやるべき目標の計測を開く
+xcrun simctl openurl booted lockcast-dev://add-task   # タスクの追加を開く
+```
+
 模擬のロックの切り替わりは、ログで見られます。
 
 ```sh
@@ -112,6 +120,7 @@ xcrun simctl spawn booted log stream --level info --predicate 'subsystem == "com
 | アプリの画面、通知 | `Packages/TodoKit/Sources/AppFeature/Resources/Localizable.xcstrings` |
 | ウィジェット、Live Activity | `Packages/TodoKit/Sources/WidgetUI/Resources/Localizable.xcstrings` |
 | ロック画面(シールド) | `Extensions/ShieldConfiguration/Localizable.xcstrings` |
+| コントロールセンターのボタン | `Extensions/Widgets/Localizable.xcstrings` |
 
 手順は同じです。
 
@@ -145,7 +154,7 @@ xcrun simctl spawn booted log stream --level info --predicate 'subsystem == "com
 - 時間の長さ、時刻、日付、曜日は文言に埋め込まず、`DurationText`、`TimeText` などの書式に任せ、引数で渡す。
 - カタログの JSON を直接書くときは、`"extractionState": "manual"` を付ける。
 
-ロック画面の拡張機能だけ、いまはシンボルではなくキーの文字列で参照しています(`String(localized: "shield.button")`)。打ち間違いがコンパイル時に分からないので、足すときはキーをよく確かめます。
+拡張機能の側にある2つのカタログ(ロック画面、コントロールセンターのボタン)は、シンボルではなくキーの文字列で参照しています(`String(localized: "shield.button")`、`Label("control.focus.title", …)`)。打ち間違いがコンパイル時に分からないので、足すときはキーをよく確かめます。
 
 ## 6. データベースの移行を足す
 
@@ -192,7 +201,7 @@ migrator.registerMigration("v2: タスクにメモの列を足す") { db in
    - `@Reducer struct`、`@ObservableState struct State: Equatable`。
    - 保存データやロックの状態を見るなら、`State` に `@SharedReader(.board) var board` を置く。
    - 保存するときは `@Dependency(\.database)` の操作を呼ぶ。`Board` は書き換えない。
-   - 時刻は `@Dependency(\.date.now)`、ID は `@Dependency(\.uuid)`、待ちは `@Dependency(\.continuousClock)` から受け取る。`Date()` や `UUID()` を直接呼ばない。
+   - 時刻は `@Dependency(\.date.now)`、ID は `@Dependency(\.uuid)`、待ちは `@Dependency(\.continuousClock)` から受け取る。`Date()` や `UUID()` を直接呼ばない(`AppFeature` の中は SwiftLint が検査する)。
    - ロックは `@Dependency(\.shield)`、通知は `@Dependency(\.notifications)`、Live Activity は `@Dependency(\.liveActivity)` を通す。
    - 判定や計算は Reducer に書かず、`Domain` に置いてテストする。
 3. View を書く。`StoreOf<…>` を受け取り、状態を描いて、操作をアクションとして送るだけにする。
@@ -239,6 +248,7 @@ migrator.registerMigration("v2: タスクにメモの列を足す") { db in
 - ロックの**判定**と、それを見せる画面。時刻が絡む動きは、見本データと `Domain` のテストで確かめる
 - ロックの前の通知(通知の許可は、初回設定を終えた直後に求められる)
 - ウィジェット(ホーム画面とロック画面)。写しは模擬の実装でも書き出す
+- ウィジェットやコントロールセンターのボタンから、計測の画面を開く動き
 - 集中の Live Activity
 
 ウィジェットと通知は、ロックの状態が変わったときにしか更新されません。目標を足した直後に内容が変わらないのは、いまの作りの制限です([設計](architecture.md) 8)。
