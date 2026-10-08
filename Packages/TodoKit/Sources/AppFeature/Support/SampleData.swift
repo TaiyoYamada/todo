@@ -9,6 +9,8 @@ enum SampleData {
     enum Scenario: String, CaseIterable {
         /// 今日の分が残っていて、ロックされている。
         case locked
+        /// 目標の今日の分は終えたが、タスクの着手リミットを過ぎて、ロックされている。
+        case taskLocked
         /// ロックはまだだが、今日のうちに次のロックが来る。
         case countdown
         /// 今日の分をすべて終えて、自由。
@@ -123,6 +125,12 @@ enum SampleData {
         switch scenario {
         case .locked, .fresh:
             break
+        case .taskLocked:
+            sessions.append(
+                FocusSession(id: id(300), goalID: exam.id, startedAt: now.addingTimeInterval(-3 * 3600), seconds: 45 * 60)
+            )
+            // 締切まで 1 時間。所要 90 分なので、着手リミットはもう過ぎている。
+            tasks[0].dueAt = now.addingTimeInterval(3600)
         case .countdown:
             sessions.append(
                 FocusSession(id: id(300), goalID: exam.id, startedAt: now.addingTimeInterval(-3 * 3600), seconds: 45 * 60)
