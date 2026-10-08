@@ -1,13 +1,12 @@
 import XCTest
 
 /// 「予定」の画面から、タスクと目標を追加する。
+///
+/// 最初から「予定」を開いて起動する。タブの切り替えは `TabTests` で確かめる。
 final class PlanTests: XCTestCase {
     @MainActor
     func testAddTaskFromPlan() {
-        let app = launchApp(.countdown)
-        waitFor(app.element("today.hero.countdown"))
-
-        app.selectTab(.plan)
+        let app = launchApp(.countdown, tab: .plan)
         waitFor(app.element("plan.tasks.title"))
         attachScreenshot("Plan")
 
@@ -33,10 +32,7 @@ final class PlanTests: XCTestCase {
 
     @MainActor
     func testTaskTitleWithDetailsShowsSuggestion() {
-        let app = launchApp(.countdown)
-        waitFor(app.element("today.hero.countdown"))
-
-        app.selectTab(.plan)
+        let app = launchApp(.countdown, tab: .plan)
         waitFor(app.element("plan.tasks.title"))
         let add = app.element("plan.addTask")
         scrollUntilHittable(add, in: app)
@@ -62,10 +58,7 @@ final class PlanTests: XCTestCase {
 
     @MainActor
     func testAddGoalFromPlan() {
-        let app = launchApp(.countdown)
-        waitFor(app.element("today.hero.countdown"))
-
-        app.selectTab(.plan)
+        let app = launchApp(.countdown, tab: .plan)
         waitFor(app.element("plan.addGoal")).tap()
 
         let title = waitFor(app.textFields["goalEditor.title"])
@@ -84,10 +77,7 @@ final class PlanTests: XCTestCase {
 
     @MainActor
     func testCancelDiscardsNewTask() {
-        let app = launchApp(.countdown)
-        waitFor(app.element("today.hero.countdown"))
-
-        app.selectTab(.plan)
+        let app = launchApp(.countdown, tab: .plan)
         waitFor(app.element("plan.tasks.title"))
         let add = app.element("plan.addTask")
         scrollUntilHittable(add, in: app)
@@ -104,10 +94,7 @@ final class PlanTests: XCTestCase {
 
     @MainActor
     func testPlanInJapanese() {
-        let app = launchApp(.countdown, language: .japanese)
-        waitFor(app.element("today.hero.countdown"))
-
-        app.selectTab(.plan)
+        let app = launchApp(.countdown, language: .japanese, tab: .plan)
         waitFor(app.element("plan.goals.title"))
         waitFor(app.element("plan.tasks.title"))
         attachScreenshot("Plan-top-ja")

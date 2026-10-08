@@ -32,10 +32,7 @@ final class SettingsAndInsightsTests: XCTestCase {
 
     @MainActor
     private func checkInsights(language: Language) {
-        let app = launchApp(.countdown, language: language)
-        waitFor(app.element("today.hero.countdown"))
-
-        app.selectTab(.insights)
+        let app = launchApp(.countdown, language: language, tab: .insights)
         waitFor(app.element("insights.week.title"))
         // 見本データには過去の記録があるので、日ごとのグラフも出る。
         XCTAssertTrue(app.element("insights.chart.title").exists)
