@@ -1,0 +1,113 @@
+name: 不具合の報告
+description: アプリが期待どおりに動かないときに使います
+title: "[不具合] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        報告ありがとうございます。分かる範囲で埋めてください。
+        個人情報や、他人に見られて困る内容(画面に映った予定や名前など)は載せないでください。
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: 起きたこと
+      description: 何が起きたかを、短く書いてください。
+      placeholder: 例)目標を追加したあと、一覧に表示されない
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現の手順
+      description: 同じことを起こすための操作を、順番に書いてください。
+      placeholder: |
+        1. アプリを開く
+        2. 「追加」を押す
+        3. 題名を入れて保存する
+        4. 一覧に戻る
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待した動き
+      placeholder: 例)追加した目標が一覧のいちばん上に出る
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の動き
+      placeholder: 例)一覧が空のまま。アプリを開き直すと出てくる
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: 起きる頻度
+      options:
+        - 毎回起きる
+        - ときどき起きる
+        - 一度だけ起きた
+        - 分からない
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: アプリのバージョン
+      description: 分かれば書いてください。開発中のビルドなら、ブランチ名やコミットでも構いません。
+      placeholder: 例)1.0.0 (12)
+    validations:
+      required: false
+
+  - type: input
+    id: ios-version
+    attributes:
+      label: iOS のバージョン
+      placeholder: 例)iOS 26.5
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: 端末
+      description: シミュレータの場合は、そのことも書いてください。
+      placeholder: 例)iPhone 17(実機)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: アプリの表示言語
+      options:
+        - 日本語
+        - 英語
+    validations:
+      required: false
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: スクリーンショットやログ
+      description: 画面の画像、動画、クラッシュログがあれば貼ってください。ここにファイルを置くと添付できます。
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 確認
+      options:
+        - label: 同じ内容の Issue がないことを確かめました
+          required: true
