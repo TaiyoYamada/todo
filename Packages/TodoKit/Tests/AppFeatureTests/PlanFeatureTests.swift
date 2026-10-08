@@ -2,7 +2,6 @@ import ComposableArchitecture
 import Domain
 import Foundation
 import Testing
-
 @testable import AppFeature
 
 @MainActor
@@ -82,7 +81,7 @@ struct PlanFeatureTests {
     @Test("片づけたタスクは、直近の 20 件だけを出す")
     func closedTasksAreCapped() {
         // 10/1 から毎日 1 件ずつ、25 日ぶん。
-        let tasks = (1...25).map { day in
+        let tasks = (1 ... 25).map { day in
             TaskItem.fixture(100 + day, title: "\(day)日", completedAt: date(day, 12))
         }
         prepareBoard(.exact(tasks: tasks), now: date(26, 14))

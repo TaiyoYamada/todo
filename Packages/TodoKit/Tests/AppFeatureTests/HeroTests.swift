@@ -1,7 +1,6 @@
 import Domain
 import Foundation
 import Testing
-
 @testable import AppFeature
 
 @Suite("今日の画面のいちばん上の表示")
