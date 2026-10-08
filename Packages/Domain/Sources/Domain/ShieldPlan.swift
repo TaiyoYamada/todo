@@ -14,8 +14,8 @@ public struct ShieldPlan: Equatable, Sendable, Codable {
     /// 予約できる数には OS の上限(20)がある。毎日の繰り返しのぶんを残して、この数までにする。
     public static let wakeTimeLimit = 12
 
-    // 「残り何分」のように刻々と変わる値は、ここには入れない。
-    // 入れると、内容が変わるたびに予約をやり直すことになる。必要な側が、写しから自分で計算する。
+    /// 「残り何分」のように刻々と変わる値は、ここには入れない。
+    /// 入れると、内容が変わるたびに予約をやり直すことになる。必要な側が、写しから自分で計算する。
     public init(isLocked: Bool, title: String? = nil, wakeTimes: [Date] = []) {
         self.isLocked = isLocked
         self.title = title

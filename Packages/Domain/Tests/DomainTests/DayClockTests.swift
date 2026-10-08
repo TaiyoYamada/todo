@@ -65,9 +65,9 @@ struct DayClockTests {
     }
 
     @Test("夏時間の切り替え日でも、1日は決めた時刻に始まる")
-    func daylightSavingTime() {
+    func daylightSavingTime() throws {
         var newYork = Calendar(identifier: .gregorian)
-        newYork.timeZone = TimeZone(identifier: "America/New_York")!
+        newYork.timeZone = try #require(TimeZone(identifier: "America/New_York"))
         let clock = DayClock(calendar: newYork, dayStartHour: 4)
         func at(_ month: Int, _ day: Int, _ hour: Int) -> Date {
             newYork.date(from: DateComponents(year: 2026, month: month, day: day, hour: hour))!
