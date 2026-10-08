@@ -38,9 +38,16 @@ targets:
     dependencies:
       - package: TodoKit
         product: AppFeature
+      - target: TodoWidgets
+    entitlements:
+      path: App/Todo.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - $(APP_GROUP_ID)
     info:
       path: App/Info.plist
       properties:
+        NSSupportsLiveActivities: true
         CFBundleDisplayName: $(APP_DISPLAY_NAME)
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
@@ -63,6 +70,35 @@ targets:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) DEV
         Release-Dev:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) DEV
+
+  # ウィジェットと Live Activity。中身は TodoKit の WidgetUI にあり、ここは入口だけ。
+  TodoWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Extensions/Widgets
+    dependencies:
+      - package: TodoKit
+        product: WidgetUI
+    entitlements:
+      path: Extensions/Widgets/Widgets.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - $(APP_GROUP_ID)
+    info:
+      path: Extensions/Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: $(APP_DISPLAY_NAME)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleLocalizations: [en, ja]
+        AppGroupIdentifier: $(APP_GROUP_ID)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID).widgets
+        SKIP_INSTALL: YES
 
   # 画面を実際に操作して確かめるテスト。見本データ(-sampleData)で起動するので、開発用の構成でだけ動く。
   TodoUITests:
