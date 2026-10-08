@@ -2,7 +2,7 @@
 
 #include "Base.xcconfig"
 
-APP_DISPLAY_NAME = Yoyu
+APP_DISPLAY_NAME = Lockcast
 APP_BUNDLE_ID = $(APP_BUNDLE_ID_BASE)
 APP_GROUP_ID = group.$(APP_BUNDLE_ID_BASE)
 APP_ENVIRONMENT = prod
