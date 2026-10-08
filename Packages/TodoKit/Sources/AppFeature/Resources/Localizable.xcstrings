@@ -2132,13 +2132,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lock forecast"
+            "value" : "Today's lock forecast"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ロック予報"
+            "value" : "今日のロック予報"
           }
         }
       }
@@ -2241,23 +2241,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ / %2$@"
-          }
-        }
-      }
-    },
-    "today.goals.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Today's portion"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "今日の分"
           }
         }
       }
@@ -2500,6 +2483,23 @@
         }
       }
     },
+    "today.tasks.later.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coming deadlines"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この先の締切"
+          }
+        }
+      }
+    },
     "today.tasks.startLimit" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2513,23 +2513,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "着手リミット %@"
-          }
-        }
-      }
-    },
-    "today.tasks.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deadlines"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "締切"
           }
         }
       }

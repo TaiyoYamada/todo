@@ -24,24 +24,25 @@ struct TodayView: View {
                     onUsePass: { store.send(.usePassConfirmed) },
                     onAddGoal: { store.send(.addGoalTapped) }
                 )
-                if !status.forecast.isEmpty {
-                    ForecastCard(entries: status.forecast, dayStart: status.today.start)
+                let items = TodayTimeline.items(status: status, world: store.board.world)
+                if !items.isEmpty {
+                    TimelineCard(
+                        items: items,
+                        dayStart: status.today.start,
+                        onStartFocus: { store.send(.startFocusTapped($0)) },
+                        onCompleteTask: { store.send(.completeTaskTapped($0)) },
+                        onOpenGoal: { store.send(.goalTapped($0)) },
+                        onOpenTask: { store.send(.taskTapped($0)) }
+                    )
                 }
                 if store.hero != .empty {
                     WeekOutlookCard(
                         days: LockEngine(calendar: calendar).weekOutlook(world: store.board.world, now: status.now)
                     )
                 }
-                if !status.goals.isEmpty {
-                    GoalsCard(
-                        goals: status.goals,
-                        onStart: { store.send(.startFocusTapped($0)) },
-                        onOpen: { store.send(.goalTapped($0)) }
-                    )
-                }
-                if !upcomingTasks.isEmpty {
+                if !laterTasks.isEmpty {
                     TasksCard(
-                        tasks: upcomingTasks,
+                        tasks: laterTasks,
                         world: store.board.world,
                         now: status.now,
                         onComplete: { store.send(.completeTaskTapped($0)) },
@@ -94,10 +95,17 @@ struct TodayView: View {
         .padding(.top, 8)
     }
 
-    /// 近いうちに着手リミットが来るタスク。多すぎると読まれないので、上から数件だけ。
-    private var upcomingTasks: [TaskItem] {
+    /// 明日以降に着手リミットが来るタスク。今日のぶんはロック予報に出ているので、ここには出さない。
+    /// 多すぎると読まれないので、近いものから数件だけ。
+    private var laterTasks: [TaskItem] {
         let world = store.board.world
-        return Array(world.openTasks.sorted { world.startLimit(of: $0) < world.startLimit(of: $1) }.prefix(4))
+        let todayEnd = store.board.status.today.end
+        return Array(
+            world.openTasks
+                .filter { world.startLimit(of: $0) >= todayEnd }
+                .sorted { world.startLimit(of: $0) < world.startLimit(of: $1) }
+                .prefix(4)
+        )
     }
 }
 
@@ -333,155 +341,7 @@ private struct HeroView: View {
     }
 }
 
-// MARK: - ロック予報
-
-private struct ForecastCard: View {
-    let entries: [ForecastEntry]
-    let dayStart: Date
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(.todayForecastTitle)
-                .sectionLabelStyle()
-            VStack(spacing: 0) {
-                ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
-                    ForecastRow(
-                        entry: entry,
-                        isFromMorning: entry.at == dayStart,
-                        isLast: index == entries.count - 1
-                    )
-                }
-            }
-        }
-        .glassCard()
-    }
-}
-
-private struct ForecastRow: View {
-    let entry: ForecastEntry
-    let isFromMorning: Bool
-    let isLast: Bool
-
-    @Environment(\.mood) private var mood
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Group {
-                if isFromMorning {
-                    Text(.todayForecastFromMorning)
-                } else {
-                    Text(TimeText.clock(entry.at))
-                }
-            }
-            .font(.subheadline.weight(.semibold))
-            .monospacedDigit()
-            .foregroundStyle(.white.opacity(entry.state == .cleared ? 0.45 : 0.85))
-            .frame(width: 62, alignment: .leading)
-
-            // 時刻順に点を縦線でつなぎ、1日の流れとして見せる。
-            VStack(spacing: 0) {
-                Image(systemName: symbol)
-                    .font(.footnote.weight(.bold))
-                    .foregroundStyle(color)
-                    .frame(width: 22, height: 22)
-                if !isLast {
-                    Rectangle()
-                        .fill(.white.opacity(0.16))
-                        .frame(width: 2)
-                        .frame(maxHeight: .infinity)
-                }
-            }
-
-            Text(entry.title)
-                .font(.body.weight(.medium))
-                .strikethrough(entry.state == .cleared, color: .white.opacity(0.5))
-                .foregroundStyle(.white.opacity(entry.state == .cleared ? 0.5 : 1))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.bottom, isLast ? 0 : 18)
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    private var symbol: String {
-        switch entry.state {
-        case .cleared: "checkmark.circle.fill"
-        case .active: "lock.circle.fill"
-        case .upcoming: "circle.dotted"
-        }
-    }
-
-    private var color: Color {
-        switch entry.state {
-        case .cleared: .white.opacity(0.45)
-        case .active: mood.accent
-        case .upcoming: .white.opacity(0.85)
-        }
-    }
-}
-
-// MARK: - 今日の分
-
-private struct GoalsCard: View {
-    let goals: [GoalProgress]
-    let onStart: (Goal.ID) -> Void
-    let onOpen: (Goal.ID) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(.todayGoalsTitle)
-                .sectionLabelStyle()
-            ForEach(goals) { progress in
-                HStack(spacing: 14) {
-                    ProgressRing(fraction: progress.fraction, lineWidth: 5, tint: progress.goal.tint.color) {
-                        Image(systemName: progress.isComplete ? "checkmark" : progress.goal.symbol)
-                            .font(.footnote.weight(.bold))
-                            .foregroundStyle(progress.goal.tint.color)
-                            .contentTransition(.symbolEffect(.replace))
-                    }
-                    .frame(width: 44, height: 44)
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(progress.goal.title)
-                            .font(.body.weight(.semibold))
-                            .lineLimit(1)
-                        Text(
-                            .todayGoalsProgress(
-                                DurationText.compact(minutes: progress.doneSeconds / 60),
-                                DurationText.compact(minutes: progress.goal.dailyMinutes)
-                            )
-                        )
-                        .font(.footnote)
-                        .foregroundStyle(.white.opacity(0.65))
-                        .monospacedDigit()
-                        if progress.lockStartsAt == nil {
-                            Text(.todayGoalsNoLockToday)
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(.white.opacity(0.5))
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(.rect)
-                    .onTapGesture { onOpen(progress.id) }
-
-                    Button {
-                        onStart(progress.id)
-                    } label: {
-                        Image(systemName: "play.fill")
-                            .font(.subheadline)
-                            .foregroundStyle(.white)
-                            .frame(width: 44, height: 44)
-                            .background(progress.goal.tint.color.opacity(0.32), in: .circle)
-                    }
-                    .accessibilityLabel(Text(.todayCtaStartFocus(progress.goal.title)))
-                }
-            }
-        }
-        .foregroundStyle(.white)
-        .glassCard()
-    }
-}
-
-// MARK: - 締切
+// MARK: - この先の締切
 
 private struct TasksCard: View {
     let tasks: [TaskItem]
@@ -494,7 +354,7 @@ private struct TasksCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(.todayTasksTitle)
+            Text(.todayTasksLaterTitle)
                 .sectionLabelStyle()
             ForEach(tasks) { task in
                 let limit = world.startLimit(of: task)
