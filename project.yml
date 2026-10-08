@@ -67,6 +67,9 @@ schemes:
       config: Debug-Dev
     test:
       config: Debug-Dev
+      targets:
+        - package: TodoKit/DatabaseClientTests
+        - package: TodoKit/AppFeatureTests
     profile:
       config: Release-Dev
     analyze:
