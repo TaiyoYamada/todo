@@ -3,6 +3,7 @@ import DatabaseClient
 import Domain
 import Foundation
 import NotificationClient
+import SharedCore
 import ShieldClient
 
 /// アプリの根。保存データを監視してロックの状態を計算し、各画面に配る。
@@ -40,6 +41,7 @@ struct AppFeature {
         case worldChanged(World)
         case tick
         case becameActive
+        case openDeepLink(DeepLink)
         case today(TodayFeature.Action)
         case plan(PlanFeature.Action)
         case insights(InsightsFeature.Action)
@@ -95,6 +97,26 @@ struct AppFeature {
                 guard state.board.isLoaded else { return .none }
                 refresh(&state)
                 return .merge(scheduleTick(state), syncShield(&state))
+
+            case let .openDeepLink(link):
+                // 初回設定の途中や、すでに何かを開いているときは、割り込まない。
+                guard state.board.isLoaded, state.onboarding == nil, state.destination == nil else { return .none }
+                switch link {
+                case .focus:
+                    let status = state.board.status
+                    // ロックの理由になっている目標を優先し、なければ、まだ終えていない今日の分。
+                    let lockedGoal = status.activeReasons.compactMap { reason -> Goal.ID? in
+                        if case let .goal(id) = reason.source { id } else { nil }
+                    }.first
+                    guard let id = lockedGoal ?? status.goals.first(where: { !$0.isComplete })?.id else {
+                        state.selectedTab = .today
+                        return .none
+                    }
+                    open(.startFocus(id), &state)
+                case .addTask:
+                    open(.editTask(nil), &state)
+                }
+                return .none
 
             case let .today(.delegate(route)), let .plan(.delegate(route)):
                 open(route, &state)

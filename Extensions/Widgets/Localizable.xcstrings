@@ -1,0 +1,20 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "control.focus.description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Opens Lockcast and starts what you should do next." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "Lockcast を開いて、次にやるべきことを始めます。" } }
+      }
+    },
+    "control.focus.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Start focus" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "集中を始める" } }
+      }
+    }
+  },
+  "version" : "1.1"
+}

@@ -61,6 +61,11 @@ targets:
           - UIInterfaceOrientationPortrait
         AppEnvironment: $(APP_ENVIRONMENT)
         AppGroupIdentifier: $(APP_GROUP_ID)
+        AppURLScheme: $(APP_URL_SCHEME)
+        CFBundleURLTypes:
+          - CFBundleURLName: $(APP_BUNDLE_ID)
+            CFBundleURLSchemes:
+              - $(APP_URL_SCHEME)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID)
@@ -84,6 +89,8 @@ targets:
     dependencies:
       - package: TodoKit
         product: WidgetUI
+      - package: TodoKit
+        product: SharedCore
     entitlements:
       path: Extensions/Widgets/Widgets.entitlements
       properties:
@@ -97,6 +104,7 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleLocalizations: [en, ja]
         AppGroupIdentifier: $(APP_GROUP_ID)
+        AppURLScheme: $(APP_URL_SCHEME)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
