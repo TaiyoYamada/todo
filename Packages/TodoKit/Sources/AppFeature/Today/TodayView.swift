@@ -5,6 +5,7 @@ import SwiftUI
 
 struct TodayView: View {
     let store: StoreOf<TodayFeature>
+    @Dependency(\.calendar) private var calendar
 
     var body: some View {
         let status = store.board.status
@@ -25,6 +26,11 @@ struct TodayView: View {
                 )
                 if !status.forecast.isEmpty {
                     ForecastCard(entries: status.forecast, dayStart: status.today.start)
+                }
+                if store.hero != .empty {
+                    WeekOutlookCard(
+                        days: LockEngine(calendar: calendar).weekOutlook(world: store.board.world, now: status.now)
+                    )
                 }
                 if !status.goals.isEmpty {
                     GoalsCard(
