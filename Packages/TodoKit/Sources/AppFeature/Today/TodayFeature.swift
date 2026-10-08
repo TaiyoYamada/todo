@@ -18,6 +18,7 @@ struct TodayFeature {
         case goalTapped(Goal.ID)
         case taskTapped(TaskItem.ID)
         case completeTaskTapped(TaskItem.ID)
+        case startTaskTapped(TaskItem.ID)
         case addGoalTapped
         case addTaskTapped
         case settingsTapped
@@ -43,6 +44,16 @@ struct TodayFeature {
 
             case let .completeTaskTapped(id):
                 return .send(.delegate(.completeTask(id)))
+
+            case let .startTaskTapped(id):
+                // 取りかかった時刻を覚えておく。先延ばしする人にとって、最初の関門は「始めること」。
+                guard var task = state.board.world.task(id: id), task.isOpen, task.startedAt == nil else {
+                    return .none
+                }
+                task.startedAt = now
+                return .run { [task] _ in
+                    try await database.saveTask(task)
+                }
 
             case .addGoalTapped:
                 return .send(.delegate(.editGoal(nil)))

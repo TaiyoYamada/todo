@@ -169,6 +169,6 @@ struct TaskEditorView: View {
     }
 
     private var factorText: String {
-        store.board.world.estimateFactor.formatted(.number.precision(.fractionLength(0...2)))
+        store.board.world.estimateFactor.formatted(.number.precision(.fractionLength(0 ... 2)))
     }
 }

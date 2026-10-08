@@ -2,6 +2,7 @@ import ComposableArchitecture
 import Domain
 import Foundation
 import SharedCore
+import ShieldClient
 import Testing
 @testable import AppFeature
 
@@ -29,6 +30,9 @@ struct AppFeatureDeepLinkTests {
             AppFeature()
         } withDependencies: {
             $0.fix(now: LockIsolated(start), database: DatabaseSpy())
+            // 保存データの読み込みまで進めるテストのために、見直しの予約とロックの連絡を受け止める。
+            $0.continuousClock = TestClock()
+            $0.shield.apply = { _, _ in }
         }
     }
 
@@ -105,15 +109,139 @@ struct AppFeatureDeepLinkTests {
         }
     }
 
-    @Test("保存データを読み終える前のリンクは、無視する")
-    func deepLinkIgnoredBeforeLoad() async {
+    // MARK: 保存データを読み終える前のリンク
+
+    @Test("保存データを読み終える前のリンクは、覚えておいて、読み終えたら開く")
+    func deepLinkBeforeLoadOpensAfterFirstLoad() async {
         let store = makeStore()
+        let world = World.exact(goals: [goal])
 
-        await store.send(.openDeepLink(.addTask))
-        await store.send(.openDeepLink(.focus))
-
+        // アプリが起動していない状態から開かれると、読み込みより先にリンクが届く。
+        await store.send(.openDeepLink(.addTask)) {
+            $0.pendingDeepLink = .addTask
+        }
         #expect(store.state.destination == nil)
+
+        await store.send(.worldChanged(world)) {
+            $0.$board.withLock { $0 = .loaded(world, now: start) }
+            $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試")
+            $0.pendingDeepLink = nil
+            $0.destination = .taskEditor(
+                TaskEditorFeature.State(
+                    task: TaskItem(id: uuid(0), title: "", dueAt: date(10, 23, 59), createdAt: start),
+                    isNew: true
+                )
+            )
+        }
+        await store.cancelRemainingEffects()
     }
+
+    @Test("読み終える前に計測を始めるリンクが届いたら、読み終えてから、ロックの理由の目標の計測を開く")
+    func focusLinkBeforeLoadOpensFocusAfterFirstLoad() async {
+        let store = makeStore()
+        let world = World.exact(goals: [goal], sessions: [.fixture(startedAt: date(9, 9), minutes: 5)])
+
+        await store.send(.openDeepLink(.focus)) {
+            $0.pendingDeepLink = .focus
+        }
+        await store.send(.worldChanged(world)) {
+            $0.$board.withLock { $0 = .loaded(world, now: start) }
+            $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試")
+            $0.pendingDeepLink = nil
+            $0.destination = .focus(FocusFeature.State(goal: goal, startedAt: start, baseSeconds: 5 * 60))
+        }
+        await store.cancelRemainingEffects()
+    }
+
+    @Test("読み終える前にリンクが続けて届いたら、最後のものだけを開く")
+    func lastDeepLinkBeforeLoadWins() async {
+        let store = makeStore()
+        let world = World.exact(goals: [goal])
+
+        await store.send(.openDeepLink(.addTask)) {
+            $0.pendingDeepLink = .addTask
+        }
+        await store.send(.openDeepLink(.focus)) {
+            $0.pendingDeepLink = .focus
+        }
+        await store.send(.worldChanged(world)) {
+            $0.$board.withLock { $0 = .loaded(world, now: start) }
+            $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試")
+            $0.pendingDeepLink = nil
+            $0.destination = .focus(FocusFeature.State(goal: goal, startedAt: start, baseSeconds: 0))
+        }
+        await store.cancelRemainingEffects()
+    }
+
+    @Test("覚えておいたリンクを開くのは最初の読み込みのときだけで、次の変更では開き直さない")
+    func pendingDeepLinkHandledOnlyOnce() async {
+        let store = makeStore()
+        var world = World.exact(goals: [goal])
+
+        await store.send(.openDeepLink(.addTask)) {
+            $0.pendingDeepLink = .addTask
+        }
+        await store.send(.worldChanged(world)) {
+            $0.$board.withLock { $0 = .loaded(world, now: start) }
+            $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試")
+            $0.pendingDeepLink = nil
+            $0.destination = .taskEditor(
+                TaskEditorFeature.State(
+                    task: TaskItem(id: uuid(0), title: "", dueAt: date(10, 23, 59), createdAt: start),
+                    isNew: true
+                )
+            )
+        }
+        await store.send(.destination(.dismiss)) {
+            $0.destination = nil
+        }
+
+        world.preferences.weeklyPassLimit = 3
+        await store.send(.worldChanged(world)) {
+            $0.$board.withLock { $0 = .loaded(world, now: start) }
+        }
+        #expect(store.state.destination == nil)
+        await store.cancelRemainingEffects()
+    }
+
+    @Test("読み終えてみたら初回設定がまだだったときは、覚えておいたリンクを捨てて、初回設定を出す")
+    func pendingDeepLinkDroppedWhenOnboardingNeeded() async {
+        let store = makeStore()
+        let world = World()
+
+        await store.send(.openDeepLink(.addTask)) {
+            $0.pendingDeepLink = .addTask
+        }
+        await store.send(.worldChanged(world)) {
+            $0.$board.withLock { $0 = .loaded(world, now: start) }
+            $0.appliedPlan = ShieldPlan(isLocked: false)
+            $0.onboarding = OnboardingFeature.State()
+            $0.pendingDeepLink = nil
+        }
+        #expect(store.state.destination == nil)
+        await store.cancelRemainingEffects()
+    }
+
+    @Test("読み終えてみたら計測の途中だったときは、計測の画面に戻すほうを優先し、リンクでは割り込まない")
+    func pendingDeepLinkDoesNotInterruptRestoredFocus() async {
+        let store = makeStore()
+        let world = World.exact(goals: [goal], activeFocus: ActiveFocus(goalID: goal.id, startedAt: date(9, 13, 50)))
+
+        await store.send(.openDeepLink(.addTask)) {
+            $0.pendingDeepLink = .addTask
+        }
+        await store.send(.worldChanged(world)) {
+            $0.$board.withLock { $0 = .loaded(world, now: start) }
+            $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試", wakeTimes: [date(9, 14, 20)])
+            $0.pendingDeepLink = nil
+            $0.destination = .focus(
+                FocusFeature.State(goal: goal, startedAt: date(9, 13, 50), baseSeconds: 0, isResumed: true)
+            )
+        }
+        await store.cancelRemainingEffects()
+    }
+
+    // MARK: 割り込まない場面
 
     @Test("初回設定の途中のリンクは、無視する")
     func deepLinkIgnoredDuringOnboarding() async {

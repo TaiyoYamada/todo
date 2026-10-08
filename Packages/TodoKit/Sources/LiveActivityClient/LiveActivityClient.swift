@@ -3,6 +3,7 @@ import Dependencies
 import DependenciesMacros
 import Domain
 import Foundation
+import OSLog
 import SharedCore
 
 /// 集中の計測を Live Activity として出す窓口。
@@ -17,19 +18,26 @@ extension LiveActivityClient: DependencyKey {
         start: { goal, startedAt, endsAt in
             // 前の計測の表示が残っていれば、先に片づける。
             await endAll()
-            guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+            guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+                logger.info("Live Activity は無効(利用者の設定)")
+                return
+            }
             let attributes = FocusActivityAttributes(
                 goalTitle: goal.title,
                 symbol: goal.symbol,
                 tint: goal.tint.rawValue
             )
             let state = FocusActivityAttributes.ContentState(startedAt: startedAt, endsAt: endsAt)
-            // 利用者が Live Activity を切っている場合などは失敗する。計測そのものには影響しないので無視する。
-            _ = try? Activity.request(
-                attributes: attributes,
-                content: ActivityContent(state: state, staleDate: endsAt),
-                pushType: nil
-            )
+            // 失敗しても計測そのものには影響しないので、記録に残すだけにする。
+            do {
+                _ = try Activity.request(
+                    attributes: attributes,
+                    content: ActivityContent(state: state, staleDate: endsAt),
+                    pushType: nil
+                )
+            } catch {
+                logger.error("Live Activity を始められなかった: \(error.localizedDescription, privacy: .public)")
+            }
         },
         end: { await endAll() }
     )
@@ -52,3 +60,5 @@ public extension DependencyValues {
         set { self[LiveActivityClient.self] = newValue }
     }
 }
+
+private let logger = Logger(subsystem: "com.taiyoyamada.todo", category: "LiveActivity")

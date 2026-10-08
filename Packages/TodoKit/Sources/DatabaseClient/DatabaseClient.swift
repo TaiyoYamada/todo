@@ -20,6 +20,9 @@ public struct DatabaseClient: Sendable {
 
     public var addSession: @Sendable (_ session: FocusSession) async throws -> Void
     public var setActiveFocus: @Sendable (_ focus: ActiveFocus?) async throws -> Void
+    /// 計測を終える。記録を足すのと、計測中の状態を消すのを、ひとまとまりで行う。
+    /// 別々に書くと、その間だけ「記録も計測中もある」状態になり、進み具合を二重に数えてしまう。
+    public var finishFocus: @Sendable (_ sessions: [FocusSession]) async throws -> Void
     public var addPassUse: @Sendable (_ passUse: PassUse) async throws -> Void
     public var savePreferences: @Sendable (_ preferences: Preferences) async throws -> Void
 

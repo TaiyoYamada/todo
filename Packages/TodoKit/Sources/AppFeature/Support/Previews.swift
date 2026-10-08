@@ -100,7 +100,7 @@ private struct SamplePreview<Content: View>: View {
 #Preview("目標の追加") {
     GoalEditorView(
         store: Store(
-            initialState: GoalEditorFeature.State(goal: Goal(id: UUID(), title: "", createdAt: .now), isNew: true)
+            initialState: GoalEditorFeature.State(goal: Goal(id: UUID(0), title: "", createdAt: .now), isNew: true)
         ) {
             GoalEditorFeature()
         }
@@ -113,7 +113,7 @@ private struct SamplePreview<Content: View>: View {
         TaskEditorView(
             store: Store(
                 initialState: TaskEditorFeature.State(
-                    task: TaskItem(id: UUID(), title: "", dueAt: .now.addingTimeInterval(86400), createdAt: .now),
+                    task: TaskItem(id: UUID(1), title: "", dueAt: .now.addingTimeInterval(86400), createdAt: .now),
                     isNew: true
                 )
             ) {

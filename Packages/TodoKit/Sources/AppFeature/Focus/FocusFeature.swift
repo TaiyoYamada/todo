@@ -56,6 +56,7 @@ struct FocusFeature {
     /// 止め忘れて一晩たっても、記録が膨らまないようにする。
     static let openEndedCap: TimeInterval = 3 * 3600
 
+    @Dependency(\.calendar) var calendar
     @Dependency(\.continuousClock) var clock
     @Dependency(\.database) var database
     @Dependency(\.date.now) var now
@@ -134,14 +135,17 @@ struct FocusFeature {
                 reachedTarget: state.baseSeconds + seconds >= state.goal.dailySeconds
             )
         )
-        let session = FocusSession(id: uuid(), goalID: state.goal.id, startedAt: state.startedAt, seconds: seconds)
+        // 1日の区切りをまたいだ計測は、区切りで分けて記録する。またいだあとのぶんを、今日の分として数えるため。
+        let dayClock = DayClock(calendar: calendar, dayStartHour: state.board.world.preferences.dayStartHour)
+        let sessions = seconds >= Self.minimumSeconds
+            ? dayClock.split(from: state.startedAt, to: state.startedAt.addingTimeInterval(Double(seconds))).map {
+                FocusSession(id: uuid(), goalID: state.goal.id, startedAt: $0.start, seconds: Int($0.duration))
+            }
+            : []
         return .merge(
             .cancel(id: CancelID.target),
             .run { _ in
-                if seconds >= Self.minimumSeconds {
-                    try await database.addSession(session)
-                }
-                try await database.setActiveFocus(nil)
+                try await database.finishFocus(sessions)
                 await liveActivity.end()
             }
         )

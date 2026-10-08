@@ -31,6 +31,7 @@ struct TaskRecord: Sendable {
     var title: String
     var dueAt: Double
     var estimateMinutes: Int
+    var startedAt: Double?
     var actualMinutes: Int?
     var completedAt: Double?
     var withdrawnAt: Double?
@@ -105,6 +106,7 @@ extension TaskRecord {
             title: task.title,
             dueAt: task.dueAt.timeIntervalSince1970,
             estimateMinutes: task.estimateMinutes,
+            startedAt: task.startedAt?.timeIntervalSince1970,
             actualMinutes: task.actualMinutes,
             completedAt: task.completedAt?.timeIntervalSince1970,
             withdrawnAt: task.withdrawnAt?.timeIntervalSince1970,
@@ -118,6 +120,7 @@ extension TaskRecord {
             title: title,
             dueAt: Date(timeIntervalSince1970: dueAt),
             estimateMinutes: estimateMinutes,
+            startedAt: startedAt.map(Date.init(timeIntervalSince1970:)),
             actualMinutes: actualMinutes,
             completedAt: completedAt.map(Date.init(timeIntervalSince1970:)),
             withdrawnAt: withdrawnAt.map(Date.init(timeIntervalSince1970:)),
@@ -203,6 +206,7 @@ private var migrator: DatabaseMigrator {
               "title" TEXT NOT NULL,
               "dueAt" REAL NOT NULL,
               "estimateMinutes" INTEGER NOT NULL,
+              "startedAt" REAL,
               "actualMinutes" INTEGER,
               "completedAt" REAL,
               "withdrawnAt" REAL,
@@ -322,6 +326,20 @@ public extension DatabaseClient {
                         .execute(db)
                 }
             },
+            finishFocus: { sessions in
+                try await database.write { db in
+                    for session in sessions {
+                        try SessionRecord.insert { SessionRecord(session) }.execute(db)
+                    }
+                    try AppStateRecord
+                        .where { $0.id.eq(AppStateRecord.rowID) }
+                        .update {
+                            $0.activeFocusGoalID = UUID?.none
+                            $0.activeFocusStartedAt = Double?.none
+                        }
+                        .execute(db)
+                }
+            },
             addPassUse: { passUse in
                 try await database.write { db in
                     try PassUseRecord.insert { PassUseRecord(passUse) }.execute(db)
@@ -336,35 +354,38 @@ public extension DatabaseClient {
                 }
             },
             replaceAll: { world in
-                try await database.write { db in
-                    try SessionRecord.delete().execute(db)
-                    try PassUseRecord.delete().execute(db)
-                    try TaskRecord.delete().execute(db)
-                    try GoalRecord.delete().execute(db)
-                    for goal in world.goals {
-                        try GoalRecord.insert { GoalRecord(goal) }.execute(db)
-                    }
-                    for task in world.tasks {
-                        try TaskRecord.insert { TaskRecord(task) }.execute(db)
-                    }
-                    for session in world.sessions {
-                        try SessionRecord.insert { SessionRecord(session) }.execute(db)
-                    }
-                    for passUse in world.passUses {
-                        try PassUseRecord.insert { PassUseRecord(passUse) }.execute(db)
-                    }
-                    try AppStateRecord
-                        .where { $0.id.eq(AppStateRecord.rowID) }
-                        .update {
-                            $0.preferences = world.preferences.json
-                            $0.activeFocusGoalID = world.activeFocus?.goalID
-                            $0.activeFocusStartedAt = world.activeFocus?.startedAt.timeIntervalSince1970
-                        }
-                        .execute(db)
-                }
+                try await database.write { db in try replaceContents(with: world, in: db) }
             }
         )
     }
+}
+
+/// 保存データをすべて消して、`world` の内容に入れ替える。1回の書き込みの中で呼ぶ。
+private func replaceContents(with world: World, in db: Database) throws {
+    try SessionRecord.delete().execute(db)
+    try PassUseRecord.delete().execute(db)
+    try TaskRecord.delete().execute(db)
+    try GoalRecord.delete().execute(db)
+    for goal in world.goals {
+        try GoalRecord.insert { GoalRecord(goal) }.execute(db)
+    }
+    for task in world.tasks {
+        try TaskRecord.insert { TaskRecord(task) }.execute(db)
+    }
+    for session in world.sessions {
+        try SessionRecord.insert { SessionRecord(session) }.execute(db)
+    }
+    for passUse in world.passUses {
+        try PassUseRecord.insert { PassUseRecord(passUse) }.execute(db)
+    }
+    try AppStateRecord
+        .where { $0.id.eq(AppStateRecord.rowID) }
+        .update {
+            $0.preferences = world.preferences.json
+            $0.activeFocusGoalID = world.activeFocus?.goalID
+            $0.activeFocusStartedAt = world.activeFocus?.startedAt.timeIntervalSince1970
+        }
+        .execute(db)
 }
 
 extension DatabaseClient: DependencyKey {

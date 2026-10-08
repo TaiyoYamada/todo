@@ -2,7 +2,6 @@ import ComposableArchitecture
 import DatabaseClient
 import Domain
 import Foundation
-import NotificationClient
 import ShieldClient
 import Testing
 @testable import AppFeature
@@ -17,8 +16,6 @@ struct AppFeatureTests {
     let clock = TestClock()
     /// スクリーンタイムの層へ伝えた指示。伝えた順。
     let applied = LockIsolated<[ShieldPlan]>([])
-    /// 予約し直した通知。予約し直すたびに 1 件。
-    let scheduled = LockIsolated<[[LockNotification]]>([])
     /// 通知の許可を求めた回数。
     let authorizationRequests = LockIsolated(0)
     /// 1日 30 分の目標。朝からロックする。
@@ -39,9 +36,6 @@ struct AppFeatureTests {
             }
             $0.continuousClock = clock
             $0.shield.apply = { [applied] plan, _ in applied.withValue { $0.append(plan) } }
-            $0.notifications.replaceAll = { [scheduled] notifications in
-                scheduled.withValue { $0.append(notifications) }
-            }
             $0.notifications.requestAuthorization = { [authorizationRequests] in
                 authorizationRequests.withValue { $0 += 1 }
                 return true
@@ -54,7 +48,7 @@ struct AppFeatureTests {
     }
 
     private func plan(_ world: World) -> ShieldPlan {
-        ShieldPlan(status: status(world))
+        ShieldPlan(status: status(world), activeFocus: world.activeFocus)
     }
 
     /// 読み込みを済ませた状態から始める。画面の移動だけを確かめるテストで使う。
@@ -99,7 +93,7 @@ struct AppFeatureTests {
 
         await store.send(.worldChanged(world)) {
             $0.$board.withLock { $0 = .loaded(world, now: start) }
-            $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試", remainingSeconds: 30 * 60)
+            $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試")
         }
         #expect(store.state.onboarding == nil)
         #expect(store.state.destination == nil)
@@ -122,8 +116,8 @@ struct AppFeatureTests {
             $0.destination = .focus(
                 FocusFeature.State(goal: goal, startedAt: date(9, 13, 50), baseSeconds: 10 * 60, isResumed: true)
             )
-            // ロックの判定には計測中の 10 分も数えるので、残りは 10 分。
-            $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試", remainingSeconds: 10 * 60)
+            // ロックの判定には計測中の 10 分も数えるので、残りは 10 分。達する 14:10 に見直してもらう。
+            $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試", wakeTimes: [date(9, 14, 10)])
         }
         await store.cancelRemainingEffects()
     }
@@ -150,7 +144,8 @@ struct AppFeatureTests {
         await store.send(.worldChanged(world)) {
             $0.$board.withLock { $0 = .loaded(world, now: start) }
             $0.onboarding = OnboardingFeature.State()
-            $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試", remainingSeconds: 20 * 60)
+            // 計測中の 10 分を数えて、残りは 20 分。達する 14:20 に見直してもらう。
+            $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試", wakeTimes: [date(9, 14, 20)])
         }
         #expect(store.state.destination == nil)
         await store.cancelRemainingEffects()
@@ -176,7 +171,7 @@ struct AppFeatureTests {
         let withGoal = World.exact(goals: [goal])
         await store.receive(\.worldChanged) {
             $0.$board.withLock { $0 = .loaded(withGoal, now: start) }
-            $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試", remainingSeconds: 30 * 60)
+            $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試")
         }
         #expect(store.state.board.status.isLocked)
 
@@ -192,72 +187,6 @@ struct AppFeatureTests {
 
         // 監視をやめると、そこから始まった見直しの予約も一緒に止まる。
         await observation.cancel()
-    }
-
-    // MARK: スクリーンタイムの層への連絡
-
-    @Test("スクリーンタイムの層へは、指示の内容が変わったときだけ伝える")
-    func appliesShieldOnlyWhenPlanChanges() async {
-        let store = makeStore()
-        let locked = World.exact(goals: [goal])
-
-        await store.send(.worldChanged(locked)) {
-            $0.$board.withLock { $0 = .loaded(locked, now: start) }
-            $0.appliedPlan = plan(locked)
-        }
-        #expect(applied.value == [ShieldPlan(isLocked: true, title: "院試", remainingSeconds: 30 * 60)])
-
-        // 時刻が進んだだけでは、指示は変わらない。
-        now.setValue(start.addingTimeInterval(60))
-        await store.send(.becameActive) {
-            $0.$board.withLock { $0.status = status(locked) }
-        }
-        #expect(applied.value.count == 1)
-
-        // ロックに関係しない変更(設定の変更)でも、指示は変わらない。
-        var sameLock = locked
-        sameLock.preferences.dayStartHour = 3
-        await store.send(.worldChanged(sameLock)) {
-            $0.$board.withLock { $0 = .loaded(sameLock, now: now.value) }
-        }
-        #expect(applied.value.count == 1)
-
-        // 10 分やると残りが変わるので、伝え直す。
-        var progressed = sameLock
-        progressed.sessions = [.fixture(startedAt: date(9, 13), minutes: 10)]
-        await store.send(.worldChanged(progressed)) {
-            $0.$board.withLock { $0 = .loaded(progressed, now: now.value) }
-            $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試", remainingSeconds: 20 * 60)
-        }
-        #expect(
-            applied.value == [
-                ShieldPlan(isLocked: true, title: "院試", remainingSeconds: 30 * 60),
-                ShieldPlan(isLocked: true, title: "院試", remainingSeconds: 20 * 60),
-            ]
-        )
-        await store.cancelRemainingEffects()
-    }
-
-    @Test("アプリに戻ってきたとき、時刻が進んでロックが始まっていれば、状態を計算し直して伝える")
-    func becameActiveRecomputesStatus() async {
-        let store = makeStore()
-        // 14:30 からロックする目標。
-        let world = World.exact(goals: [.fixture(lockStart: .timeOfDay(minutes: 14 * 60 + 30))])
-
-        await store.send(.worldChanged(world)) {
-            $0.$board.withLock { $0 = .loaded(world, now: start) }
-            $0.appliedPlan = ShieldPlan(isLocked: false, wakeTimes: [date(9, 14, 30)])
-        }
-        #expect(store.state.board.status.phase == .free(nextLockAt: date(9, 14, 30)))
-
-        now.setValue(date(9, 14, 31))
-        await store.send(.becameActive) {
-            $0.$board.withLock { $0.status = status(world) }
-            $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試", remainingSeconds: 30 * 60)
-        }
-        #expect(store.state.board.status.isLocked)
-        #expect(applied.value.count == 2)
-        await store.cancelRemainingEffects()
     }
 
     // MARK: 時刻による見直し
@@ -341,6 +270,81 @@ struct AppFeatureTests {
 
         await store.send(.onboarding(.delegate(.finished))) {
             $0.onboarding = nil
+        }
+        await store.cancelRemainingEffects()
+    }
+
+    @Test("初回設定を終える途中の「まだ済んでいない」保存データでは、初回設定を開き直さない")
+    func finishingOnboardingDoesNotReplay() async {
+        let store = makeStore()
+        var world = World()
+
+        // 初めての起動。初回設定が出る。
+        await store.send(.worldChanged(world)) {
+            $0.$board.withLock { $0 = .loaded(world, now: start) }
+            $0.onboarding = OnboardingFeature.State()
+            $0.appliedPlan = ShieldPlan(isLocked: false)
+        }
+        // 終了の知らせが、保存データの変更より先に届く。
+        await store.send(.onboarding(.delegate(.finished))) {
+            $0.onboarding = nil
+        }
+
+        // 済ませた印がまだ付いていない保存データが届いても、「済み」から戻ったわけではないので開かない。
+        world.goals = [.fixture(createdAt: start)]
+        await store.send(.worldChanged(world)) {
+            $0.$board.withLock { $0 = .loaded(world, now: start) }
+        }
+        #expect(store.state.onboarding == nil)
+
+        world.preferences.hasCompletedOnboarding = true
+        await store.send(.worldChanged(world)) {
+            $0.$board.withLock { $0 = .loaded(world, now: start) }
+        }
+        #expect(store.state.onboarding == nil)
+        await store.cancelRemainingEffects()
+    }
+
+    @Test("初回設定を開き直すのは、「済み」から「まだ」に変わった瞬間の 1 回だけ")
+    func replayOnboardingOnlyOnTransition() async {
+        let store = makeStore()
+        var world = World.exact()
+
+        await store.send(.worldChanged(world)) {
+            $0.$board.withLock { $0 = .loaded(world, now: start) }
+            $0.appliedPlan = ShieldPlan(isLocked: false)
+        }
+
+        // 済み → まだ。開き直す。
+        world.preferences.hasCompletedOnboarding = false
+        await store.send(.worldChanged(world)) {
+            $0.$board.withLock { $0 = .loaded(world, now: start) }
+            $0.onboarding = OnboardingFeature.State()
+        }
+        // 説明だけ見て、目標を作らずに終える。終了の知らせが先に届く。
+        await store.send(.onboarding(.delegate(.finished))) {
+            $0.onboarding = nil
+        }
+
+        // まだ → まだ(ほかの設定が変わっただけ)。開き直さない。
+        world.preferences.weeklyPassLimit = 1
+        await store.send(.worldChanged(world)) {
+            $0.$board.withLock { $0 = .loaded(world, now: start) }
+        }
+        #expect(store.state.onboarding == nil)
+
+        // まだ → 済み。開き直さない。
+        world.preferences.hasCompletedOnboarding = true
+        await store.send(.worldChanged(world)) {
+            $0.$board.withLock { $0 = .loaded(world, now: start) }
+        }
+        #expect(store.state.onboarding == nil)
+
+        // もう一度、済み → まだ。今度は開き直す。
+        world.preferences.hasCompletedOnboarding = false
+        await store.send(.worldChanged(world)) {
+            $0.$board.withLock { $0 = .loaded(world, now: start) }
+            $0.onboarding = OnboardingFeature.State()
         }
         await store.cancelRemainingEffects()
     }
@@ -443,6 +447,21 @@ struct AppFeatureTests {
         await store.receive(\.plan.delegate, .completeTask(task.id)) {
             $0.destination = .taskCompletion(TaskCompletionFeature.State(task: task))
         }
+        // 取りかかった時刻がなければ、測った時間はなく、見積もりが初期値になる。
+        #expect(store.state.destination?.taskCompletion?.measuredMinutes == nil)
+    }
+
+    @Test("「始める」を押してあったタスクの完了では、取りかかってからの時間を初期値にする")
+    func completeStartedTaskPassesMeasuredMinutes() async {
+        // 13:22 に取りかかった。いまは 14:00 なので 38 分。5 分刻みに丸めて 40 分。
+        let task = TaskItem.fixture(startedAt: date(9, 13, 22))
+        let store = makeLoadedStore(.exact(tasks: [task]))
+
+        await store.send(.today(.completeTaskTapped(task.id)))
+        await store.receive(\.today.delegate, .completeTask(task.id)) {
+            $0.destination = .taskCompletion(TaskCompletionFeature.State(task: task, measuredMinutes: 40))
+        }
+        #expect(store.state.destination?.taskCompletion?.actualMinutes == 40)
     }
 
     @Test("タスクの編集画面で完了を押すと、編集画面を完了の確認に入れ替える")
@@ -454,9 +473,32 @@ struct AppFeatureTests {
             $0.destination = .taskEditor(TaskEditorFeature.State(task: task, isNew: false))
         }
         await store.send(.destination(.presented(.taskEditor(.completeTapped))))
-        await store.receive(\.destination.taskEditor.delegate, .complete(task.id)) {
+        await store.receive(\.destination.taskEditor.delegate, .complete(task)) {
             $0.destination = .taskCompletion(TaskCompletionFeature.State(task: task))
         }
+    }
+
+    @Test("編集画面で直した内容は、完了の確認にそのまま引き継ぐ")
+    func completingFromEditorCarriesEdits() async {
+        // 13:10 に取りかかったタスク。いまは 14:00。
+        let task = TaskItem.fixture(estimateMinutes: 60, startedAt: date(9, 13, 10))
+        let store = makeLoadedStore(.exact(tasks: [task]))
+
+        await store.send(.today(.delegate(.editTask(task.id)))) {
+            $0.destination = .taskEditor(TaskEditorFeature.State(task: task, isNew: false))
+        }
+        await store.send(.destination(.presented(.taskEditor(.binding(.set(\.task.estimateMinutes, 90)))))) {
+            $0.destination?.modify(\.taskEditor) { $0.task.estimateMinutes = 90 }
+        }
+        await store.send(.destination(.presented(.taskEditor(.completeTapped))))
+
+        var edited = task
+        edited.estimateMinutes = 90
+        await store.receive(\.destination.taskEditor.delegate, .complete(edited)) {
+            // 保存データに届く前でも、直した見積もり(90 分)と、取りかかってからの 50 分で開く。
+            $0.destination = .taskCompletion(TaskCompletionFeature.State(task: edited, measuredMinutes: 50))
+        }
+        #expect(store.state.destination?.taskCompletion?.actualMinutes == 50)
     }
 
     @Test("設定の依頼で、設定の画面を開く")
@@ -476,31 +518,5 @@ struct AppFeatureTests {
         await store.send(.today(.delegate(.completeTask(uuid(9)))))
 
         #expect(store.state.destination == nil)
-    }
-
-    // MARK: 通知の予約
-
-    @Test("ロックの見込みが変わるたびに、通知を予約し直す")
-    func reschedulesNotificationsWithShield() async {
-        let store = makeStore()
-        let world = World.exact(tasks: [.fixture(dueAt: date(9, 18))])
-
-        await store.send(.worldChanged(world)) {
-            $0.$board.withLock { $0 = .loaded(world, now: start) }
-            $0.appliedPlan = ShieldPlan(isLocked: false, wakeTimes: [date(9, 16)])
-        }
-        #expect(scheduled.value == [AppFeature.warnings(for: status(world))])
-        #expect(scheduled.value.first?.count == 2)
-
-        // 片づけると、予約は空に置き換わる。
-        var completed = world
-        completed.tasks[0].completedAt = start
-        completed.tasks[0].actualMinutes = 120
-        await store.send(.worldChanged(completed)) {
-            $0.$board.withLock { $0 = .loaded(completed, now: start) }
-            $0.appliedPlan = ShieldPlan(isLocked: false)
-        }
-        #expect(scheduled.value == [AppFeature.warnings(for: status(world)), []])
-        await store.cancelRemainingEffects()
     }
 }

@@ -67,6 +67,64 @@ struct TodayFeatureTests {
         await store.receive(\.delegate, .openSettings)
     }
 
+    // MARK: タスクに取りかかる
+
+    @Test("「いま始める」を押すと、取りかかった時刻を付けてタスクを保存する")
+    func startTaskSavesStartedAt() async {
+        // 着手リミット(13:00)を過ぎていて、このタスクでロックされている。
+        let task = TaskItem.fixture(dueAt: date(9, 15))
+        let store = makeStore(.exact(tasks: [task]))
+        #expect(store.state.board.status.isLocked)
+
+        await store.send(.startTaskTapped(task.id))
+        await store.finish()
+
+        // ほかの内容は変えない。完了にもしない。
+        #expect(spy.writes == [.saveTask(.fixture(dueAt: date(9, 15), startedAt: now))])
+    }
+
+    @Test("ロックされる前のタスクでも、取りかかった時刻を残せる")
+    func startTaskBeforeLock() async {
+        let task = TaskItem.fixture()
+        let store = makeStore(.exact(tasks: [task]))
+        #expect(!store.state.board.status.isLocked)
+
+        await store.send(.startTaskTapped(task.id))
+        await store.finish()
+
+        #expect(spy.writes == [.saveTask(.fixture(startedAt: now))])
+    }
+
+    @Test("すでに取りかかっているタスクは、時刻を上書きしない")
+    func startTaskIgnoredWhenAlreadyStarted() async {
+        let task = TaskItem.fixture(startedAt: date(9, 13, 10))
+        let store = makeStore(.exact(tasks: [task]))
+
+        await store.send(.startTaskTapped(task.id))
+        await store.finish()
+
+        #expect(spy.writes.isEmpty)
+    }
+
+    @Test("片づけたタスクと、もう存在しないタスクには、何もしない")
+    func startTaskIgnoredWhenClosedOrMissing() async {
+        let store = makeStore(
+            .exact(
+                tasks: [
+                    .fixture(100, completedAt: date(9, 10)),
+                    .fixture(101, withdrawnAt: date(9, 11)),
+                ]
+            )
+        )
+
+        await store.send(.startTaskTapped(uuid(100)))
+        await store.send(.startTaskTapped(uuid(101)))
+        await store.send(.startTaskTapped(uuid(999)))
+        await store.finish()
+
+        #expect(spy.writes.isEmpty)
+    }
+
     // MARK: パス
 
     @Test("ロック中で回数が残っていれば、パスの使用を保存する")

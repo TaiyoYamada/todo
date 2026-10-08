@@ -44,6 +44,7 @@ struct PlanView: View {
                             .foregroundStyle(.black.opacity(0.8))
                             .frame(width: 44, height: 44)
                             .background(goal.tint.color.gradient, in: .circle)
+                            .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 3) {
                             Text(goal.title)
                                 .font(.body.weight(.semibold))
@@ -56,6 +57,7 @@ struct PlanView: View {
                         Image(systemName: "chevron.right")
                             .font(.footnote.weight(.semibold))
                             .foregroundStyle(.white.opacity(0.4))
+                            .accessibilityHidden(true)
                     }
                     .contentShape(.rect)
                 }
@@ -133,8 +135,10 @@ struct PlanView: View {
                     store.send(.taskTapped(task.id))
                 } label: {
                     HStack(spacing: 12) {
+                        // 完了か取り下げかは、この印でしか分からない。読み上げでも区別できるようにする。
                         Image(systemName: task.withdrawnAt == nil ? "checkmark.circle.fill" : "minus.circle")
                             .foregroundStyle(.white.opacity(0.5))
+                            .accessibilityLabel(Text(task.withdrawnAt == nil ? .commonDone : .insightsTasksWithdrawn))
                         Text(task.title)
                             .strikethrough(task.withdrawnAt == nil, color: .white.opacity(0.4))
                             .foregroundStyle(.white.opacity(0.6))
@@ -166,7 +170,7 @@ struct PlanView: View {
     }
 
     private func subtitle(for goal: Goal) -> String {
-        let lock: String =
+        let lock =
             switch goal.lockStart {
             case .dayStart:
                 String(localized: .goalLockFromMorning)

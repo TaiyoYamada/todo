@@ -35,9 +35,13 @@ targets:
     platform: iOS
     sources:
       - path: App
+      # アプリを開く App Intent。開かれる側にも定義が要るので、ウィジェットと同じファイルを入れる。
+      - path: Extensions/Shared
     dependencies:
       - package: TodoKit
         product: AppFeature
+      - package: TodoKit
+        product: SharedCore
       - target: TodoWidgets
       - target: TodoShieldMonitor
       - target: TodoShieldConfiguration
@@ -86,6 +90,7 @@ targets:
     platform: iOS
     sources:
       - path: Extensions/Widgets
+      - path: Extensions/Shared
     dependencies:
       - package: TodoKit
         product: WidgetUI

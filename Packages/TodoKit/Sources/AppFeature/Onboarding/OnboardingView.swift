@@ -32,7 +32,10 @@ struct OnboardingView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)).combined(with: .opacity))
+            .transition(
+                .asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))
+                    .combined(with: .opacity)
+            )
             .id(store.step)
 
             controls
@@ -89,6 +92,7 @@ struct OnboardingView: View {
                 .foregroundStyle(mood.accent)
                 .frame(width: 44, height: 44)
                 .background(mood.accent.opacity(0.16), in: .circle)
+                .accessibilityHidden(true)
             Text(text)
                 .font(.body.weight(.medium))
                 .foregroundStyle(.white.opacity(0.9))
@@ -213,6 +217,7 @@ struct OnboardingView: View {
                 .foregroundStyle(mood.accent)
                 .symbolEffect(.bounce, value: store.step)
                 .shadow(color: mood.accent.opacity(0.6), radius: 28)
+                .accessibilityHidden(true)
             Text(.onboardingReadyTitle)
                 .accessibilityIdentifier("onboarding.step.ready")
                 .font(.system(size: 38, weight: .heavy, design: .rounded))

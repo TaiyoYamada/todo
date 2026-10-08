@@ -41,7 +41,7 @@ struct GoalEditorFeature {
         case cancelTapped
     }
 
-    static let minutesRange = 5...240
+    static let minutesRange = 5 ... 240
     static let minutesStep = 5
     static let minutesPresets = [15, 30, 45, 60, 90]
     static let symbols = [

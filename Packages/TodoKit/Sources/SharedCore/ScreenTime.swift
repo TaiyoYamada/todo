@@ -65,13 +65,16 @@
     public enum MonitorScheduler {
         /// 予約の区間の長さ。OS が受け付ける最短が 15 分。
         private static let intervalMinutes = 15
+        /// 毎日くり返す予約の上限。OS の上限 20 から、1回きりの予約(`ShieldPlan.wakeTimeLimit`)を引いた数。
+        private static let dailyLimit = 20 - ShieldPlan.wakeTimeLimit
 
         public static func reschedule(plan: ShieldPlan, world: World, now: Date, calendar: Calendar = .current) {
             let center = DeviceActivityCenter()
             center.stopMonitoring()
 
-            // 1. 目標のロックが始まる時刻。毎日くり返す。
-            var dailyMinutes = Set<Int>()
+            // 1. 1日の区切りと、目標のロックが始まる時刻。毎日くり返す。
+            // 区切りの時刻は、目標がなくても必ず入れる。前の日のロックを、日付が変わった時点で外すため。
+            var dailyMinutes: Set<Int> = [world.preferences.dayStartHour * 60]
             for goal in world.activeGoals where goal.dailyMinutes > 0 {
                 switch goal.lockStart {
                 case .dayStart:
@@ -80,7 +83,8 @@
                     dailyMinutes.insert(minutes)
                 }
             }
-            for minutes in dailyMinutes.sorted() {
+            // 予約できる数には OS の上限(20)がある。1回きりの予約のぶんを残して、毎日のぶんはこの数までにする。
+            for minutes in dailyMinutes.sorted().prefix(Self.dailyLimit) {
                 let end = (minutes + intervalMinutes) % (24 * 60)
                 let schedule = DeviceActivitySchedule(
                     intervalStart: DateComponents(hour: minutes / 60, minute: minutes % 60),

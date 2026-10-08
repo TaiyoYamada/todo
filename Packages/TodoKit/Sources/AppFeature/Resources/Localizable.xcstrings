@@ -171,6 +171,23 @@
         }
       }
     },
+    "completion.measured" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ since you started (you estimated %2$@). Adjust it if you took breaks."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "始めてから%1$@たちました(見積もりは%2$@)。休んだ時間があれば直してください。"
+          }
+        }
+      }
+    },
     "completion.notYet" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2024,6 +2041,23 @@
         }
       }
     },
+    "today.cta.alreadyDone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It's already done"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう終わっている"
+          }
+        }
+      }
+    },
     "today.cta.completeTask" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2054,6 +2088,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "「%@」を始める"
+          }
+        }
+      }
+    },
+    "today.cta.startTask" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start now"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いま始める"
           }
         }
       }
@@ -2132,13 +2183,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lock forecast"
+            "value" : "Today's lock forecast"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ロック予報"
+            "value" : "今日のロック予報"
           }
         }
       }
@@ -2241,23 +2292,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ / %2$@"
-          }
-        }
-      }
-    },
-    "today.goals.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Today's portion"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "今日の分"
           }
         }
       }
@@ -2483,6 +2517,23 @@
         }
       }
     },
+    "today.task.working" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Working"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作業中"
+          }
+        }
+      }
+    },
     "today.tasks.due" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2500,6 +2551,23 @@
         }
       }
     },
+    "today.tasks.later.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coming deadlines"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この先の締切"
+          }
+        }
+      }
+    },
     "today.tasks.startLimit" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2513,23 +2581,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "着手リミット %@"
-          }
-        }
-      }
-    },
-    "today.tasks.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deadlines"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "締切"
           }
         }
       }

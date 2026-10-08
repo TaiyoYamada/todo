@@ -81,4 +81,16 @@ struct EstimateCalibrationTests {
         world.preferences.buffer = .quarter
         #expect(world.estimateFactor == 1.25)
     }
+
+    @Test("取りかかってからの時間は、5分刻みに丸める")
+    func elapsedMinutes() {
+        var task = TaskItem.fixture()
+        #expect(task.elapsedMinutes(until: date(9, 14)) == nil)
+
+        task.startedAt = date(9, 13)
+        #expect(task.elapsedMinutes(until: date(9, 14, 2)) == 60)
+        #expect(task.elapsedMinutes(until: date(9, 14, 13)) == 75)
+        // すぐ終えても、最低 5 分として扱う。
+        #expect(task.elapsedMinutes(until: date(9, 13, 1)) == 5)
+    }
 }

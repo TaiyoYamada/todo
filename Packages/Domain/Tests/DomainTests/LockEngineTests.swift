@@ -230,4 +230,26 @@ struct LockEngineTests {
         let nothing = engine.status(world: World(), now: now)
         #expect(nothing.nextChangeAt == date(10, 4))
     }
+
+    // MARK: スクリーンタイムの層への指示
+
+    @Test("計測が今日の分に達する時刻にも、見直しを予約する")
+    func shieldPlanWakesAtFocusTarget() {
+        let focus = ActiveFocus(goalID: uuid(1), startedAt: date(9, 13, 50))
+        let world = World.exact(goals: [.fixture(dailyMinutes: 30)], activeFocus: focus)
+        let status = engine.status(world: world, now: now)
+        let plan = ShieldPlan(status: status, activeFocus: focus)
+        #expect(plan.isLocked)
+        // 13:50 に始めて 30 分なので、14:20 に達する。
+        #expect(plan.wakeTimes == [date(9, 14, 20)])
+    }
+
+    @Test("パスの間は、切れる時刻に見直しを予約する")
+    func shieldPlanWakesAtPassEnd() {
+        var world = World.exact(goals: [.fixture()])
+        world.passUses = [PassUse(id: uuid(300), usedAt: date(9, 13, 50), minutes: 15)]
+        let plan = ShieldPlan(status: engine.status(world: world, now: now))
+        #expect(!plan.isLocked)
+        #expect(plan.wakeTimes == [date(9, 14, 5)])
+    }
 }

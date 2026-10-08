@@ -51,4 +51,38 @@ struct DayClockTests {
         #expect(clock.dayStart(containing: date(9, 0, 30)) == date(9, 0))
         #expect(clock.day(containing: date(9, 23, 59)).end == date(10, 0))
     }
+
+    @Test("1日の区切りをまたぐ時間は、区切りで分ける")
+    func split() {
+        #expect(clock.split(from: date(9, 10), to: date(9, 11)) == [DateInterval(start: date(9, 10), end: date(9, 11))])
+        #expect(
+            clock.split(from: date(10, 3, 50), to: date(10, 4, 10)) == [
+                DateInterval(start: date(10, 3, 50), end: date(10, 4)),
+                DateInterval(start: date(10, 4), end: date(10, 4, 10)),
+            ]
+        )
+        #expect(clock.split(from: date(9, 10), to: date(9, 10)).isEmpty)
+    }
+
+    @Test("夏時間の切り替え日でも、1日は決めた時刻に始まる")
+    func daylightSavingTime() throws {
+        var newYork = Calendar(identifier: .gregorian)
+        newYork.timeZone = try #require(TimeZone(identifier: "America/New_York"))
+        let clock = DayClock(calendar: newYork, dayStartHour: 4)
+        func at(_ month: Int, _ day: Int, _ hour: Int) -> Date {
+            newYork.date(from: DateComponents(year: 2026, month: month, day: day, hour: hour))!
+        }
+
+        // 2026-03-08 は時計が1時間進む日(23 時間しかない)。
+        #expect(clock.dayStart(containing: at(3, 8, 12)) == at(3, 8, 4))
+        #expect(clock.time(minutesFromMidnight: 21 * 60, inDayStarting: at(3, 8, 4)) == at(3, 8, 21))
+        #expect(clock.dayStart(after: at(3, 7, 4)) == at(3, 8, 4))
+        #expect(clock.dayStart(after: at(3, 8, 4)) == at(3, 9, 4))
+
+        // 2026-11-01 は時計が1時間戻る日(25 時間ある)。
+        #expect(clock.dayStart(containing: at(11, 1, 12)) == at(11, 1, 4))
+        #expect(clock.time(minutesFromMidnight: 21 * 60, inDayStarting: at(11, 1, 4)) == at(11, 1, 21))
+        #expect(clock.weekday(ofDayStarting: at(11, 1, 4)) == .sunday)
+        #expect(clock.week(containing: at(11, 1, 12)).start == at(10, 26, 4))
+    }
 }

@@ -168,8 +168,26 @@ struct SettingsFeatureTests {
             $0.selectionCount = 9
         }
 
-        #expect(applied.value == [ShieldPlan(isLocked: true, title: "院試", remainingSeconds: 30 * 60)])
+        #expect(applied.value == [ShieldPlan(isLocked: true, title: "院試")])
         // 設定そのものは変えていないので、保存はしない。
         #expect(spy.writes.isEmpty)
+    }
+
+    @Test("計測中に選び直したときは、今日の分に達する時刻の予約も伝え直す")
+    func selectionChangeKeepsFocusWakeTime() async {
+        // 13:50 から計測中。30 分の目標なので、14:20 に今日の分に達する。
+        let world = World.exact(
+            goals: [.fixture()],
+            activeFocus: ActiveFocus(goalID: uuid(1), startedAt: date(9, 13, 50))
+        )
+        let store = makeStore(world: world)
+
+        await store.send(.selectionChanged)
+        await store.receive(\.shieldResponse) {
+            $0.authorization = .approved
+            $0.selectionCount = 6
+        }
+
+        #expect(applied.value == [ShieldPlan(isLocked: true, title: "院試", wakeTimes: [date(9, 14, 20)])])
     }
 }

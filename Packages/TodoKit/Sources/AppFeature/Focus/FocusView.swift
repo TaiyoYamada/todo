@@ -31,9 +31,9 @@ struct FocusView: View {
     }
 }
 
-extension FocusView {
+private extension FocusView {
     /// 今日の分に達して終わったか。
-    fileprivate var reachedTarget: Bool {
+    var reachedTarget: Bool {
         if case let .finished(summary) = store.phase { summary.reachedTarget } else { false }
     }
 }
@@ -87,11 +87,10 @@ private struct RunningView: View {
     }
 
     /// 今日の分までは残り時間を、達したあとは経過時間を出す。
-    @ViewBuilder
     private var clock: some View {
         Group {
             if let endsAt = store.endsAt {
-                Text(timerInterval: store.startedAt...endsAt, countsDown: true)
+                Text(timerInterval: store.startedAt ... endsAt, countsDown: true)
             } else {
                 Text(store.startedAt, style: .timer)
             }
@@ -123,6 +122,7 @@ private struct FinishedView: View {
                 .foregroundStyle(mood.accent)
                 .symbolEffect(.bounce, value: appeared)
                 .shadow(color: mood.accent.opacity(0.7), radius: 30)
+                .accessibilityHidden(true)
 
             Text(summary.reachedTarget ? .focusFinishedTitleDone : .focusFinishedTitlePaused)
                 .accessibilityIdentifier("focus.finished.title")

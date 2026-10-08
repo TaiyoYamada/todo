@@ -45,8 +45,10 @@ final class OnboardingTests: XCTestCase {
 
         // 作った目標が「今日」の画面に並ぶ。作った当日はロックしないので、今日は自由。
         waitFor(app.element("today.hero.free"))
-        XCTAssertTrue(app.element("today.goals.title").exists)
-        XCTAssertTrue(app.staticTexts["Thesis"].exists)
+        XCTAssertTrue(app.element("today.forecast.title").exists)
+        // 予報の行として並び、その場で計測を始められる。
+        XCTAssertTrue(app.element("today.item.Thesis").exists)
+        XCTAssertTrue(app.element("today.start.Thesis").exists)
         XCTAssertFalse(app.element("onboarding.next").exists)
         attachScreenshot("Today-after-onboarding")
     }

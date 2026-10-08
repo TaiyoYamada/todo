@@ -311,15 +311,67 @@ struct TaskEditorFeatureTests {
 
     // MARK: 完了、取り下げ、戻す
 
-    @Test("完了を押すと、実際の所要時間を聞く画面を開くよう親に頼む")
-    func completeDelegatesToParent() async {
+    @Test("完了を押すと、いまの内容を保存してから、実際の所要時間を聞く画面を開くよう親に頼む")
+    func completeSavesThenDelegatesToParent() async {
         let store = makeStore(.fixture())
 
         await store.send(.completeTapped)
-        await store.receive(\.delegate, .complete(uuid(100)))
+        await store.receive(\.delegate, .complete(.fixture()))
         await store.finish()
 
-        // 完了の保存は、次の画面で答えてから行う。
+        // 完了の印を付けるのは、次の画面で答えてから。ここでは、いまの内容を保存するだけ。
+        #expect(spy.writes == [.saveTask(.fixture())])
+        // 画面を閉じるのは親(完了の確認に入れ替える)。自分では閉じない。
+        #expect(dismissed.value == 0)
+    }
+
+    @Test("編集してから完了を押すと、直した内容を保存し、同じ内容を親に渡す")
+    func completeCarriesEdits() async {
+        let store = makeStore(.fixture(title: "レポート", estimateMinutes: 60))
+
+        await store.send(.binding(.set(\.task.title, "  統計学のレポート "))) {
+            $0.task.title = "  統計学のレポート "
+        }
+        await store.send(.binding(.set(\.task.dueAt, date(12, 18)))) {
+            $0.task.dueAt = date(12, 18)
+        }
+        await store.send(.binding(.set(\.task.estimateMinutes, 90))) {
+            $0.task.estimateMinutes = 90
+        }
+        await store.send(.completeTapped)
+
+        // 名前の前後の空白は除く。完了の確認をやめても、直した内容は残る。
+        let edited = TaskItem.fixture(title: "統計学のレポート", dueAt: date(12, 18), estimateMinutes: 90)
+        await store.receive(\.delegate, .complete(edited))
+        await store.finish()
+
+        #expect(spy.writes == [.saveTask(edited)])
+        #expect(dismissed.value == 0)
+    }
+
+    @Test("取りかかった時刻は、完了を押しても消えずに引き継がれる")
+    func completeKeepsStartedAt() async {
+        let started = TaskItem.fixture(startedAt: date(9, 13, 10))
+        let store = makeStore(started)
+
+        await store.send(.completeTapped)
+        await store.receive(\.delegate, .complete(started))
+        await store.finish()
+
+        #expect(spy.writes == [.saveTask(started)])
+    }
+
+    @Test("名前が空、または空白だけのときに完了を押しても、保存も依頼もしない")
+    func completeIgnoredWithoutTitle() async {
+        let store = makeStore(.fixture(title: ""), isNew: true)
+
+        await store.send(.completeTapped)
+        await store.send(.binding(.set(\.task.title, " \n "))) {
+            $0.task.title = " \n "
+        }
+        await store.send(.completeTapped)
+        await store.finish()
+
         #expect(spy.writes.isEmpty)
         #expect(dismissed.value == 0)
     }

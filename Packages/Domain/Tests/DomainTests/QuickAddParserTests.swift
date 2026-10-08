@@ -56,7 +56,7 @@ struct QuickAddParserTests {
         ))
         #expect(parse("next Mon lab notebook 45 min") == QuickAdd(
             title: "lab notebook",
-            dueAt: date(19, 23, 59),
+            dueAt: date(12, 23, 59),
             estimateMinutes: 45
         ))
         #expect(parse("Design review at 9:30am") == QuickAdd(title: "Design review", dueAt: date(10, 9, 30)))
@@ -84,5 +84,28 @@ struct QuickAddParserTests {
     @Test("「24時」は、その日の終わりとして読む")
     func midnight() {
         #expect(parse("明日24時 提出").dueAt == date(10, 23, 59))
+    }
+
+    @Test("「9時30分」の 30 分は、所要時間ではなく時刻の一部として読む")
+    func minutesAfterHourAreTime() {
+        #expect(parse("明日9時30分までにレポート") == QuickAdd(title: "レポート", dueAt: date(10, 9, 30)))
+        #expect(parse("明日9時30分 レポート 45分") == QuickAdd(title: "レポート", dueAt: date(10, 9, 30), estimateMinutes: 45))
+    }
+
+    @Test("「来週の◯曜」は、月曜から始まる次の週のその曜日")
+    func nextWeek() {
+        // 10/9(金)から見た次の週は、10/12(月)から 10/18(日)。
+        #expect(parse("来週の月曜 提出").dueAt == date(12, 23, 59))
+        #expect(parse("来週の日曜 提出").dueAt == date(18, 23, 59))
+        // 日曜から見ても、次の週の月曜は翌日。
+        #expect(parser.parse("来週の月曜 提出", now: date(11, 14)).dueAt == date(12, 23, 59))
+    }
+
+    @Test("名前の中のつなぎ言葉は、削らない")
+    func keepsParticlesInsideWords() {
+        #expect(parse("はがきを出す 明日").title == "はがきを出す")
+        #expect(parse("今日中にレポート").title == "レポート")
+        #expect(parse("On call handoff tomorrow").title == "On call handoff")
+        #expect(parse("のりを買う 18時").title == "のりを買う")
     }
 }

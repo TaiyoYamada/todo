@@ -4,6 +4,8 @@ import XCTest
 enum Scenario: String {
     /// 今日の分が残っていて、ロックされている。
     case locked
+    /// 目標の今日の分は終えたが、タスクの着手リミットを過ぎて、ロックされている。
+    case taskLocked
     /// ロックはまだだが、今日のうちに次のロックが来る。
     case countdown
     /// 今日の分をすべて終えて、自由。
@@ -36,6 +38,15 @@ enum Language {
 /// 下のタブ。並び順は画面と同じ。
 enum AppTab: Int {
     case today, plan, insights
+
+    /// アプリの `-sampleTab` に渡す名前。「今日」は初期値なので渡さない。
+    var launchArgument: String? {
+        switch self {
+        case .today: nil
+        case .plan: "plan"
+        case .insights: "insights"
+        }
+    }
 }
 
 /// 要素が現れるのを待つ長さ。初回の起動は遅いことがあるので、長めに取る。
@@ -43,11 +54,17 @@ let appearTimeout: TimeInterval = 20
 
 extension XCTestCase {
     /// 見本データでアプリを起動する。保存データには触れず、何時に実行しても同じ場面になる。
+    ///
+    /// - Parameter tab: 最初に開くタブ。タブの切り替えそのものを確かめないテストでは、
+    ///   下のタブを押す代わりにこれで開く(OS が作るタブのボタンは、並び順でしか選べないため)。
     @MainActor
-    func launchApp(_ scenario: Scenario, language: Language = .english) -> XCUIApplication {
+    func launchApp(_ scenario: Scenario, language: Language = .english, tab: AppTab = .today) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments += ["-sampleData", scenario.rawValue] + language.launchArguments
+        if let name = tab.launchArgument {
+            app.launchArguments += ["-sampleTab", name]
+        }
         app.launch()
         return app
     }
@@ -114,6 +131,16 @@ extension XCTestCase {
             swipes += 1
         }
         XCTAssertTrue(element.exists && element.isHittable, "\(element) まで送れない", file: file, line: line)
+    }
+
+    /// 要素が画面の上のほうに来るように、画面を送る。カード全体を写しに収めるために使う。
+    @MainActor
+    func scrollToTop(_ element: XCUIElement, in app: XCUIApplication) {
+        scrollUntilHittable(element, in: app, maxSwipes: 3)
+        let from = element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        // ステータスバーと日付の行のぶんだけ下げた位置まで、ゆっくり引き上げる。勢いで行き過ぎないようにする。
+        let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.14))
+        from.press(forDuration: 0.2, thenDragTo: to, withVelocity: .slow, thenHoldForDuration: 0.3)
     }
 
     /// OS が出す許可の確認(通知など)が出ていれば、許可して閉じる。出ていなければ何もしない。
