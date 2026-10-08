@@ -95,6 +95,7 @@ struct LiveDatabaseClientTests {
         try await client.saveTask(task)
 
         task.completedAt = at(5000)
+        task.actualMinutes = 95
         try await client.saveTask(task)
         #expect(await currentWorld()?.tasks == [task])
 
