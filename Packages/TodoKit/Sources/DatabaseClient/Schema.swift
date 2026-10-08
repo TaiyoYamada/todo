@@ -31,6 +31,7 @@ struct TaskRecord: Sendable {
     var title: String
     var dueAt: Double
     var estimateMinutes: Int
+    var usesExactEstimate: Bool
     var startedAt: Double?
     var actualMinutes: Int?
     var completedAt: Double?
@@ -106,6 +107,7 @@ extension TaskRecord {
             title: task.title,
             dueAt: task.dueAt.timeIntervalSince1970,
             estimateMinutes: task.estimateMinutes,
+            usesExactEstimate: task.usesExactEstimate,
             startedAt: task.startedAt?.timeIntervalSince1970,
             actualMinutes: task.actualMinutes,
             completedAt: task.completedAt?.timeIntervalSince1970,
@@ -120,6 +122,7 @@ extension TaskRecord {
             title: title,
             dueAt: Date(timeIntervalSince1970: dueAt),
             estimateMinutes: estimateMinutes,
+            usesExactEstimate: usesExactEstimate,
             startedAt: startedAt.map(Date.init(timeIntervalSince1970:)),
             actualMinutes: actualMinutes,
             completedAt: completedAt.map(Date.init(timeIntervalSince1970:)),
@@ -206,6 +209,7 @@ private var migrator: DatabaseMigrator {
               "title" TEXT NOT NULL,
               "dueAt" REAL NOT NULL,
               "estimateMinutes" INTEGER NOT NULL,
+              "usesExactEstimate" INTEGER NOT NULL DEFAULT 0,
               "startedAt" REAL,
               "actualMinutes" INTEGER,
               "completedAt" REAL,
