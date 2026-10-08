@@ -1,7 +1,6 @@
 import Domain
 import Foundation
 import Testing
-
 @testable import AppFeature
 
 @Suite("今日の行の並べ方")
@@ -38,7 +37,13 @@ struct TodayTimelineTests {
                 ),
             ],
             tasks: [
-                TaskItem(id: uuid(10), title: "レポート", dueAt: date(9, 23, 59), estimateMinutes: 120, createdAt: date(8, 12)),
+                TaskItem(
+                    id: uuid(10),
+                    title: "レポート",
+                    dueAt: date(9, 23, 59),
+                    estimateMinutes: 120,
+                    createdAt: date(8, 12)
+                ),
                 // 明後日が締切のものは、今日の行に出ない。
                 TaskItem(id: uuid(11), title: "発表資料", dueAt: date(11, 18), estimateMinutes: 60, createdAt: date(8, 12)),
             ],

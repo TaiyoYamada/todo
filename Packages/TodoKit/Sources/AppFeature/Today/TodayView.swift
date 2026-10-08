@@ -222,8 +222,8 @@ private struct HeroView: View {
                             ? .todayFreeNextTime(TimeText.clock(nextLockAt))
                             : .todayFreeNext(TimeText.dayAndClock(nextLockAt))
                     )
-                        .font(.callout.weight(.medium))
-                        .foregroundStyle(.white.opacity(0.75))
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.75))
                 }
                 suggestion
                     .padding(.top, 6)
@@ -251,7 +251,7 @@ private struct HeroView: View {
 
     /// 残り時間。OS が毎秒描き直すので、状態を毎秒更新しなくてよい。
     private func countdown(to date: Date) -> some View {
-        Text(timerInterval: status.now...max(date, status.now), countsDown: true)
+        Text(timerInterval: status.now ... max(date, status.now), countsDown: true)
             .font(.system(size: 76, weight: .heavy, design: .rounded))
             .monospacedDigit()
             .minimumScaleFactor(0.5)

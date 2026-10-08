@@ -166,7 +166,7 @@ struct PlanView: View {
     }
 
     private func subtitle(for goal: Goal) -> String {
-        let lock: String =
+        let lock =
             switch goal.lockStart {
             case .dayStart:
                 String(localized: .goalLockFromMorning)

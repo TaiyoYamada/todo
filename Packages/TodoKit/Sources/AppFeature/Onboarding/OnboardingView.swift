@@ -32,7 +32,10 @@ struct OnboardingView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)).combined(with: .opacity))
+            .transition(
+                .asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading))
+                    .combined(with: .opacity)
+            )
             .id(store.step)
 
             controls

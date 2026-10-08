@@ -168,7 +168,7 @@ private struct CalibrationCard: View {
                 Text(verbatim: "×")
                     .font(.system(.title, design: .rounded, weight: .bold))
                     .foregroundStyle(.white.opacity(0.6))
-                Text(factor, format: .number.precision(.fractionLength(0...2)))
+                Text(factor, format: .number.precision(.fractionLength(0 ... 2)))
                     .font(.system(size: 52, weight: .heavy, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(mood.accent)

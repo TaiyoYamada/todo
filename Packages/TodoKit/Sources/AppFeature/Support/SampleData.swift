@@ -68,12 +68,22 @@ enum SampleData {
         let englishMinutes = [20, 0, 20, 20, 25, 20, 0, 20, 20, 30, 20, 20, 20]
         for (index, minutes) in examMinutes.enumerated() where minutes > 0 {
             sessions.append(
-                FocusSession(id: id(100 + index), goalID: exam.id, startedAt: day(index - 13, hour: 9), seconds: minutes * 60)
+                FocusSession(
+                    id: id(100 + index),
+                    goalID: exam.id,
+                    startedAt: day(index - 13, hour: 9),
+                    seconds: minutes * 60
+                )
             )
         }
         for (index, minutes) in englishMinutes.enumerated() where index >= 1 && minutes > 0 {
             sessions.append(
-                FocusSession(id: id(200 + index), goalID: english.id, startedAt: day(index - 13, hour: 19), seconds: minutes * 60)
+                FocusSession(
+                    id: id(200 + index),
+                    goalID: english.id,
+                    startedAt: day(index - 13, hour: 19),
+                    seconds: minutes * 60
+                )
             )
         }
 
@@ -127,20 +137,40 @@ enum SampleData {
             break
         case .taskLocked:
             sessions.append(
-                FocusSession(id: id(300), goalID: exam.id, startedAt: now.addingTimeInterval(-3 * 3600), seconds: 45 * 60)
+                FocusSession(
+                    id: id(300),
+                    goalID: exam.id,
+                    startedAt: now.addingTimeInterval(-3 * 3600),
+                    seconds: 45 * 60
+                )
             )
             // 締切まで 1 時間。所要 90 分なので、着手リミットはもう過ぎている。
             tasks[0].dueAt = now.addingTimeInterval(3600)
         case .countdown:
             sessions.append(
-                FocusSession(id: id(300), goalID: exam.id, startedAt: now.addingTimeInterval(-3 * 3600), seconds: 45 * 60)
+                FocusSession(
+                    id: id(300),
+                    goalID: exam.id,
+                    startedAt: now.addingTimeInterval(-3 * 3600),
+                    seconds: 45 * 60
+                )
             )
         case .free:
             sessions.append(
-                FocusSession(id: id(300), goalID: exam.id, startedAt: now.addingTimeInterval(-3 * 3600), seconds: 45 * 60)
+                FocusSession(
+                    id: id(300),
+                    goalID: exam.id,
+                    startedAt: now.addingTimeInterval(-3 * 3600),
+                    seconds: 45 * 60
+                )
             )
             sessions.append(
-                FocusSession(id: id(301), goalID: english.id, startedAt: now.addingTimeInterval(-2 * 3600), seconds: 20 * 60)
+                FocusSession(
+                    id: id(301),
+                    goalID: english.id,
+                    startedAt: now.addingTimeInterval(-2 * 3600),
+                    seconds: 20 * 60
+                )
             )
             tasks[0].completedAt = now.addingTimeInterval(-3600)
             tasks[0].actualMinutes = 120

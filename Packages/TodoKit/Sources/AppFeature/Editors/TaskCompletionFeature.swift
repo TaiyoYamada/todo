@@ -26,7 +26,10 @@ struct TaskCompletionFeature {
         /// 見積もりを基準にした選択肢。半分、ちょうど、1.5 倍、2 倍、3 倍。測った時間があれば、それも入れる。
         var options: [Int] {
             let estimate = task.estimateMinutes
-            let raw = [estimate / 2, estimate, estimate * 3 / 2, estimate * 2, estimate * 3] + [measuredMinutes].compactMap(\.self)
+            var raw = [estimate / 2, estimate, estimate * 3 / 2, estimate * 2, estimate * 3]
+            if let measuredMinutes {
+                raw.append(measuredMinutes)
+            }
             // 5 分刻みに丸め、重複を除いて、短い順に並べる。
             return Set(raw.map { max(5, Int((Double($0) / 5).rounded()) * 5) }).sorted()
         }

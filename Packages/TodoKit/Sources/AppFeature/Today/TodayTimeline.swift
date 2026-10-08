@@ -52,7 +52,12 @@ enum TodayTimeline {
                 } else {
                     .optional
                 }
-            return TimelineItem(source: .goal(progress.id), kind: .goal(progress), at: progress.lockStartsAt, state: state)
+            return TimelineItem(
+                source: .goal(progress.id),
+                kind: .goal(progress),
+                at: progress.lockStartsAt,
+                state: state
+            )
         }
 
         let tasks = status.forecast.compactMap { entry -> TimelineItem? in

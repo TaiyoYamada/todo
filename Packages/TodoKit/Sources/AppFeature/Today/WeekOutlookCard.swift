@@ -43,7 +43,11 @@ struct WeekOutlookCard: View {
 
             Group {
                 if let first = day.firstLockAt {
-                    Text(first == day.dayStart ? LocalizedStringResource.todayForecastFromMorning : "\(TimeText.clock(first))")
+                    if first == day.dayStart {
+                        Text(.todayForecastFromMorning)
+                    } else {
+                        Text(TimeText.clock(first))
+                    }
                 } else {
                     Text(verbatim: "–")
                 }

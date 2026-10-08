@@ -42,7 +42,7 @@ struct TaskEditorFeature {
         }
     }
 
-    static let estimateRange = 5...600
+    static let estimateRange = 5 ... 600
     static let estimateStep = 5
     static let estimatePresets = [15, 30, 60, 120, 180]
 
@@ -74,7 +74,10 @@ struct TaskEditorFeature {
                 if let minutes = suggestion.estimateMinutes {
                     // 選べる範囲と刻みに合わせる。
                     let stepped = Int((Double(minutes) / Double(Self.estimateStep)).rounded()) * Self.estimateStep
-                    state.task.estimateMinutes = min(max(stepped, Self.estimateRange.lowerBound), Self.estimateRange.upperBound)
+                    state.task.estimateMinutes = min(
+                        max(stepped, Self.estimateRange.lowerBound),
+                        Self.estimateRange.upperBound
+                    )
                 }
                 state.suggestion = nil
                 return .none
