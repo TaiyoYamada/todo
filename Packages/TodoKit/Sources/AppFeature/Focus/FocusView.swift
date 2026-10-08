@@ -122,6 +122,7 @@ private struct FinishedView: View {
                 .foregroundStyle(mood.accent)
                 .symbolEffect(.bounce, value: appeared)
                 .shadow(color: mood.accent.opacity(0.7), radius: 30)
+                .accessibilityHidden(true)
 
             Text(summary.reachedTarget ? .focusFinishedTitleDone : .focusFinishedTitlePaused)
                 .accessibilityIdentifier("focus.finished.title")

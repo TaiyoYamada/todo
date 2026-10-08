@@ -110,6 +110,9 @@ struct GoalEditorView: View {
                     Button {
                         store.goal.symbol = symbol
                     } label: {
+                        // 記号そのものが選択肢。読み上げには、OS が記号に付けている名前(言語に合わせて変わる)を使う。
+                        // 隠すとボタンの名前がなくなり、自前の名前を付けるには記号ごとの文言が要る。
+                        // swiftlint:disable:next accessibility_label_for_image
                         Image(systemName: symbol)
                             .font(.body.weight(.semibold))
                             .frame(width: 44, height: 44)

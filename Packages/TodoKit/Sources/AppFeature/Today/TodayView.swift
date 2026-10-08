@@ -431,6 +431,7 @@ private struct TasksCard: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .contentShape(.rect)
                     .onTapGesture { onOpen(task.id) }
+                    .accessibilityAddTraits(.isButton)
                 }
             }
         }
