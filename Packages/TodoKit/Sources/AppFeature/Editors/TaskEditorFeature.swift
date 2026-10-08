@@ -11,6 +11,8 @@ struct TaskEditorFeature {
         @SharedReader(.board) var board
         var task: TaskItem
         let isNew: Bool
+        /// 名前の欄に書かれた文から読み取れた、締切と所要時間。反映するかどうかは本人が決める。
+        var suggestion: QuickAdd?
 
         var canSave: Bool {
             !task.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -25,6 +27,7 @@ struct TaskEditorFeature {
 
     enum Action: BindableAction {
         case binding(BindingAction<State>)
+        case applySuggestionTapped
         case saveTapped
         case completeTapped
         case withdrawConfirmed
@@ -42,6 +45,7 @@ struct TaskEditorFeature {
     static let estimateStep = 5
     static let estimatePresets = [15, 30, 60, 120, 180]
 
+    @Dependency(\.calendar) var calendar
     @Dependency(\.database) var database
     @Dependency(\.date.now) var now
     @Dependency(\.dismiss) var dismiss
@@ -50,7 +54,27 @@ struct TaskEditorFeature {
         BindingReducer()
         Reduce { state, action in
             switch action {
+            case .binding(\.task.title):
+                // 「金曜までにレポート 2時間」のように書かれたら、締切と所要時間を読み取って提案する。
+                let parsed = QuickAddParser(calendar: calendar).parse(state.task.title, now: now)
+                state.suggestion = parsed.hasDetails && !parsed.title.isEmpty ? parsed : nil
+                return .none
+
             case .binding, .delegate:
+                return .none
+
+            case .applySuggestionTapped:
+                guard let suggestion = state.suggestion else { return .none }
+                state.task.title = suggestion.title
+                if let dueAt = suggestion.dueAt {
+                    state.task.dueAt = dueAt
+                }
+                if let minutes = suggestion.estimateMinutes {
+                    // 選べる範囲と刻みに合わせる。
+                    let stepped = Int((Double(minutes) / Double(Self.estimateStep)).rounded()) * Self.estimateStep
+                    state.task.estimateMinutes = min(max(stepped, Self.estimateRange.lowerBound), Self.estimateRange.upperBound)
+                }
+                state.suggestion = nil
                 return .none
 
             case .saveTapped:

@@ -1,6 +1,7 @@
 import ComposableArchitecture
 import DesignSystem
 import Domain
+import ShieldClient
 import SwiftUI
 
 struct SettingsView: View {
@@ -9,6 +10,8 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                shieldSection
+
                 Section {
                     Picker(selection: $store.preferences.buffer) {
                         ForEach(Preferences.Buffer.allCases, id: \.self) { buffer in
@@ -67,6 +70,16 @@ struct SettingsView: View {
             }
             .navigationTitle(Text(.todaySettings))
             .navigationBarTitleDisplayMode(.inline)
+            .task { await store.send(.task).finish() }
+            .shieldAppPicker(isPresented: $store.isPickerPresented) {
+                store.send(.selectionChanged)
+            } simulated: {
+                ContentUnavailableView {
+                    Label { Text(.settingsShieldSimulatedTitle) } icon: { Image(systemName: "iphone.slash") }
+                } description: {
+                    Text(.settingsShieldSimulatedBody)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
@@ -76,6 +89,36 @@ struct SettingsView: View {
                     }
                 }
             }
+        }
+    }
+
+    private var shieldSection: some View {
+        Section {
+            switch store.authorization {
+            case .approved:
+                Button {
+                    store.send(.chooseAppsTapped)
+                } label: {
+                    LabeledContent {
+                        Text(.settingsShieldCount(store.selectionCount))
+                    } label: {
+                        Label { Text(.settingsShieldChoose) } icon: { Image(systemName: "lock.app.dashed") }
+                    }
+                }
+            case .notDetermined:
+                Button {
+                    store.send(.allowTapped)
+                } label: {
+                    Label { Text(.onboardingAppsAllow) } icon: { Image(systemName: "hourglass") }
+                }
+            case .denied:
+                Label { Text(.onboardingAppsDenied) } icon: { Image(systemName: "exclamationmark.triangle") }
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text(.settingsShieldHeader)
+        } footer: {
+            Text(.settingsShieldFooter)
         }
     }
 

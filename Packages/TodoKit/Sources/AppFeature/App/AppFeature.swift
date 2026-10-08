@@ -2,6 +2,7 @@ import ComposableArchitecture
 import DatabaseClient
 import Domain
 import Foundation
+import NotificationClient
 import ShieldClient
 
 /// アプリの根。保存データを監視してロックの状態を計算し、各画面に配る。
@@ -55,6 +56,7 @@ struct AppFeature {
     @Dependency(\.continuousClock) var clock
     @Dependency(\.database) var database
     @Dependency(\.date.now) var now
+    @Dependency(\.notifications) var notifications
     @Dependency(\.shield) var shield
     @Dependency(\.uuid) var uuid
 
@@ -105,7 +107,8 @@ struct AppFeature {
 
             case .onboarding(.delegate(.finished)):
                 state.onboarding = nil
-                return .none
+                // 仕組みを理解してもらった直後に、通知の許可を求める。
+                return .run { _ in _ = await notifications.requestAuthorization() }
 
             case .binding, .today, .plan, .insights, .onboarding, .destination:
                 return .none
@@ -127,8 +130,38 @@ struct AppFeature {
         let plan = ShieldPlan(status: state.board.status)
         guard plan != state.appliedPlan else { return .none }
         state.appliedPlan = plan
+        let warnings = Self.warnings(for: state.board.status)
         return .run { [world = state.board.world] _ in
             await shield.apply(plan, world)
+            await notifications.replaceAll(warnings)
+        }
+    }
+
+    /// ロックの何分前に知らせるか。
+    static let warningLead: TimeInterval = 30 * 60
+    /// 一度に予約する、これからのロックの数。
+    static let warningLimit = 8
+
+    /// これから来るロックについて、前触れの通知と、始まったときの通知を作る。
+    /// ロックされる前に動いてもらうのが狙いなので、前触れのほうが大事。
+    static func warnings(for status: LockStatus) -> [LockNotification] {
+        status.upcomingReasons.prefix(warningLimit).flatMap { reason -> [LockNotification] in
+            let key = String(describing: reason.source)
+            let started = LockNotification(
+                id: "start-\(key)",
+                title: String(localized: .notificationStartTitle),
+                body: String(localized: .notificationStartBody(reason.title)),
+                fireAt: reason.startsAt
+            )
+            let warnAt = reason.startsAt.addingTimeInterval(-warningLead)
+            guard warnAt > status.now else { return [started] }
+            let warning = LockNotification(
+                id: "warn-\(key)",
+                title: String(localized: .notificationWarnTitle),
+                body: String(localized: .notificationWarnBody(reason.title)),
+                fireAt: warnAt
+            )
+            return [warning, started]
         }
     }
 

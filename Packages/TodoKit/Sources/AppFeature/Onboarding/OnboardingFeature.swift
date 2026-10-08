@@ -20,6 +20,7 @@ struct OnboardingFeature {
         var authorization = ShieldAuthorization.notDetermined
         var selectionCount = 0
         var isRequestingAuthorization = false
+        var isPickerPresented = false
 
         var trimmedTitle: String { goalTitle.trimmingCharacters(in: .whitespacesAndNewlines) }
 
@@ -33,6 +34,8 @@ struct OnboardingFeature {
         case backTapped
         case minutesTapped(Int)
         case allowTapped
+        case chooseAppsTapped
+        case selectionChanged
         case authorizationResponse(ShieldAuthorization, selectionCount: Int)
         case finishTapped
         case delegate(Delegate)
@@ -75,6 +78,15 @@ struct OnboardingFeature {
                 return .run { send in
                     let authorization = await shield.requestAuthorization()
                     await send(.authorizationResponse(authorization, selectionCount: shield.selectionCount()))
+                }
+
+            case .chooseAppsTapped:
+                state.isPickerPresented = true
+                return .none
+
+            case .selectionChanged:
+                return .run { send in
+                    await send(.authorizationResponse(shield.authorization(), selectionCount: shield.selectionCount()))
                 }
 
             case let .authorizationResponse(authorization, selectionCount):
