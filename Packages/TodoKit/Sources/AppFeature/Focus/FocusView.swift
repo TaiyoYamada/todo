@@ -80,6 +80,7 @@ private struct RunningView: View {
                 Label { Text(.focusStop) } icon: { Image(systemName: "stop.fill") }
             }
             .buttonStyle(.quiet)
+            .accessibilityIdentifier("focus.stop")
             .padding(.bottom, 44)
         }
         .padding(.horizontal, 24)
@@ -124,6 +125,7 @@ private struct FinishedView: View {
                 .shadow(color: mood.accent.opacity(0.7), radius: 30)
 
             Text(summary.reachedTarget ? .focusFinishedTitleDone : .focusFinishedTitlePaused)
+                .accessibilityIdentifier("focus.finished.title")
                 .font(.system(size: 36, weight: .heavy, design: .rounded))
                 .multilineTextAlignment(.center)
 
@@ -143,6 +145,7 @@ private struct FinishedView: View {
                     Text(.commonClose)
                 }
                 .buttonStyle(.hero)
+                .accessibilityIdentifier("focus.close")
 
                 Button {
                     store.send(.continueTapped)
@@ -150,6 +153,7 @@ private struct FinishedView: View {
                     Text(summary.reachedTarget ? .focusContinueExtra : .focusContinue)
                 }
                 .buttonStyle(.quiet)
+                .accessibilityIdentifier("focus.continue")
             }
             .padding(.bottom, 36)
         }

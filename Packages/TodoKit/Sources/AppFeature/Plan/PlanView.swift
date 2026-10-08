@@ -32,6 +32,7 @@ struct PlanView: View {
     private var goals: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(.planGoalsTitle)
+                .accessibilityIdentifier("plan.goals.title")
                 .sectionLabelStyle()
             ForEach(store.board.world.activeGoals) { goal in
                 Button {
@@ -61,6 +62,7 @@ struct PlanView: View {
                 .buttonStyle(.plain)
             }
             addButton(.todayAddGoal) { store.send(.addGoalTapped) }
+                .accessibilityIdentifier("plan.addGoal")
         }
         .glassCard()
     }
@@ -68,6 +70,7 @@ struct PlanView: View {
     private var tasks: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(.planTasksTitle)
+                .accessibilityIdentifier("plan.tasks.title")
                 .sectionLabelStyle()
             ForEach(store.openTasks) { task in
                 let limit = store.board.world.startLimit(of: task)
@@ -82,6 +85,7 @@ struct PlanView: View {
                             .frame(width: 44, height: 44)
                     }
                     .accessibilityLabel(Text(.todayCtaCompleteTask))
+                    .accessibilityIdentifier("plan.task.complete")
 
                     Button {
                         store.send(.taskTapped(task.id))
@@ -114,6 +118,7 @@ struct PlanView: View {
                 }
             }
             addButton(.todayAddTask) { store.send(.addTaskTapped) }
+                .accessibilityIdentifier("plan.addTask")
         }
         .glassCard()
     }
@@ -121,6 +126,7 @@ struct PlanView: View {
     private var closedTasks: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(.planClosedTitle)
+                .accessibilityIdentifier("plan.closed.title")
                 .sectionLabelStyle()
             ForEach(store.closedTasks) { task in
                 Button {

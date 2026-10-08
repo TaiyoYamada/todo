@@ -103,10 +103,12 @@ struct OnboardingFeature {
                     ? nil
                     : Goal(id: uuid(), title: state.trimmedTitle, dailyMinutes: state.goalMinutes, createdAt: now)
                 return .run { [preferences] send in
+                    // 済ませた印を先に保存する。目標を先にすると「目標はあるが印はまだ」という保存データが
+                    // 終了の知らせより遅れて届くことがあり、親がやり直しの依頼と取り違えて最初の画面に戻してしまう。
+                    try await database.savePreferences(preferences)
                     if let goal {
                         try await database.saveGoal(goal)
                     }
-                    try await database.savePreferences(preferences)
                     await send(.delegate(.finished))
                 }
             }

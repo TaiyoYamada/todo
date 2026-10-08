@@ -45,6 +45,7 @@ private struct WeekSummary: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(.insightsWeekTitle)
+                .accessibilityIdentifier("insights.week.title")
                 .sectionLabelStyle()
             Text(DurationText.compact(minutes: insights.thisWeekSeconds / 60))
                 .font(.system(size: 52, weight: .heavy, design: .rounded))
@@ -112,6 +113,7 @@ private struct FocusChart: View {
         let shownGoals = goals.filter { goal in bars.contains { $0.goal.id == goal.id } }
         VStack(alignment: .leading, spacing: 14) {
             Text(.insightsChartTitle)
+                .accessibilityIdentifier("insights.chart.title")
                 .sectionLabelStyle()
             Chart(bars) { bar in
                 BarMark(
@@ -160,6 +162,7 @@ private struct CalibrationCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(.insightsCalibrationTitle)
+                .accessibilityIdentifier("insights.calibration.title")
                 .sectionLabelStyle()
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(verbatim: "×")
@@ -196,6 +199,7 @@ private struct TasksSummary: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(.insightsTasksTitle)
+                .accessibilityIdentifier("insights.tasks.title")
                 .sectionLabelStyle()
             HStack(alignment: .top, spacing: 10) {
                 stat(insights.tasksBeforeLimit, .insightsTasksBeforeLimit, color: mood.accent)
