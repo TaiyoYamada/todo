@@ -28,11 +28,12 @@ public struct LockEngine: Sendable {
                 remainingSeconds: progress.remainingSeconds
             )
         }
+        let factor = world.estimateFactor
         let taskReasons = world.openTasks.map { task in
             LockReason(
                 source: .task(task.id),
                 title: task.title,
-                startsAt: task.startLimit(buffer: world.preferences.buffer),
+                startsAt: task.startLimit(factor: factor),
                 dueAt: task.dueAt
             )
         }
@@ -77,23 +78,37 @@ public struct LockEngine: Sendable {
         let weekday = clock.weekday(ofDayStarting: today.start)
         return world.activeGoals
             .filter { $0.weekdays.contains(weekday) && $0.dailyMinutes > 0 }
-            .map { goal in
-                GoalProgress(
-                    goal: goal,
-                    doneSeconds: doneSeconds(for: goal, world: world, today: today, now: now),
-                    lockStartsAt: lockStart(of: goal, inDayStarting: today.start, clock: clock)
-                )
-            }
+            .map { progress(of: $0, world: world, clock: clock, today: today, now: now) }
     }
 
-    private func doneSeconds(for goal: Goal, world: World, today: DateInterval, now: Date) -> Int {
+    /// ある目標の今日の進み具合。今日が「やる曜日」でなくても計算できる(休みの日に自主的に進める場合)。
+    public func progress(of goal: Goal, world: World, now: Date) -> GoalProgress {
+        let clock = DayClock(calendar: calendar, dayStartHour: world.preferences.dayStartHour)
+        return progress(of: goal, world: world, clock: clock, today: clock.day(containing: now), now: now)
+    }
+
+    private func progress(
+        of goal: Goal,
+        world: World,
+        clock: DayClock,
+        today: DateInterval,
+        now: Date
+    ) -> GoalProgress {
         let recorded = world.sessions
             .filter { $0.goalID == goal.id && today.start <= $0.startedAt && $0.startedAt < today.end }
             .reduce(0) { $0 + $1.seconds }
         // 計測中のぶんも数える。止めなくても、今日の分に達した時点でロックが外れるようにするため。
-        guard let focus = world.activeFocus, focus.goalID == goal.id else { return recorded }
-        let running = now.timeIntervalSince(max(focus.startedAt, today.start))
-        return recorded + max(0, Int(running))
+        var running = 0
+        if let focus = world.activeFocus, focus.goalID == goal.id {
+            running = max(0, Int(now.timeIntervalSince(max(focus.startedAt, today.start))))
+        }
+        let isScheduledToday = goal.weekdays.contains(clock.weekday(ofDayStarting: today.start))
+        return GoalProgress(
+            goal: goal,
+            doneSeconds: recorded + running,
+            recordedSeconds: recorded,
+            lockStartsAt: isScheduledToday ? lockStart(of: goal, inDayStarting: today.start, clock: clock) : nil
+        )
     }
 
     /// その日に、目標がロックの理由になり始める時刻。その日はロックしないなら nil。
@@ -134,8 +149,9 @@ public struct LockEngine: Sendable {
                 state: progress.isComplete ? .cleared : (at <= now ? .active : .upcoming)
             )
         }
+        let factor = world.estimateFactor
         let taskEntries = world.tasks.compactMap { task -> ForecastEntry? in
-            let at = task.startLimit(buffer: world.preferences.buffer)
+            let at = task.startLimit(factor: factor)
             if task.isOpen {
                 // 今日のうちに着手リミットが来るものと、すでに過ぎているもの。
                 guard at < today.end else { return nil }

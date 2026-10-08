@@ -31,6 +31,7 @@ struct TaskRecord: Sendable {
     var title: String
     var dueAt: Double
     var estimateMinutes: Int
+    var actualMinutes: Int?
     var completedAt: Double?
     var withdrawnAt: Double?
     var createdAt: Double
@@ -104,6 +105,7 @@ extension TaskRecord {
             title: task.title,
             dueAt: task.dueAt.timeIntervalSince1970,
             estimateMinutes: task.estimateMinutes,
+            actualMinutes: task.actualMinutes,
             completedAt: task.completedAt?.timeIntervalSince1970,
             withdrawnAt: task.withdrawnAt?.timeIntervalSince1970,
             createdAt: task.createdAt.timeIntervalSince1970
@@ -116,6 +118,7 @@ extension TaskRecord {
             title: title,
             dueAt: Date(timeIntervalSince1970: dueAt),
             estimateMinutes: estimateMinutes,
+            actualMinutes: actualMinutes,
             completedAt: completedAt.map(Date.init(timeIntervalSince1970:)),
             withdrawnAt: withdrawnAt.map(Date.init(timeIntervalSince1970:)),
             createdAt: Date(timeIntervalSince1970: createdAt)
@@ -200,6 +203,7 @@ private var migrator: DatabaseMigrator {
               "title" TEXT NOT NULL,
               "dueAt" REAL NOT NULL,
               "estimateMinutes" INTEGER NOT NULL,
+              "actualMinutes" INTEGER,
               "completedAt" REAL,
               "withdrawnAt" REAL,
               "createdAt" REAL NOT NULL

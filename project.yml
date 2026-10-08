@@ -57,6 +57,26 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: ""
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         ENABLE_USER_SCRIPT_SANDBOXING: YES
+      configs:
+        # 開発用の構成でだけ DEV を定義する。見本データの切り替えなど、本番に入れない機能の目印。
+        Debug-Dev:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) DEV
+        Release-Dev:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) DEV
+
+  # 画面を実際に操作して確かめるテスト。見本データ(-sampleData)で起動するので、開発用の構成でだけ動く。
+  TodoUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+    dependencies:
+      - target: Todo
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID_BASE).uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Todo
 
 schemes:
   Todo-Dev:
@@ -70,6 +90,7 @@ schemes:
       targets:
         - package: TodoKit/DatabaseClientTests
         - package: TodoKit/AppFeatureTests
+        - name: TodoUITests
     profile:
       config: Release-Dev
     analyze:

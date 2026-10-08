@@ -36,6 +36,8 @@ public struct ProgressRing<Center: View>: View {
                 )
                 .rotationEffect(.degrees(-90))
                 .shadow(color: tint.opacity(0.6), radius: lineWidth, y: 0)
+                // まだ何も進んでいないときは、端の丸だけが点として残るので隠す。
+                .opacity(fraction > 0 ? 1 : 0)
             center
         }
         .animation(.spring(duration: 0.6), value: fraction)

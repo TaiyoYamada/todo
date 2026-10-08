@@ -116,7 +116,7 @@ struct LockEngineTests {
     @Test("着手リミットの前は、余裕として数える")
     func taskBeforeStartLimit() {
         // 締切 23:59、所要 2 時間なので、着手リミットは 21:59。
-        let status = engine.status(world: World(tasks: [.fixture()]), now: now)
+        let status = engine.status(world: World.exact(tasks: [.fixture()]), now: now)
         #expect(status.phase == .free(nextLockAt: date(9, 21, 59)))
         #expect(status.upcomingReasons.map(\.source) == [.task(uuid(100))])
         #expect(status.slack == TimeInterval(28740))
@@ -124,28 +124,28 @@ struct LockEngineTests {
 
     @Test("着手リミットを過ぎると、ロックされる")
     func taskAfterStartLimit() {
-        let status = engine.status(world: World(tasks: [.fixture()]), now: date(9, 22))
+        let status = engine.status(world: World.exact(tasks: [.fixture()]), now: date(9, 22))
         #expect(status.isLocked)
         #expect(status.activeReasons.first?.dueAt == date(9, 23, 59))
     }
 
     @Test("締切を過ぎても、片づけるまでロックは続く")
     func overdueTaskStaysLocked() {
-        #expect(engine.status(world: World(tasks: [.fixture()]), now: date(11, 9)).isLocked)
+        #expect(engine.status(world: World.exact(tasks: [.fixture()]), now: date(11, 9)).isLocked)
     }
 
     @Test("完了または取り下げで、ロックが外れる")
     func resolvedTaskUnlocks() {
         let late = date(9, 22, 30)
-        let completed = World(tasks: [.fixture(completedAt: date(9, 22, 10))])
-        let withdrawn = World(tasks: [.fixture(withdrawnAt: date(9, 22, 10))])
+        let completed = World.exact(tasks: [.fixture(completedAt: date(9, 22, 10))])
+        let withdrawn = World.exact(tasks: [.fixture(withdrawnAt: date(9, 22, 10))])
         #expect(!engine.status(world: completed, now: late).isLocked)
         #expect(!engine.status(world: withdrawn, now: late).isLocked)
     }
 
-    @Test("余裕係数を上げると、着手リミットが早まる")
+    @Test("倍率を上げると、着手リミットが早まる")
     func bufferMovesStartLimitEarlier() {
-        var world = World(tasks: [.fixture()])
+        var world = World.exact(tasks: [.fixture()])
         world.preferences.buffer = .half
         // 2 時間 × 1.5 = 3 時間前。
         #expect(engine.status(world: world, now: now).phase == .free(nextLockAt: date(9, 20, 59)))
@@ -153,7 +153,7 @@ struct LockEngineTests {
 
     @Test("理由が複数あれば、すべて片づくまでロックが続く")
     func multipleReasons() {
-        let world = World(
+        let world = World.exact(
             goals: [.fixture()],
             tasks: [.fixture()],
             sessions: [.fixture(startedAt: date(9, 9), minutes: 30)]
@@ -205,7 +205,7 @@ struct LockEngineTests {
 
     @Test("ロック予報は、今日の理由を時刻順に並べる")
     func forecastOrder() {
-        let world = World(
+        let world = World.exact(
             goals: [
                 .fixture(1, title: "院試"),
                 .fixture(2, title: "TOEIC", lockStart: .timeOfDay(minutes: 18 * 60)),
@@ -225,7 +225,7 @@ struct LockEngineTests {
 
     @Test("次に状態が変わる時刻は、いちばん近い予定になる")
     func nextChangeAt() {
-        let free = engine.status(world: World(tasks: [.fixture()]), now: now)
+        let free = engine.status(world: World.exact(tasks: [.fixture()]), now: now)
         #expect(free.nextChangeAt == date(9, 21, 59))
 
         let nothing = engine.status(world: World(), now: now)

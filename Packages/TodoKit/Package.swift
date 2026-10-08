@@ -9,6 +9,7 @@ let package = Package(
     products: [
         .library(name: "AppFeature", targets: ["AppFeature"]),
         .library(name: "DesignSystem", targets: ["DesignSystem"]),
+        .library(name: "SharedCore", targets: ["SharedCore"]),
     ],
     dependencies: [
         .package(path: "../Domain"),
@@ -24,6 +25,7 @@ let package = Package(
             dependencies: [
                 "DatabaseClient",
                 "DesignSystem",
+                "ShieldClient",
                 .product(name: "Domain", package: "Domain"),
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
             ],
@@ -37,6 +39,20 @@ let package = Package(
                 .product(name: "DependenciesMacros", package: "swift-dependencies"),
                 .product(name: "SQLiteData", package: "sqlite-data"),
                 .product(name: "GRDB", package: "GRDB.swift"),
+            ]
+        ),
+        // 拡張機能にも入れる部分。メモリの制限が厳しいので、Apple 標準と Domain 以外には依存させない。
+        .target(
+            name: "SharedCore",
+            dependencies: [.product(name: "Domain", package: "Domain")]
+        ),
+        .target(
+            name: "ShieldClient",
+            dependencies: [
+                "SharedCore",
+                .product(name: "Domain", package: "Domain"),
+                .product(name: "Dependencies", package: "swift-dependencies"),
+                .product(name: "DependenciesMacros", package: "swift-dependencies"),
             ]
         ),
         .target(
