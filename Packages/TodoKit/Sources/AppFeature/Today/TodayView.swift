@@ -81,6 +81,7 @@ struct TodayView: View {
                     .frame(width: 40, height: 40)
             }
             .accessibilityLabel(Text(.commonAdd))
+            .accessibilityIdentifier("today.add")
             Button {
                 store.send(.settingsTapped)
             } label: {
@@ -89,6 +90,7 @@ struct TodayView: View {
                     .frame(width: 40, height: 40)
             }
             .accessibilityLabel(Text(.todaySettings))
+            .accessibilityIdentifier("today.settings")
         }
         .foregroundStyle(.white)
         .padding(.top, 8)
@@ -139,6 +141,7 @@ private struct HeroView: View {
             switch hero {
             case .empty:
                 label(.todayEmptyLabel, symbol: "sparkles")
+                    .accessibilityIdentifier("today.hero.empty")
                 Text(.todayEmptyHeadline)
                     .font(.system(size: 34, weight: .heavy, design: .rounded))
                     .multilineTextAlignment(.center)
@@ -150,10 +153,12 @@ private struct HeroView: View {
                     Text(.todayAddGoal)
                 }
                 .buttonStyle(.hero)
+                .accessibilityIdentifier("today.hero.addGoal")
                 .padding(.top, 6)
 
             case let .locked(primary, others):
                 label(.todayLockedLabel, symbol: "lock.fill")
+                    .accessibilityIdentifier("today.hero.locked")
                 Text(primary.title)
                     .font(.system(size: 44, weight: .heavy, design: .rounded))
                     .multilineTextAlignment(.center)
@@ -173,6 +178,7 @@ private struct HeroView: View {
 
             case let .onPass(until, primary):
                 label(.todayPassLabel, symbol: "hourglass")
+                    .accessibilityIdentifier("today.hero.onPass")
                 countdown(to: until)
                 Text(.todayPassHint)
                     .font(.callout.weight(.medium))
@@ -182,6 +188,7 @@ private struct HeroView: View {
 
             case let .countdown(until, reason):
                 label(.todaySlackLabel, symbol: "timer")
+                    .accessibilityIdentifier("today.hero.countdown")
                 countdown(to: until)
                 if let reason {
                     Text(.todaySlackReason(TimeText.clock(until), reason.title))
@@ -194,6 +201,7 @@ private struct HeroView: View {
 
             case let .freeToday(nextLockAt):
                 label(.todayFreeLabel, symbol: "checkmark.seal.fill")
+                    .accessibilityIdentifier("today.hero.free")
                 Text(.todayFreeHeadline)
                     .font(.system(size: 34, weight: .heavy, design: .rounded))
                     .multilineTextAlignment(.center)
@@ -265,6 +273,7 @@ private struct HeroView: View {
                 }
             }
             .buttonStyle(.hero)
+            .accessibilityIdentifier("today.hero.startFocus")
 
         case let .task(id):
             Button {
@@ -273,6 +282,7 @@ private struct HeroView: View {
                 Label { Text(.todayCtaCompleteTask) } icon: { Image(systemName: "checkmark") }
             }
             .buttonStyle(.hero)
+            .accessibilityIdentifier("today.hero.completeTask")
         }
         outlook(resolving: reason.source)
     }
@@ -314,6 +324,7 @@ private struct HeroView: View {
                 }
             }
             .buttonStyle(.hero)
+            .accessibilityIdentifier("today.hero.startFocus")
             outlook(resolving: .goal(suggestedGoal.id))
         }
     }
@@ -342,6 +353,7 @@ private struct ForecastCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(.todayForecastTitle)
+                .accessibilityIdentifier("today.forecast.title")
                 .sectionLabelStyle()
             VStack(spacing: 0) {
                 ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
@@ -429,6 +441,7 @@ private struct GoalsCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(.todayGoalsTitle)
+                .accessibilityIdentifier("today.goals.title")
                 .sectionLabelStyle()
             ForEach(goals) { progress in
                 HStack(spacing: 14) {
@@ -473,6 +486,7 @@ private struct GoalsCard: View {
                             .background(progress.goal.tint.color.opacity(0.32), in: .circle)
                     }
                     .accessibilityLabel(Text(.todayCtaStartFocus(progress.goal.title)))
+                    .accessibilityIdentifier("today.goal.start")
                 }
             }
         }
@@ -495,6 +509,7 @@ private struct TasksCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(.todayTasksTitle)
+                .accessibilityIdentifier("today.tasks.title")
                 .sectionLabelStyle()
             ForEach(tasks) { task in
                 let limit = world.startLimit(of: task)
@@ -508,6 +523,7 @@ private struct TasksCard: View {
                             .frame(width: 44, height: 44)
                     }
                     .accessibilityLabel(Text(.todayCtaCompleteTask))
+                    .accessibilityIdentifier("today.task.complete")
 
                     VStack(alignment: .leading, spacing: 3) {
                         Text(task.title)
