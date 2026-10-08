@@ -117,6 +117,13 @@ struct SlackWidgetView: View {
 
     var body: some View {
         let content = SlackContent(entry: entry)
+        families(content)
+            // 押したら、やるべきことの計測がすぐ始められる画面へ。
+            .widgetURL(DeepLink.focus.url)
+    }
+
+    @ViewBuilder
+    private func families(_ content: SlackContent) -> some View {
         switch family {
         case .accessoryInline:
             inline(content)
