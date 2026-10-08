@@ -93,6 +93,7 @@ struct LiveDatabaseClientTests {
         var task = TaskItem(id: uuid(2), title: "レポート", dueAt: at(9000), createdAt: at(1000))
         try await client.saveTask(task)
 
+        task.startedAt = at(2000)
         task.completedAt = at(5000)
         task.actualMinutes = 95
         try await client.saveTask(task)
