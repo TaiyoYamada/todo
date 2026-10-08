@@ -16,6 +16,7 @@ struct TodayView: View {
                 HeroView(
                     hero: store.hero,
                     status: status,
+                    world: store.board.world,
                     suggestedGoal: status.goals.first { !$0.isComplete },
                     onStartFocus: { store.send(.startFocusTapped($0)) },
                     onCompleteTask: { store.send(.completeTaskTapped($0)) },
@@ -117,6 +118,7 @@ extension Mood {
 private struct HeroView: View {
     let hero: Hero
     let status: LockStatus
+    let world: World
     let suggestedGoal: GoalProgress?
     let onStartFocus: (Goal.ID) -> Void
     let onCompleteTask: (TaskItem.ID) -> Void
@@ -124,6 +126,7 @@ private struct HeroView: View {
     let onAddGoal: () -> Void
 
     @Environment(\.mood) private var mood
+    @Dependency(\.calendar) private var calendar
 
     var body: some View {
         VStack(spacing: 14) {
@@ -249,7 +252,11 @@ private struct HeroView: View {
             Button {
                 onStartFocus(id)
             } label: {
-                Label { Text(.todayCtaStartFocus(reason.title)) } icon: { Image(systemName: "play.fill") }
+                Label {
+                    Text(.todayCtaAdvance(reason.title, DurationText.compact(seconds: reason.remainingSeconds ?? 0)))
+                } icon: {
+                    Image(systemName: "play.fill")
+                }
             }
             .buttonStyle(.hero)
 
@@ -261,6 +268,25 @@ private struct HeroView: View {
             }
             .buttonStyle(.hero)
         }
+        outlook(resolving: reason.source)
+    }
+
+    /// 「これを終えると、次のロックはいつになるか」。いま動く理由を、具体的な時刻で見せる。
+    @ViewBuilder
+    private func outlook(resolving source: LockReason.Source) -> some View {
+        let preview = LockEngine(calendar: calendar).preview(resolving: source, world: world, now: status.now)
+        if preview.unlocks {
+            Group {
+                if preview.isFreeForToday {
+                    Text(.todayOutlookFree)
+                } else if let nextLockAt = preview.nextLockAt {
+                    Text(.todayOutlookNext(TimeText.clock(nextLockAt)))
+                }
+            }
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(mood.accent)
+            .multilineTextAlignment(.center)
+        }
     }
 
     /// ロックされていないときの提案。まだ終えていない今日の分があれば、先に進めるよう促す。
@@ -271,12 +297,18 @@ private struct HeroView: View {
                 onStartFocus(suggestedGoal.id)
             } label: {
                 Label {
-                    Text(.todayCtaStartFocus(suggestedGoal.goal.title))
+                    Text(
+                        .todayCtaAdvance(
+                            suggestedGoal.goal.title,
+                            DurationText.compact(seconds: suggestedGoal.remainingSeconds)
+                        )
+                    )
                 } icon: {
                     Image(systemName: "play.fill")
                 }
             }
             .buttonStyle(.hero)
+            outlook(resolving: .goal(suggestedGoal.id))
         }
     }
 
