@@ -23,12 +23,24 @@ struct FocusFeatureTests {
         FocusSession(id: uuid(id), goalID: goal.id, startedAt: startedAt ?? start, seconds: seconds)
     }
 
-    private func makeStore(baseSeconds: Int = 0, isResumed: Bool = false) -> TestStoreOf<FocusFeature> {
-        prepareBoard(.exact(goals: [goal]), now: now.value)
+    /// - Parameters:
+    ///   - startedAt: 計測を始めた時刻。省けば `start`。
+    ///   - dayStartHour: 1日の区切り。省けば初期値の 4 時。
+    private func makeStore(
+        baseSeconds: Int = 0,
+        isResumed: Bool = false,
+        startedAt: Date? = nil,
+        dayStartHour: Int? = nil
+    ) -> TestStoreOf<FocusFeature> {
+        var world = World.exact(goals: [goal])
+        if let dayStartHour {
+            world.preferences.dayStartHour = dayStartHour
+        }
+        prepareBoard(world, now: now.value)
         return TestStore(
             initialState: FocusFeature.State(
                 goal: goal,
-                startedAt: start,
+                startedAt: startedAt ?? start,
                 baseSeconds: baseSeconds,
                 isResumed: isResumed
             )
@@ -75,7 +87,7 @@ struct FocusFeatureTests {
 
     // MARK: 今日の分に達する
 
-    @Test("今日の分に達すると自動で止まり、残りの秒数ちょうどを記録して、計測中の印を消す")
+    @Test("今日の分に達すると自動で止まり、残りの秒数ちょうどの記録と、計測中の印を消すことを、1回で保存する")
     func targetReachedFinishesWithRemainingSeconds() async {
         // 今日すでに 10 分やっている。残りは 20 分。
         let store = makeStore(baseSeconds: 10 * 60)
@@ -95,8 +107,7 @@ struct FocusFeatureTests {
         #expect(
             spy.writes == [
                 .setActiveFocus(focus),
-                .addSession(session(seconds: 20 * 60)),
-                .setActiveFocus(nil),
+                .finishFocus([session(seconds: 20 * 60)]),
             ]
         )
     }
@@ -119,8 +130,7 @@ struct FocusFeatureTests {
         #expect(
             spy.writes == [
                 .setActiveFocus(focus),
-                .addSession(session(seconds: 10 * 60)),
-                .setActiveFocus(nil),
+                .finishFocus([session(seconds: 10 * 60)]),
             ]
         )
     }
@@ -140,8 +150,7 @@ struct FocusFeatureTests {
         #expect(
             spy.writes == [
                 .setActiveFocus(focus),
-                .addSession(session(seconds: 5 * 60)),
-                .setActiveFocus(nil),
+                .finishFocus([session(seconds: 5 * 60)]),
             ]
         )
     }
@@ -157,8 +166,8 @@ struct FocusFeatureTests {
         }
         await store.finish()
 
-        // 記録は残さないが、計測中の印は消す。
-        #expect(spy.writes == [.setActiveFocus(focus), .setActiveFocus(nil)])
+        // 記録は残さないが、計測中の印は消す(記録なしの終了として 1 回だけ書く)。
+        #expect(spy.writes == [.setActiveFocus(focus), .finishFocus([])])
     }
 
     @Test("ちょうど 5 秒の計測は、記録する")
@@ -172,7 +181,133 @@ struct FocusFeatureTests {
         }
         await store.finish()
 
-        #expect(spy.writes == [.setActiveFocus(focus), .addSession(session(seconds: 5)), .setActiveFocus(nil)])
+        #expect(spy.writes == [.setActiveFocus(focus), .finishFocus([session(seconds: 5)])])
+    }
+
+    // MARK: 終えるときの保存
+
+    @Test("終えるときは、記録を足すのと計測中の印を消すのを、別々には書かない")
+    func finishWritesOnce() async {
+        let store = makeStore()
+
+        await store.send(.task)
+        now.setValue(start.addingTimeInterval(10 * 60))
+        await store.send(.stopTapped) {
+            $0.phase = .finished(.init(sessionSeconds: 10 * 60, reachedTarget: false))
+        }
+        await store.finish()
+
+        // 別々に書くと、その間だけ「記録も計測中もある」状態になり、進み具合を二重に数えてしまう。
+        let finishing = spy.writes.dropFirst()
+        #expect(finishing == [.finishFocus([session(seconds: 10 * 60)])])
+        #expect(!spy.writes.contains(.setActiveFocus(nil)))
+        #expect(!spy.writes.contains(.addSession(session(seconds: 10 * 60))))
+    }
+
+    // MARK: 1日の区切りをまたぐ
+
+    @Test("1日の区切り(朝 4 時)をまたいだ計測は、区切りで2つの記録に分ける")
+    func sessionAcrossDayBoundaryIsSplit() async {
+        // 10/10 の 3:50 に始める。このアプリの1日としては、まだ 10/9。今日の分は終えていて、延長の計測。
+        let begin = date(10, 3, 50)
+        now.setValue(begin)
+        let store = makeStore(baseSeconds: 30 * 60, startedAt: begin)
+
+        await store.send(.task)
+        // 4:10 に止める。区切りの前が 10 分、あとが 10 分。
+        now.setValue(date(10, 4, 10))
+        await store.send(.stopTapped) {
+            $0.phase = .finished(.init(sessionSeconds: 20 * 60, reachedTarget: true))
+        }
+        await store.finish()
+
+        // またいだあとのぶんは、新しい日(10/10)の記録として数えられる。
+        #expect(
+            spy.writes == [
+                .setActiveFocus(ActiveFocus(goalID: goal.id, startedAt: begin)),
+                .finishFocus([
+                    session(0, startedAt: begin, seconds: 10 * 60),
+                    session(1, startedAt: date(10, 4), seconds: 10 * 60),
+                ]),
+            ]
+        )
+    }
+
+    @Test("今日の分に達して自動で止まるときも、区切りをまたいでいれば分ける")
+    func targetReachedAcrossDayBoundaryIsSplit() async {
+        // 3:50 に始めて、残りは 30 分。4:20 に達する。
+        let begin = date(10, 3, 50)
+        now.setValue(begin)
+        let store = makeStore(startedAt: begin)
+
+        await store.send(.task)
+        now.setValue(date(10, 4, 20))
+        await clock.advance(by: .seconds(30 * 60))
+        await store.receive(\.targetReached) {
+            $0.phase = .finished(.init(sessionSeconds: 30 * 60, reachedTarget: true))
+        }
+        await store.finish()
+
+        #expect(
+            spy.writes.last == .finishFocus([
+                session(0, startedAt: begin, seconds: 10 * 60),
+                session(1, startedAt: date(10, 4), seconds: 20 * 60),
+            ])
+        )
+    }
+
+    @Test("区切りの時刻は設定に従う。0 時に設定していれば、0 時で分ける")
+    func splitFollowsDayStartHourPreference() async {
+        let begin = date(9, 23, 50)
+        now.setValue(begin)
+        let store = makeStore(baseSeconds: 30 * 60, startedAt: begin, dayStartHour: 0)
+
+        await store.send(.task)
+        now.setValue(date(10, 0, 5))
+        await store.send(.stopTapped) {
+            $0.phase = .finished(.init(sessionSeconds: 15 * 60, reachedTarget: true))
+        }
+        await store.finish()
+
+        #expect(
+            spy.writes.last == .finishFocus([
+                session(0, startedAt: begin, seconds: 10 * 60),
+                session(1, startedAt: date(10, 0), seconds: 5 * 60),
+            ])
+        )
+    }
+
+    @Test("暦の日付が変わっても、1日の区切りをまたいでいなければ分けない")
+    func sessionAcrossMidnightIsNotSplit() async {
+        // 区切りは朝 4 時。23:50 から 0:05 までは、同じ1日のうち。
+        let begin = date(9, 23, 50)
+        now.setValue(begin)
+        let store = makeStore(baseSeconds: 30 * 60, startedAt: begin)
+
+        await store.send(.task)
+        now.setValue(date(10, 0, 5))
+        await store.send(.stopTapped) {
+            $0.phase = .finished(.init(sessionSeconds: 15 * 60, reachedTarget: true))
+        }
+        await store.finish()
+
+        #expect(spy.writes.last == .finishFocus([session(0, startedAt: begin, seconds: 15 * 60)]))
+    }
+
+    @Test("区切りちょうどで止めた計測は、1つの記録のまま")
+    func sessionEndingAtBoundaryIsNotSplit() async {
+        let begin = date(10, 3, 50)
+        now.setValue(begin)
+        let store = makeStore(baseSeconds: 30 * 60, startedAt: begin)
+
+        await store.send(.task)
+        now.setValue(date(10, 4))
+        await store.send(.stopTapped) {
+            $0.phase = .finished(.init(sessionSeconds: 10 * 60, reachedTarget: true))
+        }
+        await store.finish()
+
+        #expect(spy.writes.last == .finishFocus([session(0, startedAt: begin, seconds: 10 * 60)]))
     }
 
     // MARK: アプリを開き直す
@@ -194,7 +329,7 @@ struct FocusFeatureTests {
         let saved = session(seconds: 20 * 60)
         #expect(saved.endedAt == date(9, 14, 20))
         // 計測中の印はすでに保存済みなので、書き直さない。
-        #expect(spy.writes == [.addSession(saved), .setActiveFocus(nil)])
+        #expect(spy.writes == [.finishFocus([saved])])
     }
 
     @Test("開き直したとき、今日の分にまだ達していなければ、残りの時間だけ待つ")
@@ -214,7 +349,7 @@ struct FocusFeatureTests {
         }
         await store.finish()
 
-        #expect(spy.writes == [.addSession(session(seconds: 30 * 60)), .setActiveFocus(nil)])
+        #expect(spy.writes == [.finishFocus([session(seconds: 30 * 60)])])
     }
 
     @Test("終わりのない計測を開き直したとき、3 時間を超えていれば 3 時間で打ち切る")
@@ -228,7 +363,7 @@ struct FocusFeatureTests {
         }
         await store.finish()
 
-        #expect(spy.writes == [.addSession(session(seconds: 3 * 3600)), .setActiveFocus(nil)])
+        #expect(spy.writes == [.finishFocus([session(seconds: 3 * 3600)])])
     }
 
     @Test("終わりのない計測を開き直したとき、3 時間以内なら続ける")
@@ -277,11 +412,9 @@ struct FocusFeatureTests {
         #expect(
             spy.writes == [
                 .setActiveFocus(focus),
-                .addSession(session(seconds: 20 * 60)),
-                .setActiveFocus(nil),
+                .finishFocus([session(seconds: 20 * 60)]),
                 .setActiveFocus(ActiveFocus(goalID: goal.id, startedAt: restart)),
-                .addSession(session(1, startedAt: restart, seconds: 15 * 60)),
-                .setActiveFocus(nil),
+                .finishFocus([session(1, startedAt: restart, seconds: 15 * 60)]),
             ]
         )
     }
@@ -320,11 +453,9 @@ struct FocusFeatureTests {
         #expect(
             spy.writes == [
                 .setActiveFocus(focus),
-                .addSession(session(seconds: 10 * 60)),
-                .setActiveFocus(nil),
+                .finishFocus([session(seconds: 10 * 60)]),
                 .setActiveFocus(ActiveFocus(goalID: goal.id, startedAt: restart)),
-                .addSession(session(1, startedAt: restart, seconds: 20 * 60)),
-                .setActiveFocus(nil),
+                .finishFocus([session(1, startedAt: restart, seconds: 20 * 60)]),
             ]
         )
     }
@@ -414,8 +545,7 @@ struct FocusFeatureTests {
 
         #expect(
             spy.writes == [
-                .addSession(session(seconds: 30 * 60)),
-                .setActiveFocus(nil),
+                .finishFocus([session(seconds: 30 * 60)]),
                 .setActiveFocus(ActiveFocus(goalID: goal.id, startedAt: now.value)),
             ]
         )

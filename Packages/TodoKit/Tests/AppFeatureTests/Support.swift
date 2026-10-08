@@ -62,6 +62,7 @@ extension TaskItem {
         title: String = "レポート",
         dueAt: Date = date(9, 23, 59),
         estimateMinutes: Int = 120,
+        startedAt: Date? = nil,
         actualMinutes: Int? = nil,
         completedAt: Date? = nil,
         withdrawnAt: Date? = nil
@@ -71,6 +72,7 @@ extension TaskItem {
             title: title,
             dueAt: dueAt,
             estimateMinutes: estimateMinutes,
+            startedAt: startedAt,
             actualMinutes: actualMinutes,
             completedAt: completedAt,
             withdrawnAt: withdrawnAt,
@@ -138,6 +140,8 @@ final class DatabaseSpy: Sendable {
         case deleteTask(TaskItem.ID)
         case addSession(FocusSession)
         case setActiveFocus(ActiveFocus?)
+        /// 計測の終了。記録を足すのと、計測中の印を消すのを、1回の書き込みで行う。
+        case finishFocus([FocusSession])
         case addPassUse(PassUse)
         case savePreferences(Preferences)
     }
@@ -156,6 +160,7 @@ final class DatabaseSpy: Sendable {
             deleteTask: { [recorded] id in recorded.withValue { $0.append(.deleteTask(id)) } },
             addSession: { [recorded] session in recorded.withValue { $0.append(.addSession(session)) } },
             setActiveFocus: { [recorded] focus in recorded.withValue { $0.append(.setActiveFocus(focus)) } },
+            finishFocus: { [recorded] sessions in recorded.withValue { $0.append(.finishFocus(sessions)) } },
             addPassUse: { [recorded] passUse in recorded.withValue { $0.append(.addPassUse(passUse)) } },
             savePreferences: { [recorded] preferences in
                 recorded.withValue { $0.append(.savePreferences(preferences)) }
