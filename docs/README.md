@@ -8,16 +8,17 @@ Lockcast(仮称)の文書の一覧です。アプリの概要と始め方は、�
 
 | 文書 | 内容 |
 |---|---|
-| [product/spec.md](product/spec.md) | 仕様。ロックの規則、余裕の表示、画面、実装の状況、未検証の部分 |
+| [product/spec.md](product/spec.md) | 仕様。ロックの規則、タスクの着手、余裕の表示、画面、実装の状況、未検証の部分 |
 | [product/decision-log.md](product/decision-log.md) | 仕様に関する決定と理由の記録。区切りごとの見直し(壁打ち)も含む |
+| [product/roadmap.md](product/roadmap.md) | これからの予定。いまの状態、最近済んだこと、次にやること、オーナーに決めてほしいこと |
 
 ## 開発
 
 | 文書 | 内容 |
 |---|---|
-| [engineering/architecture.md](engineering/architecture.md) | 設計の全体像。モジュール、データの流れ、ロックのモデル、画面の移動、保存の形、分かっている制限 |
-| [engineering/development.md](engineering/development.md) | 開発の手順。セットアップ、コマンド、スキーム、見本データ、文言、移行、画面の足し方 |
-| [engineering/release-checklist.md](engineering/release-checklist.md) | 公開前の確認事項。開発者登録、権限の申請、実機検証、商標、プライバシー、審査、料金、画像 |
+| [engineering/architecture.md](engineering/architecture.md) | 設計の全体像。モジュール、データの流れ、アプリの外への連絡、ロックのモデル、画面の移動、保存の形、テスト、分かっている制限 |
+| [engineering/development.md](engineering/development.md) | 開発の手順。セットアップ、コマンド、テストの件数、画面の写しの取り出し方、スキーム、見本データと起動引数、文言、移行、画面の足し方 |
+| [engineering/release-checklist.md](engineering/release-checklist.md) | 公開前の確認事項。開発者登録、権限の申請、実機検証(ロック、ウィジェット、Live Activity、通知)、商標と権利、プライバシー、審査、料金、画像 |
 
 ## 技術的な決定の記録(ADR)
 
@@ -31,6 +32,8 @@ Lockcast(仮称)の文書の一覧です。アプリの概要と始め方は、�
 | [engineering/adr/0005-screen-time-boundary.md](engineering/adr/0005-screen-time-boundary.md) | スクリーンタイム API を境界の向こうに置き、拡張機能には写しを渡す |
 | [engineering/adr/0006-string-catalog-symbols.md](engineering/adr/0006-string-catalog-symbols.md) | 文言は String Catalog に置き、生成されたシンボルで参照する |
 | [engineering/adr/0007-estimate-calibration.md](engineering/adr/0007-estimate-calibration.md) | 着手リミットを、本人の実績から自動で前倒しする |
+| [engineering/adr/0008-single-sync-point-for-extensions.md](engineering/adr/0008-single-sync-point-for-extensions.md) | アプリの外への連絡を1か所にまとめ、保存データが変わるたびに行う |
+| [engineering/adr/0009-wall-clock-day-boundaries.md](engineering/adr/0009-wall-clock-day-boundaries.md) | 1日の区切りを、時間の足し引きではなく「その日の何時」で求める |
 
 ## 調査
 
