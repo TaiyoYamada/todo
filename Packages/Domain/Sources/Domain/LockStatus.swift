@@ -36,7 +36,10 @@ public struct LockReason: Identifiable, Equatable, Sendable {
 /// ある目標の、今日の進み具合。
 public struct GoalProgress: Identifiable, Equatable, Sendable {
     public var goal: Goal
+    /// 今日やった量(秒)。計測中のぶんを含む。
     public var doneSeconds: Int
+    /// 今日やった量のうち、記録として保存済みのぶん(秒)。
+    public var recordedSeconds: Int
     /// 今日この目標がロックの理由になる時刻。作った当日はロックしないので nil。
     public var lockStartsAt: Date?
 
@@ -48,9 +51,10 @@ public struct GoalProgress: Identifiable, Equatable, Sendable {
         targetSeconds == 0 ? 1 : min(1, Double(doneSeconds) / Double(targetSeconds))
     }
 
-    public init(goal: Goal, doneSeconds: Int, lockStartsAt: Date?) {
+    public init(goal: Goal, doneSeconds: Int, recordedSeconds: Int, lockStartsAt: Date?) {
         self.goal = goal
         self.doneSeconds = doneSeconds
+        self.recordedSeconds = recordedSeconds
         self.lockStartsAt = lockStartsAt
     }
 }

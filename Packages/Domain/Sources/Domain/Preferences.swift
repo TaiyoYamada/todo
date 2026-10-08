@@ -11,7 +11,7 @@ public struct Preferences: Equatable, Sendable, Codable {
 
     public init(
         dayStartHour: Int = 4,
-        buffer: Buffer = .none,
+        buffer: Buffer = .auto,
         weeklyPassLimit: Int = 2,
         passMinutes: Int = 15,
         hasCompletedOnboarding: Bool = false
@@ -23,15 +23,24 @@ public struct Preferences: Equatable, Sendable, Codable {
         self.hasCompletedOnboarding = hasCompletedOnboarding
     }
 
-    /// 着手リミットに持たせる余裕。見積もりが甘い人は大きくする。
+    /// 着手リミットを決めるときに、見積もりへ掛ける倍率の決め方。
     public enum Buffer: String, CaseIterable, Sendable, Codable {
-        case none, quarter, half
+        /// これまでの「見積もり」と「実際」の差から自動で決める。
+        case auto
+        /// 見積もりどおり。
+        case none
+        case quarter
+        case half
+        case double
 
-        public var factor: Double {
+        /// 固定の倍率。`auto` は実績から決まるので nil。
+        public var fixedFactor: Double? {
             switch self {
+            case .auto: nil
             case .none: 1.0
             case .quarter: 1.25
             case .half: 1.5
+            case .double: 2.0
             }
         }
     }

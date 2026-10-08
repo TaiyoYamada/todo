@@ -45,6 +45,7 @@ extension TaskItem {
         title: String = "レポート",
         dueAt: Date = date(9, 23, 59),
         estimateMinutes: Int = 120,
+        actualMinutes: Int? = nil,
         completedAt: Date? = nil,
         withdrawnAt: Date? = nil
     ) -> TaskItem {
@@ -53,6 +54,7 @@ extension TaskItem {
             title: title,
             dueAt: dueAt,
             estimateMinutes: estimateMinutes,
+            actualMinutes: actualMinutes,
             completedAt: completedAt,
             withdrawnAt: withdrawnAt,
             createdAt: date(8, 12)
@@ -63,5 +65,25 @@ extension TaskItem {
 extension FocusSession {
     static func fixture(_ id: Int = 200, goal: Int = 1, startedAt: Date, minutes: Int) -> FocusSession {
         FocusSession(id: uuid(id), goalID: uuid(goal), startedAt: startedAt, seconds: minutes * 60)
+    }
+}
+
+extension World {
+    /// 見積もりどおりの倍率(1.0)に固定した World。時刻の計算を追いやすくするため。
+    static func exact(
+        goals: [Goal] = [],
+        tasks: [TaskItem] = [],
+        sessions: [FocusSession] = [],
+        passUses: [PassUse] = [],
+        activeFocus: ActiveFocus? = nil
+    ) -> World {
+        World(
+            goals: goals,
+            tasks: tasks,
+            sessions: sessions,
+            passUses: passUses,
+            activeFocus: activeFocus,
+            preferences: Preferences(buffer: .none)
+        )
     }
 }

@@ -32,4 +32,17 @@ public struct World: Equatable, Sendable, Codable {
     public var openTasks: [TaskItem] { tasks.filter(\.isOpen) }
 
     public func goal(id: Goal.ID) -> Goal? { goals.first { $0.id == id } }
+    public func task(id: TaskItem.ID) -> TaskItem? { tasks.first { $0.id == id } }
+
+    /// 見積もりの癖。完了したタスクの「見積もり」と「実際」から求める。
+    public var calibration: EstimateCalibration { EstimateCalibration(tasks: tasks) }
+
+    /// 着手リミットを決めるときに、見積もりへ掛ける倍率。
+    public var estimateFactor: Double {
+        preferences.buffer.fixedFactor ?? calibration.factor
+    }
+
+    public func startLimit(of task: TaskItem) -> Date {
+        task.startLimit(factor: estimateFactor)
+    }
 }
