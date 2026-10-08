@@ -42,6 +42,9 @@ targets:
         product: AppFeature
       - package: TodoKit
         product: SharedCore
+      # 開発用の、ウィジェットの見た目を並べた画面のため。
+      - package: TodoKit
+        product: WidgetUI
       - target: TodoWidgets
       - target: TodoShieldMonitor
       - target: TodoShieldConfiguration

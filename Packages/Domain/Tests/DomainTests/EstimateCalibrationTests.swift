@@ -92,6 +92,8 @@ struct EstimateCalibrationTests {
         #expect(task.elapsedMinutes(until: date(9, 14, 13)) == 75)
         // すぐ終えても、最低 5 分として扱う。
         #expect(task.elapsedMinutes(until: date(9, 13, 1)) == 5)
+        // 何日も前に始めたままでも、見積もり(2 時間)の 4 倍までしか出さない。
+        #expect(task.elapsedMinutes(until: date(12, 13)) == 480)
     }
 
     @Test("見積もりどおりにしたタスクには、倍率を掛けない")
@@ -101,5 +103,17 @@ struct EstimateCalibrationTests {
 
         task.usesExactEstimate = true
         #expect(task.startLimit(factor: 1.5) == date(9, 21, 59))
+    }
+
+    @Test("あとから足した項目がない古い JSON も読める")
+    func decodesOlderJSON() throws {
+        let json = """
+        {"id":"00000000-0000-0000-0000-000000000100","title":"レポート","dueAt":800000000,\
+        "estimateMinutes":60,"createdAt":799000000}
+        """
+        let task = try JSONDecoder().decode(TaskItem.self, from: Data(json.utf8))
+        #expect(task.title == "レポート")
+        #expect(!task.usesExactEstimate)
+        #expect(task.startedAt == nil)
     }
 }

@@ -22,7 +22,7 @@
 | パッケージ | モジュール | 役割 | 依存 |
 |---|---|---|---|
 | `Packages/Domain` | `Domain` | 純粋なロジックと型。1日の区切り、ロックの判定、余裕、ロック予報、週間の見込み、片づけたあとの見通し、ロックの指示(`ShieldPlan`)、見積もりの補正、1行入力の読み取り、振り返りの集計 | Foundation のみ |
-| `Packages/TodoKit` | `AppFeature` | すべての画面の Reducer と View、文言カタログ、見本データ、プレビュー | 下の `*Client`、`SharedCore`、`DesignSystem`、`WidgetUI`、`Domain`、TCA |
+| `Packages/TodoKit` | `AppFeature` | すべての画面の Reducer と View、文言カタログ、見本データ、プレビュー | 下の `*Client`、`SharedCore`、`DesignSystem`、`Domain`、TCA |
 | | `DatabaseClient` | 保存データの窓口。SQLite の実装とメモリ上の実装 | `Domain`、Dependencies、SQLiteData、GRDB |
 | | `ShieldClient` | アプリをロックする仕組みとの境界。実機用と模擬の実装、アプリを選ぶ画面 | `Domain`、`SharedCore`、Dependencies |
 | | `SnapshotClient` | 写しを書き出し、ウィジェットに描き直しを頼む窓口 | `Domain`、`SharedCore`、Dependencies、WidgetKit |
@@ -32,7 +32,7 @@
 | | `WidgetUI` | ウィジェットと Live Activity の見た目、その文言カタログ。ウィジェットの見た目をアプリの中に並べる開発用の画面(`WidgetGallery`。デバッグビルドのみ) | `Domain`、`SharedCore`、`DesignSystem` |
 | | `DesignSystem` | 色(`Mood`)、背景、カード、ボタン、進み具合の輪、時間の表示、主役の大きな文字(`Font.hero`)、達成時の演出(Metal のシェーダーによる波紋、光の粒、Core Haptics の振動) | `Domain`、SwiftUI |
 
-`AppFeature` が `WidgetUI` に依存するのは、開発用の画面 `WidgetGallery` を出すためだけです(PR #15)。`WidgetUI` は TCA に依存しないので、拡張機能に TCA が入ることはありません。ただし、開発ガイド(`CLAUDE.md`)のモジュールの表は、`AppFeature` が依存してよいものから `WidgetUI` を外しています。どちらに合わせるかは決めていません(「分かっている制限」を参照)。
+開発用の画面 `WidgetGallery` は、アプリ本体(`App/Sources/TodoApp.swift`)が直接出します。`AppFeature` は `WidgetUI` に依存しません。見本データは、`AppFeature` の `SampleWorlds` から受け取ります。
 
 `SharedCore` の中身は次のとおりです。
 
@@ -80,7 +80,7 @@ flowchart TD
         AppFeature --> LiveActivityClient
         AppFeature --> DesignSystem
         AppFeature --> SharedCore
-        AppFeature -->|"開発用の画面だけ"| WidgetUI
+        App -->|"開発用の画面だけ"| WidgetUI
         ShieldClient --> SharedCore
         SnapshotClient --> SharedCore
         LiveActivityClient --> SharedCore
@@ -503,7 +503,7 @@ DB のほかに保存しているものが3つあります。どれも App Group
 
 | 対象 | 場所 | 実行 | 件数 | 確かめていること |
 |---|---|---|---|---|
-| `Domain` | `Packages/Domain/Tests/DomainTests` | `make test-domain`(macOS、シミュレータ不要) | 67 | 1日と1週間の区切り(夏時間、区切りでの分割を含む)、ロックの判定、片づけたあとの見通し、週間の見込み、見積もりの補正、1行入力の読み取り、振り返りの集計 |
+| `Domain` | `Packages/Domain/Tests/DomainTests` | `make test-domain`(macOS、シミュレータ不要) | 68 | 1日と1週間の区切り(夏時間、区切りでの分割を含む)、ロックの判定、片づけたあとの見通し、週間の見込み、見積もりの補正、1行入力の読み取り、振り返りの集計 |
 | Reducer | `Packages/TodoKit/Tests/AppFeatureTests` | `make test-app` | 193 | すべての画面の Reducer。アプリの外への連絡の順と取り消し、外からの依頼、通知の内容、今日の行の並べ方も含む |
 | `DatabaseClient` | `Packages/TodoKit/Tests/DatabaseClientTests` | `make test-app` | 8 | 実際の SQLite(テストごとの一時データベース)に対する読み書き、連鎖削除、変更の通知 |
 | UI | `UITests` | `make test-ui`(`make test-app` にも含まれる) | 30 | 見本データで起動し、起動時の表示(4つの状態、日本語と英語)、初回設定、集中の開始と停止、目標とタスクの追加、1行入力の提案、タスクの完了、「いま始める」から完了まで、タブ、設定、振り返りを通す |
@@ -552,8 +552,6 @@ DB のほかに保存しているものが3つあります。どれも App Group
 
 | 項目 | 内容 |
 |---|---|
-| 計測中は、15 秒ごとに連絡し直している | `ShieldPlan` に入れる「今日の分に達する時刻」を、`status.now + remainingSeconds` で求めている。`remainingSeconds` は秒未満を切り捨てた整数なので、この時刻が計算のたびに 1 秒未満ずれる。その結果、計測中は `.tick` のたびに `ShieldPlan` が「変わった」と判定され、写し、ウィジェットの描き直し、予約の張り直し、通知の作り直しが毎回走る。秒未満のある時刻で計算して確かめた。Reducer のテストは切りのよい時刻しか使っていないので、通っている。計測を始めた時刻から求めれば、ずれない。[リスクの調査](../research/risks.md)では、予約の張り直しは不具合の報告が多い操作なので、実機で確かめる前に直す |
-| 1回きりの予約は、秒未満を切り捨てる | 予約の時刻は、年月日と時分秒で渡す。パスが切れる時刻や、今日の分に達する時刻には秒未満があるので、予約は最大 1 秒早くなる。起こされた拡張機能が、まだ条件を満たさないと判定すると、区間の終わり(15 分後)まで見直されない可能性がある。実機で確かめる |
 | アプリの選び直しは、別の道を通る | 設定でロックするアプリを選び直すと、`SettingsFeature` が `shield.apply` を直接呼ぶ。`syncOutside` の取り消しや順序の仕組みの外にある |
 | 毎日の予約は 8 件まで | 目標ごとに違う時刻を指定して、1日の開始時刻と合わせて 9 種類以上になると、時刻の遅いものは毎日の予約に入らない。その時刻は、当日にアプリが連絡し直して1回きりの予約に入れないかぎり、起こされない |
 | 明日の目標の前触れがない | 通知の対象は、今日の目標と未完了のタスクだけ。明日の朝に始まる目標のロックは、その日にアプリが計算し直すまで、通知の対象に入らない |
@@ -566,9 +564,7 @@ DB のほかに保存しているものが3つあります。どれも App Group
 | 許可の取り消し | スクリーンタイムの許可の状態を見るのは、初回設定と設定の画面だけ。設定アプリで許可を切られても、ほかの画面は気づかない |
 | 外からの依頼は、割り込まない | 初回設定の途中や、すでに何かを開いているときに届いた依頼は捨てる。あとで開き直しはしない |
 | 「完了にする」のボタンの読み上げ | 記号だけの完了ボタンが、VoiceOver で「選択中」と読まれていた。PR #14 で、ロック予報の行、「この先の締切」、「予定」の3か所のボタンから、その特性を外した。「今日」のいちばん上、タスクの編集画面、完了の確認にある、文字つきの「完了にする」のボタンは変えていない。こちらがどう読まれるかは確かめていない |
-| 着手リミットの説明が、実績のないときも同じ文になる | タスクの編集画面は、いつも「これまで約◯倍かかっているので」と説明する。実績が 3 件に満たず 1.5 倍を仮に使っているときも、設定で倍率を固定しているときも、同じ文が出る |
 | 「見積もりどおり」は、すぐに効く | ロック中に切り替えると、着手リミットが後ろへずれて、ロックが外れる。締切や見積もりの編集と同じ種類の抜け道で、塞いでいない |
-| 写しの形が変わると、古い写しは読めない | `TaskItem.usesExactEstimate` には、欠けていたときの既定値の読み取りがない。この項目のない古い写しは読めず、アプリ本体が次に書き直すまで、ウィジェットは「未設定」の表示になり、監視の拡張機能は何もしない。まだ配布していないので実害はない。配布したあとに項目を足すときは、欠けていても読めるようにする |
 | `AppFeature` が `WidgetUI` に依存している | 開発用の画面 `WidgetGallery` のため(PR #15)。開発ガイド(`CLAUDE.md`)のモジュールの表は、これを認めていない。表を直すか、画面の置き場を変えるかを決める |
 | 依存を通さない時刻 | `AppFeature` の中でも、`TimeText`、`GoalEditorView` の一部、見本データ、プレビューは `Calendar.current` や現在時刻を直接使う。ウィジェット、拡張機能、`*Client` の実装が直接使うのは意図どおり |
 | `World` の読み直し | 集中の記録とパスの記録を全件読む。件数の上限や古い記録の整理は決めていない |

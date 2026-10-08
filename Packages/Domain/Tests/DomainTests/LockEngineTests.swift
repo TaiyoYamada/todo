@@ -242,6 +242,11 @@ struct LockEngineTests {
         #expect(plan.isLocked)
         // 13:50 に始めて 30 分なので、14:20 に達する。
         #expect(plan.wakeTimes == [date(9, 14, 20)])
+
+        // 時間がたっても、達する時刻は変わらない(毎回の計算でずれると、予約をやり直すことになる)。
+        let later = now.addingTimeInterval(15.4)
+        let laterPlan = ShieldPlan(status: engine.status(world: world, now: later), activeFocus: focus)
+        #expect(laterPlan == plan)
     }
 
     @Test("パスの間は、切れる時刻に見直しを予約する")

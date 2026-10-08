@@ -1,11 +1,23 @@
 import AppFeature
 import SwiftUI
+#if DEV && DEBUG
+    import WidgetUI
+#endif
 
 @main
 struct TodoApp: App {
     var body: some Scene {
         WindowGroup {
-            RootView(sampleScenario: Self.sampleScenario, initialTab: Self.sampleTab)
+            #if DEV && DEBUG
+                if Self.sampleTab == "widgets" {
+                    // ウィジェットの見た目を並べた、開発用の画面。
+                    WidgetGallery(worlds: SampleWorlds.all)
+                } else {
+                    RootView(sampleScenario: Self.sampleScenario, initialTab: Self.sampleTab)
+                }
+            #else
+                RootView(sampleScenario: Self.sampleScenario, initialTab: Self.sampleTab)
+            #endif
         }
     }
 

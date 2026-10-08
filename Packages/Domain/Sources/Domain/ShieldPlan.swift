@@ -31,11 +31,15 @@ public struct ShieldPlan: Equatable, Sendable, Codable {
             times.append(until)
         }
         // 計測が今日の分に達する時刻にも見直す。アプリを閉じて勉強していても、達した時点でロックを外すため。
+        // 時刻は「計測を始めた時刻 + 始めた時点の残り」で求める。「いま + 残り」で求めると、
+        // 残りを秒に丸めているぶん毎回わずかにずれ、内容が変わったと見なされて予約をやり直すことになる。
         if let activeFocus,
            let progress = status.goals.first(where: { $0.id == activeFocus.goalID }),
            progress.remainingSeconds > 0
         {
-            times.append(status.now.addingTimeInterval(Double(progress.remainingSeconds)))
+            let countedFrom = max(activeFocus.startedAt, status.today.start)
+            let remainingAtStart = progress.targetSeconds - progress.recordedSeconds
+            times.append(countedFrom.addingTimeInterval(Double(remainingAtStart)))
         }
         self.init(
             isLocked: status.isLocked,

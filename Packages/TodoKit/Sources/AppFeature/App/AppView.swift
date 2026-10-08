@@ -3,20 +3,16 @@ import DatabaseClient
 import DesignSystem
 import SharedCore
 import SwiftUI
-import WidgetUI
 
 /// アプリの入口。アプリ本体からは、この View だけが見える。
 public struct RootView: View {
     @State private var store: StoreOf<AppFeature>
-    /// ウィジェットの見た目を並べた画面を出す(開発用。`initialTab` に `widgets` を渡したとき)。
-    private let showsWidgetGallery: Bool
 
     /// - Parameters:
     ///   - sampleScenario: 見本データの状態の名前(`locked` など)。指定すると、
     ///     保存データの代わりにメモリ上の見本データで動く。開発用の構成でだけ渡す。
     ///   - initialTab: 最初に開くタブの名前(`plan`、`insights`)。画面の撮影用。
     public init(sampleScenario: String? = nil, initialTab: String? = nil) {
-        showsWidgetGallery = initialTab == "widgets"
         let scenario = sampleScenario.flatMap(SampleData.Scenario.init(rawValue:))
         var state = AppFeature.State()
         switch initialTab {
@@ -36,19 +32,7 @@ public struct RootView: View {
     }
 
     public var body: some View {
-        #if DEBUG
-            if showsWidgetGallery {
-                WidgetGallery(
-                    worlds: SampleData.Scenario.allCases
-                        .filter { $0 != .fresh }
-                        .map { (name: $0.rawValue, world: SampleData.world($0)) }
-                )
-            } else {
-                AppView(store: store)
-            }
-        #else
-            AppView(store: store)
-        #endif
+        AppView(store: store)
     }
 }
 

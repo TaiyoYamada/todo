@@ -86,13 +86,7 @@ struct TaskEditorView: View {
                                 Text(.taskExactEstimateFooter)
                             } else {
                                 // なぜこの時刻なのかを、その場で説明する。黙って前倒しすると、理不尽に見える。
-                                Text(
-                                    .taskStartLimitExplain(
-                                        DurationText.compact(minutes: store.task.estimateMinutes),
-                                        factorText,
-                                        DurationText.compact(minutes: paddedMinutes)
-                                    )
-                                )
+                                Text(startLimitExplanation)
                             }
                             if store.locksImmediately {
                                 Text(.taskLocksImmediately)
@@ -181,6 +175,20 @@ struct TaskEditorView: View {
         ]
         .compactMap(\.self)
         .joined(separator: " · ")
+    }
+
+    /// 倍率の出どころに合わせた説明。実績がないのに「これまで」と言わないようにする。
+    private var startLimitExplanation: LocalizedStringResource {
+        let world = store.board.world
+        let estimate = DurationText.compact(minutes: store.task.estimateMinutes)
+        let padded = DurationText.compact(minutes: paddedMinutes)
+        if world.preferences.buffer.fixedFactor != nil {
+            return .taskStartLimitExplainFixed(estimate, factorText, padded)
+        }
+        if world.calibration.isLearned {
+            return .taskStartLimitExplain(estimate, factorText, padded)
+        }
+        return .taskStartLimitExplainFallback(estimate, factorText, padded)
     }
 
     /// 倍率を掛けたあとの、着手リミットから締切までの時間(分)。

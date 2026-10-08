@@ -202,3 +202,13 @@ enum SampleData {
         ]
     }
 }
+
+/// 見本データを、アプリ本体の開発用の画面(ウィジェットの一覧)に渡すための窓口。
+public enum SampleWorlds {
+    /// 状態の名前と、その保存データ。何も登録していない状態は除く。
+    public static var all: [(name: String, world: World)] {
+        SampleData.Scenario.allCases
+            .filter { $0 != .fresh }
+            .map { (name: $0.rawValue, world: SampleData.world($0)) }
+    }
+}

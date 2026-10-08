@@ -56,7 +56,7 @@ make test-app DESTINATION='platform=iOS Simulator,name=iPhone Air'
 
 | テスト | 件数 | 実行 | 状況 |
 |---|---|---|---|
-| `Domain`(判定と計算) | 67 | `make test-domain` | 通る |
+| `Domain`(判定と計算) | 68 | `make test-domain` | 通る |
 | `AppFeatureTests`(画面のロジック) | 193 | `make test-app` | 通る |
 | `DatabaseClientTests`(保存) | 8 | `make test-app` | 通る |
 | `TodoUITests`(画面の操作) | 30 | `make test-ui`、`make test-app` | 通る |
@@ -245,7 +245,7 @@ migrator.registerMigration("v2: タスクにメモの列を足す") { db in
 |---|---|
 | `Schema.swift` の行の型 | `@Table` の構造体に項目を足す |
 | `Schema.swift` の変換 | `Domain` の型との相互変換 |
-| `Packages/Domain` の型 | `Codable` で写し(`snapshot.json`)にも入る。項目を足すときは、古い写しを読めるかを考える。Optional でない項目をそのまま足すと、古い写しは読めなくなる(`TaskItem.usesExactEstimate` がその例。まだ配布していないので、そのままにしている) |
+| `Packages/Domain` の型 | `Codable` で写し(`snapshot.json`)にも入る。項目を足すときは、古い写しを読めるかを考える。Optional でない項目をそのまま足すと、古い写しは読めなくなる。足すときは、`TaskItem.init(from:)` のように、欠けていたときの既定値を自分で読む |
 | `Schema.swift` の `live` | 新しい操作が要るなら足す |
 | `InMemory.swift` | メモリ上の実装にも同じ操作を足す |
 | `LiveDatabaseClientTests` | 読み書きのテストを足す |

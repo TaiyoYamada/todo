@@ -96,7 +96,10 @@
 
             // 2. タスクの着手リミットと、パスが切れる時刻。1 回きり。
             let parts: Set<Calendar.Component> = [.year, .month, .day, .hour, .minute, .second]
-            for (index, date) in plan.wakeTimes.enumerated() where date > now {
+            for (index, wakeTime) in plan.wakeTimes.enumerated() where wakeTime > now {
+                // 秒未満を切り上げる。予約は秒の単位なので、切り捨てるとわずかに早く起こされ、
+                // 「まだその時刻ではない」と判定して何もしないまま終わってしまう。
+                let date = Date(timeIntervalSinceReferenceDate: wakeTime.timeIntervalSinceReferenceDate.rounded(.up))
                 let end = date.addingTimeInterval(Double(intervalMinutes) * 60)
                 let schedule = DeviceActivitySchedule(
                     intervalStart: calendar.dateComponents(parts, from: date),
