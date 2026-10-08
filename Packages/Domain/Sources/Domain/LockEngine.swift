@@ -59,6 +59,8 @@ public struct LockEngine: Sendable {
             phase = .locked
         }
 
+        let focusTargetAt = focusTarget(world: world, goals: goals, today: today)
+
         return LockStatus(
             now: now,
             today: today,
@@ -68,8 +70,23 @@ public struct LockEngine: Sendable {
             upcomingReasons: upcoming,
             forecast: forecast(goals: goals, world: world, today: today, now: now),
             passesRemaining: max(0, world.preferences.weeklyPassLimit - passesUsed),
-            nextChangeAt: [upcoming.first?.startsAt, passUntil, today.end].compactMap(\.self).min()
+            focusTargetAt: focusTargetAt,
+            nextChangeAt: [upcoming.first?.startsAt, passUntil, focusTargetAt, today.end].compactMap(\.self).min()
         )
+    }
+
+    /// 計測中の集中が、今日の分に達する時刻。
+    ///
+    /// 「計測を数え始めた時刻 + その時点の残り」で求める。「いま + 残り」で求めると、
+    /// 残りを秒に丸めているぶん毎回わずかにずれてしまう。
+    private func focusTarget(world: World, goals: [GoalProgress], today: DateInterval) -> Date? {
+        guard
+            let focus = world.activeFocus,
+            let progress = goals.first(where: { $0.id == focus.goalID }),
+            progress.remainingSeconds > 0
+        else { return nil }
+        let countedFrom = max(focus.startedAt, today.start)
+        return countedFrom.addingTimeInterval(Double(progress.targetSeconds - progress.recordedSeconds))
     }
 
     // MARK: - 目標

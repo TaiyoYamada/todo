@@ -238,14 +238,17 @@ struct LockEngineTests {
         let focus = ActiveFocus(goalID: uuid(1), startedAt: date(9, 13, 50))
         let world = World.exact(goals: [.fixture(dailyMinutes: 30)], activeFocus: focus)
         let status = engine.status(world: world, now: now)
-        let plan = ShieldPlan(status: status, activeFocus: focus)
+        let plan = ShieldPlan(status: status)
         #expect(plan.isLocked)
         // 13:50 に始めて 30 分なので、14:20 に達する。
         #expect(plan.wakeTimes == [date(9, 14, 20)])
 
+        // 表示の更新も、この時刻に合わせる(ウィジェットが「ロック中」のまま残らないように)。
+        #expect(status.nextChangeAt == date(9, 14, 20))
+
         // 時間がたっても、達する時刻は変わらない(毎回の計算でずれると、予約をやり直すことになる)。
         let later = now.addingTimeInterval(15.4)
-        let laterPlan = ShieldPlan(status: engine.status(world: world, now: later), activeFocus: focus)
+        let laterPlan = ShieldPlan(status: engine.status(world: world, now: later))
         #expect(laterPlan == plan)
     }
 

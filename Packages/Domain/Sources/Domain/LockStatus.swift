@@ -107,6 +107,8 @@ public struct LockStatus: Equatable, Sendable {
     public var upcomingReasons: [LockReason]
     public var forecast: [ForecastEntry]
     public var passesRemaining: Int
+    /// 計測中の集中が、今日の分に達する時刻。計測していないか、もう達していれば nil。
+    public var focusTargetAt: Date?
     /// 時間の経過だけで状態が変わりうる、次の時刻。表示の更新や予約に使う。
     public var nextChangeAt: Date?
 
