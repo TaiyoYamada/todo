@@ -52,16 +52,16 @@ make test-app DESTINATION='platform=iOS Simulator,name=iPhone Air'
 
 既定のシミュレータは `iPhone 17` です。手元にないときは `xcrun simctl list devices available` で確かめて、`DESTINATION` を上書きします。
 
-テストの件数と状況(2026-10-09、PR #13 の時点):
+テストの件数と状況(2026-10-09 時点):
 
 | テスト | 件数 | 実行 | 状況 |
 |---|---|---|---|
-| `Domain`(判定と計算) | 66 | `make test-domain` | 通る |
+| `Domain`(判定と計算) | 67 | `make test-domain` | 通る |
 | `AppFeatureTests`(画面のロジック) | 193 | `make test-app` | 通る |
 | `DatabaseClientTests`(保存) | 8 | `make test-app` | 通る |
 | `TodoUITests`(画面の操作) | 30 | `make test-ui`、`make test-app` | 通る |
 
-シミュレータを使うテストは、iPhone Air(iOS 27.0)で確かめました。
+シミュレータを使うテストは、iPhone Air(iOS 27.0)で確かめました。`Domain`、`AppFeatureTests`、`DatabaseClientTests` は PR #16 の時点、`TodoUITests` は PR #14 の時点の結果です。
 
 注意点:
 
@@ -92,6 +92,7 @@ xcrun xcresulttool export attachments --path build/reports/UITest.xcresult --out
 - 出力先のフォルダに、画像と、どのテストの何という名前の写しかを書いた `manifest.json` ができます。
 - 名前は `Today-locked-top`、`Today-taskLocked-after-start-ja` のように、画面、状態、言語で付けています。
 - `build/` は Git の管理から外してあります。
+- [画面の一覧](../screenshots/README.md)(`docs/screenshots/`)の画像は、UI テストが撮ったものです。画面を変えたら、撮り直して差し替えます。
 
 ## 3. スキーム
 
@@ -109,6 +110,8 @@ xcrun xcresulttool export attachments --path build/reports/UITest.xcresult --out
 | 保存データ | 別(別のアプリとして入るため) | 別 |
 
 版(`MARKETING_VERSION`、`CURRENT_PROJECT_VERSION`)、対応 OS、Swift の版は `Configs/Base.xcconfig` で共通です。
+
+`Packages/` の中で開発用のコードを分けるときは、`#if DEBUG` を使います(例: `WidgetUI/WidgetGallery.swift`)。`DEBUG` は構成の種類で決まるので、`Todo-Prod` をデバッグで動かしたときにも有効です。ただし、`WidgetGallery` を開く `-sampleTab` は `DEV` でしか読まないので、`Todo-Prod` では開けません。
 
 **ロックが本物か模擬かは、スキームでは決まりません。** ビルド先で決まります。シミュレータは模擬、実機は本物(未検証)です。実機に入れた `Todo-Dev` は本物のスクリーンタイム API を呼びます。
 
@@ -134,7 +137,14 @@ xcrun xcresulttool export attachments --path build/reports/UITest.xcresult --out
 |---|---|
 | `plan` | 予定 |
 | `insights` | 振り返り |
+| `widgets` | タブではなく、ウィジェットの見た目を並べた開発用の画面(下を参照)。デバッグビルドのみ |
 | 付けない、またはほかの値 | 今日 |
+
+`-sampleTab widgets` を付けると、アプリの画面の代わりに、ウィジェットの一覧(`WidgetGallery`)が出ます。`fresh` を除く見本データの状態ごとに、小、横長、ロック画面の長方形と1行を並べます。ホーム画面にウィジェットを置かなくても、配置を確かめられます。
+
+- 本物のウィジェットと同じ View を、同じくらいの大きさの枠に入れている。枠と背景は OS のものを真似ただけなので、細部は実物と違う
+- `-sampleData` の値は使わない。いつも、すべての状態を並べる
+- 「未設定」(写しがない)の状態は出ない
 
 - 付け方: Xcode のスキームの編集画面で、Run > Arguments に `-sampleData locked` を足す。コマンドラインからの起動は [README](../../README.md) を参照。2つを並べてもよい(`-sampleData countdown -sampleTab plan`)。
 - どちらの引数も、読むのは開発用の構成(`DEV`)だけ。`Todo-Prod` では無視される。
@@ -235,7 +245,7 @@ migrator.registerMigration("v2: タスクにメモの列を足す") { db in
 |---|---|
 | `Schema.swift` の行の型 | `@Table` の構造体に項目を足す |
 | `Schema.swift` の変換 | `Domain` の型との相互変換 |
-| `Packages/Domain` の型 | `Codable` で写し(`snapshot.json`)にも入る。項目を足すときは、古い写しを読めるかを考える |
+| `Packages/Domain` の型 | `Codable` で写し(`snapshot.json`)にも入る。項目を足すときは、古い写しを読めるかを考える。Optional でない項目をそのまま足すと、古い写しは読めなくなる(`TaskItem.usesExactEstimate` がその例。まだ配布していないので、そのままにしている) |
 | `Schema.swift` の `live` | 新しい操作が要るなら足す |
 | `InMemory.swift` | メモリ上の実装にも同じ操作を足す |
 | `LiveDatabaseClientTests` | 読み書きのテストを足す |
@@ -307,7 +317,7 @@ migrator.registerMigration("v2: タスクにメモの列を足す") { db in
 
 | もの | 状況 |
 |---|---|
-| ウィジェットの見た目 | 見ていない |
+| ウィジェットの見た目 | 配置は、開発用の一覧(`-sampleTab widgets`)で確かめた(PR #15。日本語と英語)。ホーム画面やロック画面に実際に置いた様子は見ていない |
 | Live Activity の見た目 | 開始の要求が通り、システムに登録されることは、ログで確かめた。画面に出た様子は見ていない |
 | コントロールセンターのボタン | 見た目も、押して計測の画面まで進むことも、確かめていない |
 | 通知が届くこと | 予約の内容は Reducer のテストで確かめている。届くところを確かめた記録はない |
