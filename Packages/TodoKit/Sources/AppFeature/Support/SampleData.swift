@@ -22,33 +22,14 @@ enum SampleData {
     static func world(_ scenario: Scenario, now: Date = .now, calendar: Calendar = .current) -> World {
         guard scenario != .fresh else { return World() }
 
-        let isJapanese = Locale.current.language.languageCode?.identifier == "ja"
-        func text(_ ja: String, _ en: String) -> String { isJapanese ? ja : en }
-        func id(_ value: Int) -> UUID {
-            UUID(uuidString: "5A3F1E00-0000-4000-8000-" + String(format: "%012d", value)) ?? UUID()
-        }
-
-        // 1日の開始を「いまの 10 時間前」に合わせる。何時に起動しても、同じ場面を再現できるようにするため。
-        // (本来の設定の範囲は外れるが、見本データに限って許す。)
-        let dayStartHour = calendar.component(.hour, from: now.addingTimeInterval(-10 * 3600))
-        let clock = DayClock(calendar: calendar, dayStartHour: dayStartHour)
-        let today = clock.dayStart(containing: now)
-        func minutesOfDay(_ date: Date) -> Int {
-            let parts = calendar.dateComponents([.hour, .minute], from: date)
-            return (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
-        }
-        func day(_ offset: Int, hour: Int, minute: Int = 0) -> Date {
-            let start = clock.offset(today, days: offset)
-            return clock.time(minutesFromMidnight: hour * 60 + minute, inDayStarting: start)
-        }
-
+        let days = Days(now: now, calendar: calendar)
         let exam = Goal(
             id: id(1),
             title: text("大学院入試", "Grad school exam"),
             symbol: "graduationcap.fill",
             tint: .indigo,
             dailyMinutes: 45,
-            createdAt: day(-20, hour: 12)
+            createdAt: days.at(-20, hour: 12)
         )
         let english = Goal(
             id: id(2),
@@ -58,11 +39,95 @@ enum SampleData {
             dailyMinutes: 20,
             weekdays: Weekday.everyDay,
             // 2 時間 14 分後にロックが来る。
-            lockStart: .timeOfDay(minutes: minutesOfDay(now.addingTimeInterval(2 * 3600 + 14 * 60))),
-            createdAt: day(-12, hour: 12)
+            lockStart: .timeOfDay(minutes: days.minutesOfDay(now.addingTimeInterval(2 * 3600 + 14 * 60))),
+            createdAt: days.at(-12, hour: 12)
         )
 
-        // 過去 13 日ぶんの記録。日によって量を変えて、グラフに起伏を出す。
+        var sessions = history(exam: exam, english: english, days: days)
+        var tasks = tasks(now: now, days: days)
+        // 今日の分を終えた記録。大学院入試は 3 時間前、TOEIC は 2 時間前に終えたことにする。
+        let examToday = FocusSession(
+            id: id(300),
+            goalID: exam.id,
+            startedAt: now.addingTimeInterval(-3 * 3600),
+            seconds: 45 * 60
+        )
+        let englishToday = FocusSession(
+            id: id(301),
+            goalID: english.id,
+            startedAt: now.addingTimeInterval(-2 * 3600),
+            seconds: 20 * 60
+        )
+
+        switch scenario {
+        case .locked, .fresh:
+            break
+        case .taskLocked:
+            sessions.append(examToday)
+            // 締切まで 1 時間。所要 90 分なので、着手リミットはもう過ぎている。
+            tasks[0].dueAt = now.addingTimeInterval(3600)
+        case .countdown:
+            sessions.append(examToday)
+        case .free:
+            sessions.append(examToday)
+            sessions.append(englishToday)
+            tasks[0].completedAt = now.addingTimeInterval(-3600)
+            tasks[0].actualMinutes = 120
+        }
+
+        return World(
+            goals: [exam, english],
+            tasks: tasks,
+            sessions: sessions,
+            passUses: [PassUse(id: id(400), usedAt: days.at(-2, hour: 22), minutes: 15)],
+            preferences: Preferences(dayStartHour: days.dayStartHour, hasCompletedOnboarding: true)
+        )
+    }
+
+    // MARK: - 部品
+
+    /// 見本データの中の日時を、「今日から何日前の何時」で作る。
+    private struct Days {
+        let calendar: Calendar
+        let dayStartHour: Int
+        private let clock: DayClock
+        private let today: Date
+
+        init(now: Date, calendar: Calendar) {
+            self.calendar = calendar
+            // 1日の開始を「いまの 10 時間前」に合わせる。何時に起動しても、同じ場面を再現できるようにするため。
+            // (本来の設定の範囲は外れるが、見本データに限って許す。)
+            dayStartHour = calendar.component(.hour, from: now.addingTimeInterval(-10 * 3600))
+            clock = DayClock(calendar: calendar, dayStartHour: dayStartHour)
+            today = clock.dayStart(containing: now)
+        }
+
+        func at(_ offset: Int, hour: Int, minute: Int = 0) -> Date {
+            let start = clock.offset(today, days: offset)
+            return clock.time(minutesFromMidnight: hour * 60 + minute, inDayStarting: start)
+        }
+
+        func minutesOfDay(_ date: Date) -> Int {
+            let parts = calendar.dateComponents([.hour, .minute], from: date)
+            return (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+        }
+    }
+
+    private static func text(_ japanese: String, _ english: String) -> String {
+        Locale.current.language.languageCode?.identifier == "ja" ? japanese : english
+    }
+
+    /// 毎回同じ ID にする。起動のたびに変わると、画面の状態を比べにくい。
+    private static func id(_ value: Int) -> UUID {
+        let text = "5A3F1E00-0000-4000-8000-" + String(format: "%012d", value)
+        guard let id = UUID(uuidString: text) else {
+            preconditionFailure("見本データの ID を作れない: \(text)")
+        }
+        return id
+    }
+
+    /// 過去 13 日ぶんの記録。日によって量を変えて、グラフに起伏を出す。
+    private static func history(exam: Goal, english: Goal, days: Days) -> [FocusSession] {
         var sessions: [FocusSession] = []
         let examMinutes = [45, 45, 30, 0, 45, 60, 45, 20, 45, 45, 0, 45, 50]
         let englishMinutes = [20, 0, 20, 20, 25, 20, 0, 20, 20, 30, 20, 20, 20]
@@ -71,7 +136,7 @@ enum SampleData {
                 FocusSession(
                     id: id(100 + index),
                     goalID: exam.id,
-                    startedAt: day(index - 13, hour: 9),
+                    startedAt: days.at(index - 13, hour: 9),
                     seconds: minutes * 60
                 )
             )
@@ -81,107 +146,59 @@ enum SampleData {
                 FocusSession(
                     id: id(200 + index),
                     goalID: english.id,
-                    startedAt: day(index - 13, hour: 19),
+                    startedAt: days.at(index - 13, hour: 19),
                     seconds: minutes * 60
                 )
             )
         }
+        return sessions
+    }
 
-        var tasks = [
+    /// 未完了が 2 件(今日のうちに着手リミットが来るものと、明後日のもの)と、完了済みが 3 件。
+    private static func tasks(now: Date, days: Days) -> [TaskItem] {
+        [
             TaskItem(
                 id: id(10),
                 title: text("統計学のレポート", "Statistics report"),
                 dueAt: now.addingTimeInterval(9 * 3600),
                 estimateMinutes: 90,
-                createdAt: day(-3, hour: 12)
+                createdAt: days.at(-3, hour: 12)
             ),
             TaskItem(
                 id: id(11),
                 title: text("ゼミの発表資料", "Seminar slides"),
                 dueAt: now.addingTimeInterval(52 * 3600),
                 estimateMinutes: 180,
-                createdAt: day(-2, hour: 12)
+                createdAt: days.at(-2, hour: 12)
             ),
             // 完了済み。見積もりより長くかかった実績として、倍率の学習に使われる。
             TaskItem(
                 id: id(12),
                 title: text("線形代数の課題", "Linear algebra homework"),
-                dueAt: day(-1, hour: 17),
+                dueAt: days.at(-1, hour: 17),
                 estimateMinutes: 60,
                 actualMinutes: 90,
-                completedAt: day(-1, hour: 11),
-                createdAt: day(-5, hour: 12)
+                completedAt: days.at(-1, hour: 11),
+                createdAt: days.at(-5, hour: 12)
             ),
             TaskItem(
                 id: id(13),
                 title: text("実験ノートの提出", "Lab notebook"),
-                dueAt: day(-4, hour: 23, minute: 59),
+                dueAt: days.at(-4, hour: 23, minute: 59),
                 estimateMinutes: 30,
                 actualMinutes: 60,
-                completedAt: day(-4, hour: 23),
-                createdAt: day(-8, hour: 12)
+                completedAt: days.at(-4, hour: 23),
+                createdAt: days.at(-8, hour: 12)
             ),
             TaskItem(
                 id: id(14),
                 title: text("奨学金の書類", "Scholarship forms"),
-                dueAt: day(-6, hour: 17),
+                dueAt: days.at(-6, hour: 17),
                 estimateMinutes: 40,
                 actualMinutes: 60,
-                completedAt: day(-7, hour: 20),
-                createdAt: day(-10, hour: 12)
+                completedAt: days.at(-7, hour: 20),
+                createdAt: days.at(-10, hour: 12)
             ),
         ]
-
-        switch scenario {
-        case .locked, .fresh:
-            break
-        case .taskLocked:
-            sessions.append(
-                FocusSession(
-                    id: id(300),
-                    goalID: exam.id,
-                    startedAt: now.addingTimeInterval(-3 * 3600),
-                    seconds: 45 * 60
-                )
-            )
-            // 締切まで 1 時間。所要 90 分なので、着手リミットはもう過ぎている。
-            tasks[0].dueAt = now.addingTimeInterval(3600)
-        case .countdown:
-            sessions.append(
-                FocusSession(
-                    id: id(300),
-                    goalID: exam.id,
-                    startedAt: now.addingTimeInterval(-3 * 3600),
-                    seconds: 45 * 60
-                )
-            )
-        case .free:
-            sessions.append(
-                FocusSession(
-                    id: id(300),
-                    goalID: exam.id,
-                    startedAt: now.addingTimeInterval(-3 * 3600),
-                    seconds: 45 * 60
-                )
-            )
-            sessions.append(
-                FocusSession(
-                    id: id(301),
-                    goalID: english.id,
-                    startedAt: now.addingTimeInterval(-2 * 3600),
-                    seconds: 20 * 60
-                )
-            )
-            tasks[0].completedAt = now.addingTimeInterval(-3600)
-            tasks[0].actualMinutes = 120
-        }
-
-        return World(
-            goals: [exam, english],
-            tasks: tasks,
-            sessions: sessions,
-            passUses: [PassUse(id: id(400), usedAt: day(-2, hour: 22), minutes: 15)],
-            preferences: Preferences(dayStartHour: dayStartHour, hasCompletedOnboarding: true)
-        )
     }
 }
