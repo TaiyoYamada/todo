@@ -1,0 +1,59 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Xcode: 生成物(XcodeGen が project.yml から作るのでコミットしない)
+# 依存のバージョンを固定する Package.resolved だけは残す。
+# 親ディレクトリごと無視すると中のファイルを戻せないため、1段ずつ無視と除外を繰り返している。
+*.xcodeproj/*
+!*.xcodeproj/project.xcworkspace/
+*.xcodeproj/project.xcworkspace/*
+!*.xcodeproj/project.xcworkspace/xcshareddata/
+*.xcodeproj/project.xcworkspace/xcshareddata/*
+!*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/*
+!*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+
+# Xcode: 個人設定とビルド成果物
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+*.moved-aside
+DerivedData/
+build/
+*.xcresult
+*.xcarchive
+*.ipa
+*.dSYM
+*.dSYM.zip
+*.hmap
+*.profraw
+*.profdata
+
+# Swift Package Manager(Package.resolved は無視しない)
+.build/
+.swiftpm/
+Packages/*/.swiftpm/
+
+# 署名や秘密の情報
+*.p12
+*.p8
+*.cer
+*.mobileprovision
+*.provisionprofile
+.env
+.env.*
+!.env.example
+
+# エディタ
+.idea/
+.vscode/
+*.swp
+*~
+
+# Claude Code の作業用コピーと個人設定
+.claude/worktrees/
+.claude/settings.local.json
