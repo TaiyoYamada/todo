@@ -1,16 +1,17 @@
 # 設計の全体像
 
-最終更新: 2026-10-09(`develop` の d6a0918 時点のコードに基づく)
+最終更新: 2026-10-09(`develop` の 14c9880 時点のコードに基づく)
 
 コードがどう組まれているかをまとめます。決定の理由は [adr/](adr/README.md) にあります。
-まだ作っていないものは「予定」、動作を確かめていないものは「未検証」と書きます。
+まだ作っていないものは「未実装」、動作を確かめていないものは「未検証」と書きます。
 
 ## 要点
 
 - ロックの状態は保存しない。保存データと現在時刻から、毎回 `LockEngine` で計算し直す。
 - 保存データは `World` という1つの値にまとめ、変更のたびに丸ごと読み直す。
 - `World` と、そこから計算した `LockStatus` を `Board` に入れて全画面で共有する。書くのは `AppFeature` だけ。
-- 外の世界(DB、スクリーンタイム)には `DatabaseClient` と `ShieldClient` を通して触る。
+- 外の世界(DB、スクリーンタイム、通知、Live Activity)には、依存(`*Client`)を通して触る。
+- 拡張機能とウィジェットは DB を開かない。アプリ本体が書いた写し(`snapshot.json`)を読み、同じ `LockEngine` で計算する。
 - 実際のロックは未検証。シミュレータでは模擬の実装が動く。
 
 ## 1. モジュール
@@ -19,28 +20,48 @@
 
 | パッケージ | モジュール | 役割 | 依存 |
 |---|---|---|---|
-| `Packages/Domain` | `Domain` | 純粋なロジックと型。ロックの判定、余裕、ロック予報、見積もりの補正、振り返りの集計 | Foundation のみ |
-| `Packages/TodoKit` | `AppFeature` | すべての画面の Reducer と View、文言カタログ、見本データ | `Domain`、`DatabaseClient`、`ShieldClient`、`DesignSystem`、TCA |
+| `Packages/Domain` | `Domain` | 純粋なロジックと型。ロックの判定、余裕、ロック予報、週間の見込み、片づけたあとの見通し、見積もりの補正、1行入力の読み取り、振り返りの集計 | Foundation のみ |
+| `Packages/TodoKit` | `AppFeature` | すべての画面の Reducer と View、文言カタログ、見本データ、プレビュー | 下の `*Client`、`DesignSystem`、`Domain`、TCA |
 | | `DatabaseClient` | 保存データの窓口。SQLite の実装とメモリ上の実装 | `Domain`、Dependencies、SQLiteData、GRDB |
-| | `ShieldClient` | アプリをロックする仕組みとの境界。実機用と模擬の実装 | `Domain`、`SharedCore`、Dependencies |
-| | `SharedCore` | 拡張機能にも入れる部分。App Group、保存データの写し、スクリーンタイム API の呼び出し | `Domain`、Apple 標準のみ |
-| | `DesignSystem` | 色(`Mood`)、背景、カード、ボタン、進み具合の輪、時間の表示 | `Domain`、SwiftUI |
+| | `ShieldClient` | アプリをロックする仕組みとの境界。実機用と模擬の実装、アプリを選ぶ画面 | `Domain`、`SharedCore`、Dependencies |
+| | `NotificationClient` | 端末の通知の窓口 | Dependencies |
+| | `LiveActivityClient` | 集中の計測を Live Activity として出す窓口 | `Domain`、`SharedCore`、Dependencies |
+| | `SharedCore` | 拡張機能にも入れる部分。App Group、保存データの写し、スクリーンタイム API の呼び出し、Live Activity に渡す型 | `Domain`、Apple 標準のみ |
+| | `WidgetUI` | ウィジェットと Live Activity の見た目、その文言カタログ | `Domain`、`SharedCore`、`DesignSystem` |
+| | `DesignSystem` | 色(`Mood`)、背景、カード、ボタン、進み具合の輪、時間の表示、達成時の演出(波紋、光の粒、振動) | `Domain`、SwiftUI |
 
-アプリ本体(`App/`)は `TodoApp.swift` の1ファイルだけです。`AppFeature` の `RootView` を表示し、開発用の構成でだけ起動引数 `-sampleData` を読みます。
+アプリのターゲットは4つです(`project.yml`)。
+
+| ターゲット | 場所 | 中身 | 依存 |
+|---|---|---|---|
+| `Todo` | `App/` | アプリ本体。`RootView` を表示し、開発用の構成でだけ起動引数 `-sampleData` を読む | `AppFeature` |
+| `TodoWidgets` | `Extensions/Widgets/` | ウィジェットと Live Activity の入口だけ | `WidgetUI` |
+| `TodoShieldMonitor` | `Extensions/ShieldMonitor/` | 予約した時刻に起こされ、ロックを掛け直す。**未検証** | `SharedCore` |
+| `TodoShieldConfiguration` | `Extensions/ShieldConfiguration/` | ロックされたアプリを開いたときの画面の文言と色を決める。**未検証** | `SharedCore` |
 
 `Domain` を別のパッケージにしているのは、macOS 上で `swift test` を回すためです。`TodoKit` は iOS 専用で、シミュレータが要ります。
 
 画面は機能ごとのターゲットに分けず、1つの `AppFeature` ターゲットにフォルダで分けて置いています(`App/`、`Today/`、`Focus/`、`Plan/`、`Editors/`、`Insights/`、`Settings/`、`Onboarding/`、`Support/`)。ビルドが遅くなったら分割します。
 
+拡張機能は使えるメモリが小さいので、TCA と DB を入れません。スクリーンタイムの2つは `SharedCore` だけに、ウィジェットは `WidgetUI` に依存します。
+
 ```mermaid
 flowchart TD
-    App["App(Todo ターゲット)"] --> AppFeature
+    App["Todo(アプリ本体)"] --> AppFeature
+    Widgets["TodoWidgets"] --> WidgetUI
+    Monitor["TodoShieldMonitor"] --> SharedCore
+    ShieldConfig["TodoShieldConfiguration"] --> SharedCore
 
     subgraph TodoKit["Packages/TodoKit"]
         AppFeature --> DatabaseClient
         AppFeature --> ShieldClient
+        AppFeature --> NotificationClient
+        AppFeature --> LiveActivityClient
         AppFeature --> DesignSystem
         ShieldClient --> SharedCore
+        LiveActivityClient --> SharedCore
+        WidgetUI --> SharedCore
+        WidgetUI --> DesignSystem
     end
 
     subgraph DomainPackage["Packages/Domain"]
@@ -50,15 +71,17 @@ flowchart TD
     AppFeature --> Domain
     DatabaseClient --> Domain
     ShieldClient --> Domain
+    LiveActivityClient --> Domain
+    WidgetUI --> Domain
     SharedCore --> Domain
     DesignSystem --> Domain
 
     AppFeature --> TCA["ComposableArchitecture"]
     DatabaseClient --> SQLiteData
     DatabaseClient --> GRDB
-    DatabaseClient --> Dependencies["swift-dependencies"]
-    ShieldClient --> Dependencies
 ```
+
+図では省いていますが、`*Client` の4つは swift-dependencies にも依存します。
 
 外部ライブラリは `Packages/TodoKit/Package.swift` に書いた4つです。
 
@@ -79,9 +102,13 @@ flowchart LR
     Features -->|"saveGoal / saveTask / addSession など"| DB
     Clock["時刻(tick、画面に戻ったとき)"] --> AF
     AF -->|"ShieldPlan が変わったとき apply"| Shield["ShieldClient"]
+    AF -->|"同じときに置き換え"| Notify["NotificationClient"]
+    Features -->|"集中の開始と終了"| Live["LiveActivityClient"]
     Shield -->|"写しを書く"| Snapshot["snapshot.json(App Group)"]
     Shield -->|"実機のみ・未検証"| ScreenTime["スクリーンタイム API"]
-    Snapshot -.->|"予定"| Extensions["拡張機能、ウィジェット"]
+    Snapshot -->|"読む"| Widget["ウィジェット"]
+    Snapshot -->|"読む・未検証"| Extensions["監視とロック画面の拡張機能"]
+    Extensions -->|"未検証"| ScreenTime
 ```
 
 ### 2.1 読み取り
@@ -109,9 +136,14 @@ flowchart LR
 
 画面の「あと◯分」は `Text(timerInterval:)` で OS が毎秒描き直すので、状態を毎秒更新してはいません。
 
-### 2.4 ロックへの反映
+### 2.4 ロックと通知への反映
 
-計算し直すたびに `ShieldPlan(status:)` を作り、前回伝えたもの(`appliedPlan`)と違うときだけ `shield.apply(plan, world)` を呼びます。
+計算し直すたびに `ShieldPlan(status:)` を作り、前回伝えたもの(`appliedPlan`)と違うときだけ、次の2つを行います(`AppFeature.syncShield`)。
+
+1. `shield.apply(plan, world)` を呼ぶ。
+2. `notifications.replaceAll(...)` で、予約済みの通知をすべて捨てて作り直す。
+
+`shield.apply` の実装は2つあります。
 
 | 実装 | 使われる場面 | すること |
 |---|---|---|
@@ -120,14 +152,32 @@ flowchart LR
 
 どちらを使うかはスキームではなく、ビルド先で決まります(`#if canImport(FamilyControls) && !targetEnvironment(simulator)`)。実機に入れた `Todo-Dev` は本物の API を呼びます。
 
-### 2.5 拡張機能への写し
+設定でロックするアプリを選び直したときも、`SettingsFeature` が `shield.apply` を呼びます。いま掛かっているロックにすぐ反映するためです。
 
-拡張機能はメモリの制限が厳しいので、DB を開かせません。代わりに `SnapshotStore` が App Group のフォルダに `snapshot.json` を書きます。中身は `World` を絞ったものと、書いた時刻です。
+通知は、これから始まるロックの理由(近い順に 8 件まで)について、「30 分前」と「始まったとき」の2通を予約します。30 分前がもう過ぎていれば、始まったときの1通だけです。許可は、初回設定を終えた直後に求めます。
+
+### 2.5 写しと、それを読むもの
+
+拡張機能はメモリの制限が厳しいので、DB を開かせません。代わりに `SnapshotStore` が App Group のフォルダに `snapshot.json` を書きます。書くのは `shield.apply` の中です。中身は `World` を絞ったものと、書いた時刻です。
 
 - 集中の記録は直近 2 日ぶんだけ
 - タスクは未完了のすべてと、片づけたもののうち新しい 20 件(見積もりの補正に使う)
 
-拡張機能は写しを読み、同じ `LockEngine` で判定する想定です(`ShieldApplier.refresh`)。**拡張機能そのものはまだなく、この関数を呼ぶ場所もありません。** App Group の権限も `project.yml` に設定していないので、フォルダが取れない環境では書き出しは何もせずに終わります。
+App Group の識別子は `Info.plist` の `AppGroupIdentifier` から読みます。フォルダが取れない環境では、書き出しは何もせずに終わります。
+
+写しを読むのは次の3つです。どれも `LockEngine` で状態を計算し直します。
+
+| 読む側 | すること |
+|---|---|
+| ウィジェット(`SlackWidget`) | いまの状態と、時間の経過で状態が変わる時刻ごとの状態を、8 個まで先読みして並べる。使い切ったら作り直す |
+| 監視の拡張機能(`ShieldMonitorExtension`) | 予約の区間の開始と終了で起こされ、`ShieldApplier.refresh` でロックを掛け直す。どの予約で起きたかは見ない。**未検証** |
+| ロック画面の拡張機能(`ShieldConfigurationExtension`) | いちばん先に片づけるものの名前と、今日の分の残りを出す。写しが読めなければ決まった文言を出す。**未検証** |
+
+### 2.6 Live Activity
+
+集中の計測を始めると、`FocusFeature` が `liveActivity.start` を呼び、ロック画面と Dynamic Island に残り時間を出します。計測を終えると `liveActivity.end` で消します。渡す情報の型(`FocusActivityAttributes`)は、アプリ本体とウィジェットの両方が使うので `SharedCore` にあります。
+
+Live Activity に出るのは集中の計測だけです。次のロックまでの余裕は、ウィジェットに出します。
 
 ## 3. ロックのモデル
 
@@ -159,7 +209,7 @@ flowchart LR
 | `now`、`today` | 計算した時刻と、それを含む1日の区間 |
 | `phase` | 上の表の状態 |
 | `goals` | 今日が「やる曜日」の目標の進み具合(`GoalProgress`) |
-| `activeReasons`、`upcomingReasons` | ロックの理由。始まる順 |
+| `activeReasons`、`upcomingReasons` | ロックの理由。始まる順。これからの理由に入るのは、今日の目標と、未完了のタスクすべて |
 | `forecast` | ロック予報。今日の目標、今日のうちに着手リミットが来る(または過ぎた)タスク、今日完了したタスク。状態は「済み」「いま有効」「これから」 |
 | `passesRemaining` | 今週(月曜の1日の開始から)使えるパスの残り |
 | `nextChangeAt` | 時間の経過だけで状態が変わりうる次の時刻。これからの理由の先頭、パスの終わり、1日の終わりのうち最も早いもの |
@@ -169,22 +219,39 @@ flowchart LR
 
 「1日」と「1週間」の区切りは `DayClock` が決めます。1日は設定した時刻(初期値は朝 4 時)に始まり、週は月曜に始まります。日付は 24 時間を足すのではなく暦の上で進めるので、夏時間の切り替え日でもずれません。
 
-### 3.3 見積もりの補正
+### 3.3 先の見通し
+
+`LockEngine` には、`status` のほかに2つの計算があります。どちらも保存データを変えません。
+
+| 計算 | 内容 | 使う場所 |
+|---|---|---|
+| `preview(resolving:world:now:)` | ある理由をいま片づけたと仮定して、次のロックの時刻を返す(`LockPreview`)。ほかに理由が残るなら「外れない」 | 「今日」のいちばん上。「終えると、次のロックは◯時まで延びます」 |
+| `weekOutlook(world:now:days:)` | 今日から 7 日ぶんの、日ごとのロックの見込み(`DayOutlook`)。今日は `forecast` をそのまま使い、明日以降は目標とタスクの着手リミットから作る | 「今日」の「これからの7日」 |
+
+`DayOutlook` は、その日の荒れ具合を4段階で表します。予定なし、いつもの目標だけ、締切が1つ、締切が重なっている、です。
+
+### 3.4 見積もりの補正
 
 着手リミットに掛ける倍率は `World.estimateFactor` で決まります。設定が固定(1 / 1.25 / 1.5 / 2 倍)ならその値、「自動」(初期値)なら `EstimateCalibration` の値です。詳しくは [ADR 0007](adr/0007-estimate-calibration.md)。
 
-### 3.4 ShieldPlan
+### 3.5 ShieldPlan
 
 `LockStatus` から、スクリーンタイムの層に必要なことだけを抜き出したものです。
 
 | 項目 | 内容 |
 |---|---|
 | `isLocked` | いまロックを掛けるべきか(`.locked` のときだけ true。パス中は false) |
-| `title` | いちばん先に片づけるものの名前。ロック画面に出す想定 |
+| `title` | いちばん先に片づけるものの名前 |
 | `remainingSeconds` | それが目標の場合の、今日の分の残り |
 | `wakeTimes` | これからロックが始まる時刻と、パスが切れる時刻。近い順に最大 12 件 |
 
 `wakeTimes` は、アプリを閉じていても拡張機能を起こしてもらうための予約に使います。OS が受け付ける予約は 20 件までなので、毎日くり返す目標のぶんを残して 12 件に絞っています。
+
+予約(`MonitorScheduler.reschedule`)は2種類です。目標のロック開始時刻は毎日くり返す予約、`wakeTimes` は 1 回きりの予約です。区間の長さは、OS が受け付ける最短の 15 分にしています。
+
+### 3.6 1行入力の読み取り
+
+`QuickAddParser` は、「金曜までにレポート 2時間」のような1行から、名前、締切、所要時間を読み取ります。ロックのモデルではありませんが、純粋な計算なので `Domain` にあります。日本語と英語の、決まった書き方だけを正規表現で読みます。読み取れなかった部分は名前に残します。
 
 ## 4. 画面の移動
 
@@ -204,6 +271,7 @@ flowchart LR
 - 閉じるときは、子が `@Dependency(\.dismiss)` を呼びます。
 - 初回設定は `Destination` ではなく、`AppFeature.State.onboarding` に状態がある間、タブの代わりに表示します。設定の `hasCompletedOnboarding` が false なら出ます。設定画面の「はじめの説明をもう一度見る」は、この値を false に戻すだけです。
 - 保存データを読み終える前(`Board.isLoaded == false`)は背景だけを出します。読み終える前に初回設定を出さないためです。
+- ロックするアプリを選ぶ画面は、`Destination` ではなく、設定と初回設定の View に付けた `shieldAppPicker` で出します(`ShieldClient` にある View の拡張)。実機では OS の選択画面(`FamilyActivityPicker`)、シミュレータでは「選べません」という説明が出ます。
 
 ## 5. 永続化
 
@@ -270,18 +338,33 @@ SQLite に保存します。場所は `SQLiteData.defaultDatabase()` が決め�
 
 行の型(`GoalRecord` など)は `DatabaseClient` の中に閉じていて、外には `Domain` の型だけが出ます。
 
+DB のほかに保存しているものが2つあります。どちらも App Group にあります。
+
+| もの | 場所 | 内容 |
+|---|---|---|
+| 写し | `snapshot.json` | 2.5 を参照。DB から作り直せる |
+| ロックするアプリの選択 | App Group の `UserDefaults`(キー `shieldSelection`) | `FamilyActivitySelection` を JSON にしたもの。実機のみ。アプリからは、どのアプリかは分からない |
+
 ## 6. 文言と多言語
 
-- 文言は `Packages/TodoKit/Sources/AppFeature/Resources/Localizable.xcstrings` の1ファイルにあります。元の言語は英語で、日本語と英語の両方を入れます(現在 137 件、欠けなし)。
-- コードからは、Xcode がカタログから生成するシンボルで参照します(`Text(.todaySlackLabel)`、`String(localized: .commonToday)`)。キーを文字列で書きません。詳しくは [ADR 0006](adr/0006-string-catalog-symbols.md) と[開発の手順](development.md)。
+文言カタログは3つあります。どれも元の言語は英語で、日本語と英語の両方を入れます(2026-10-09 時点で抜けなし)。
+
+| カタログ | 件数 | 参照のしかた |
+|---|---|---|
+| `Packages/TodoKit/Sources/AppFeature/Resources/Localizable.xcstrings` | 156 | 生成されたシンボル(`Text(.todaySlackLabel)`) |
+| `Packages/TodoKit/Sources/WidgetUI/Resources/Localizable.xcstrings` | 17 | 生成されたシンボル(`Text(.widgetSlackName)`) |
+| `Extensions/ShieldConfiguration/Localizable.xcstrings` | 5 | キーの文字列(`String(localized: "shield.button")`) |
+
+- 生成されたシンボルで参照するのが原則です。キーを文字列で書きません。詳しくは [ADR 0006](adr/0006-string-catalog-symbols.md) と[開発の手順](development.md)。ロック画面の拡張機能だけ、いまはキーの文字列で参照しています。
 - 時間の長さ、時刻、曜日は文言にせず、`DurationText`、`TimeText`、`Calendar` の書式で言語に合わせます。
+- 通知の文言は、予約した時点の言語で固定されます。
 - 見本データの目標名とタスク名はカタログに入れず、`SampleData` の中で端末の言語を見て切り替えています。
 
 ## 7. テスト
 
 | 対象 | 場所 | 実行 | 現状 |
 |---|---|---|---|
-| `Domain` | `Packages/Domain/Tests/DomainTests` | `make test-domain`(macOS、シミュレータ不要) | 1日と1週間の区切り、ロックの判定、見積もりの補正、振り返りの集計 |
+| `Domain` | `Packages/Domain/Tests/DomainTests` | `make test-domain`(macOS、シミュレータ不要) | 1日と1週間の区切り、ロックの判定、片づけたあとの見通し、週間の見込み、見積もりの補正、1行入力の読み取り、振り返りの集計 |
 | `DatabaseClient` | `Packages/TodoKit/Tests/DatabaseClientTests` | `make test-app` | 実際の SQLite(テストごとの一時データベース)に対する読み書き、連鎖削除、変更の通知 |
 | Reducer | `Packages/TodoKit/Tests/AppFeatureTests` | `make test-app` | **置き場だけ。中身は空のテスト1つ** |
 | UI | `UITests` | `make test-ui` | 見本データ `countdown` で起動し、「Lock forecast」が出ることを確かめる1本 |
@@ -290,8 +373,11 @@ SQLite に保存します。場所は `SQLiteData.defaultDatabase()` が決め�
 
 - 判定と計算は `Domain` に置き、境界の値(ちょうどの時刻、0 件、日付の変わり目)を含めてテストする。ロックの判定を間違えると、外れない、または掛からないという一番困る不具合になるため。
 - Reducer は TCA の `TestStore` で確かめる。時刻、ID、DB、ロックは依存を差し替えて固定する。そのために、Reducer の中で `Date()` や `UUID()` を直接呼ばない(SwiftLint の独自ルールで検査)。
+- 通知と Live Activity の依存は、テストとプレビューでは何もしない実装になる。各テストが差し替えなくて済む。
 - UI テストは、壊れると使えなくなる流れに絞る。見本データで起動するので `Todo-Dev` でだけ動く。
 - スクリーンタイムのコードは自動テストの対象外。実機で手で確かめる([公開前の確認事項](release-checklist.md))。
+
+主要な画面は、見本データを使った Xcode のプレビューでも確かめられます(`AppFeature/Support/Previews.swift`)。
 
 ## 8. 分かっている制限
 
@@ -301,24 +387,28 @@ SQLite に保存します。場所は `SQLiteData.defaultDatabase()` が決め�
 
 | 項目 | 状況 |
 |---|---|
-| 実際のロック | `SharedCore/ScreenTime.swift` と `ShieldClient/Live.swift` はコンパイルが通るだけ。実機で一度も動かしていない |
-| ロックするアプリの選択 | 選ぶ画面(`FamilyActivityPicker`)がない。`SelectionStore.save` を呼ぶ場所がなく、実機で許可しても対象は常に 0 件で、何もロックされない |
-| 拡張機能 | DeviceActivity の監視、シールドの表示と操作のどれもない。予約した時刻に起こされても、受け取る側がない |
-| App Group、Family Controls の権限 | `project.yml` に entitlements の設定がない |
-| ウィジェット、Live Activity、通知 | ない(予定) |
+| 実際のロック | `SharedCore/ScreenTime.swift`、`ShieldClient/Live.swift`、`Extensions/ShieldMonitor`、`Extensions/ShieldConfiguration` は、実機で一度も動かしていない |
+| ロックするアプリの選択 | 実機では OS の選択画面を出すコードがある(未検証)。シミュレータでは選べず、模擬の実装が 6 件を選んだことにする |
+| ロック画面のボタンの動き | シールドの操作の拡張機能(ShieldAction)がない。ボタンを押したときの動きは決めていない |
+| Family Controls の権限 | `project.yml` と entitlements に書いてある。有料の開発者登録がないので、実機向けの署名では確かめていない |
 | 目標の保管 | `Goal.isArchived` と列はあるが、切り替える画面がない。いまは削除だけ |
-| アプリアイコン | 未設定(`ASSETCATALOG_COMPILER_APPICON_NAME` が空) |
+| アプリアイコン | 仮のもの(画像生成による) |
+| Reducer のテスト | ない |
 | CI | 手動実行のみで、一度も実行していない |
 
 ### 設計上の注意点
 
 | 項目 | 内容 |
 |---|---|
-| ロックへの反映は `ShieldPlan` が変わったときだけ | 作った当日の目標は今日の理由にならないので、`ShieldPlan` が変わらず、写しも毎日の予約も更新されない。次に `ShieldPlan` が変わるか、アプリを起動し直すまで、新しい目標は拡張機能側に伝わらない。実機で確かめる前に直す必要がある |
-| 予約の張り直しが多い | `ShieldPlan` に今日の分の残り秒数が入っている。ロック中に集中を計測していると 15 秒ごとに値が変わり、そのたびに実機では予約をすべて止めて張り直す。[リスクの調査](../research/risks.md)では、張り直しは不具合の報告が多い操作 |
+| 写し、予約、通知の更新は `ShieldPlan` が変わったときだけ | 作った当日の目標は今日の理由にならないので、`ShieldPlan` が変わらない。その結果、写し、毎日の予約、通知のどれも更新されない。最初の目標を初回設定で作っただけだと、翌朝のロックを始める予約が登録されず、ウィジェットも「未設定」のままになる。次に `ShieldPlan` が変わるか、アプリを起動し直すまで続く。実機で確かめる前に直す必要がある |
+| ウィジェットに更新を頼んでいない | アプリ本体は、写しを書いたあとにウィジェットの作り直しを要求していない(`WidgetCenter` を呼ぶ場所がない)。ウィジェットは、自分の先読みを使い切るまで古い内容を出すことがある |
+| 予約の張り直しが多い | `ShieldPlan` に今日の分の残り秒数が入っている。ロック中に集中を計測していると 15 秒ごとに値が変わり、そのたびに実機では予約をすべて止めて張り直し、通知も作り直す。[リスクの調査](../research/risks.md)では、予約の張り直しは不具合の報告が多い操作 |
+| 明日の目標の前触れがない | 通知の対象は、今日の目標と未完了のタスクだけ。明日の朝に始まる目標のロックは、その日になるまで通知の対象に入らない |
+| 計測がアプリの外で終わったとき | 今日の分に達した時刻を、アプリを閉じたまま過ぎた場合、ロックを外すきっかけがない(その時刻は `wakeTimes` に入らない)。Live Activity も、アプリを開き直すまで残る |
 | 1日の区切りをまたぐ集中 | 計測中は区切りより後のぶんを今日に数えるが、止めると記録全体が始めた日のものになる。深夜にまたいだときに、今日の進み具合が減って見える |
 | 振り返りの「ロックの前に完了」 | いまの倍率で着手リミットを計算し直して数える。倍率が変わると、過去のタスクの分類も変わる |
 | 削除と取り下げ | タスクを削除すると、取り下げの回数に数えられずに理由が消える。目標を削除して作り直すと、その日はロックされない |
-| 表示用の時刻 | `TimeText` と `GoalEditorView` の一部は `Calendar.current` を直接使う。依存の差し替えが効かない |
+| 許可の取り消し | スクリーンタイムの許可の状態を見るのは、初回設定と設定の画面だけ。設定アプリで許可を切られても、ほかの画面は気づかない |
+| 依存を通さない時刻 | `TimeText`、`GoalEditorView` の一部、ウィジェット、拡張機能、通知と Live Activity の実装は、`Calendar.current` や現在時刻を直接使う。アプリ本体の Reducer とは別の経路で時刻を読む |
 | `World` の読み直し | 集中の記録とパスの記録を全件読む。件数の上限や古い記録の整理は決めていない |
 | 静的解析 | `make lint` は違反を報告する(行の長さ、画像のアクセシビリティ、`Date()` の直接呼び出しなど)。未解消 |
