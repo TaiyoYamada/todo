@@ -1,0 +1,53 @@
+name: 機能の提案
+description: 新しい機能や、いまある機能の改善を提案するときに使います
+title: "[提案] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        提案ありがとうございます。
+        「何がほしいか」よりも先に「何に困っているか」を教えてもらえると、よりよい形を一緒に考えられます。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 困っていること
+      description: どんな場面で、何がうまくいかないのかを書いてください。
+      placeholder: 例)期限の近い目標が多いと、どれから手を付けるべきか一覧から読み取れない
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 提案する内容
+      description: どうなっていると助かるかを書いてください。
+      placeholder: 例)着手の期限が近い順に並べ替えられるようにする
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: ほかに考えた方法
+      description: いま代わりにやっている工夫や、ほかの案があれば書いてください。
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 補足
+      description: 参考になる画像やリンクがあれば貼ってください。
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 確認
+      options:
+        - label: 同じ内容の Issue がないことを確かめました
+          required: true
