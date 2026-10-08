@@ -326,6 +326,20 @@ public extension DatabaseClient {
                         .execute(db)
                 }
             },
+            finishFocus: { sessions in
+                try await database.write { db in
+                    for session in sessions {
+                        try SessionRecord.insert { SessionRecord(session) }.execute(db)
+                    }
+                    try AppStateRecord
+                        .where { $0.id.eq(AppStateRecord.rowID) }
+                        .update {
+                            $0.activeFocusGoalID = UUID?.none
+                            $0.activeFocusStartedAt = Double?.none
+                        }
+                        .execute(db)
+                }
+            },
             addPassUse: { passUse in
                 try await database.write { db in
                     try PassUseRecord.insert { PassUseRecord(passUse) }.execute(db)

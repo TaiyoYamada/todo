@@ -36,6 +36,12 @@ public extension DatabaseClient {
             deleteTask: { id in store.update { $0.tasks.removeAll { $0.id == id } } },
             addSession: { session in store.update { $0.sessions.append(session) } },
             setActiveFocus: { focus in store.update { $0.activeFocus = focus } },
+            finishFocus: { sessions in
+                store.update {
+                    $0.sessions.append(contentsOf: sessions)
+                    $0.activeFocus = nil
+                }
+            },
             addPassUse: { passUse in store.update { $0.passUses.append(passUse) } },
             savePreferences: { preferences in store.update { $0.preferences = preferences } },
             replaceAll: { world in store.update { $0 = world } }

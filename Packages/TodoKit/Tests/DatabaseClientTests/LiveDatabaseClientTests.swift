@@ -88,6 +88,23 @@ struct LiveDatabaseClientTests {
         #expect(world?.activeFocus == nil)
     }
 
+    @Test("計測を終えると、記録が足され、計測中の状態が消える")
+    func finishFocus() async throws {
+        let goal = Goal(id: uuid(1), title: "院試", createdAt: at(1000))
+        try await client.saveGoal(goal)
+        try await client.setActiveFocus(ActiveFocus(goalID: goal.id, startedAt: at(4000)))
+
+        // 1日の区切りをまたいだ計測は、2つの記録に分かれて届く。
+        try await client.finishFocus([
+            FocusSession(id: uuid(3), goalID: goal.id, startedAt: at(4000), seconds: 600),
+            FocusSession(id: uuid(4), goalID: goal.id, startedAt: at(4600), seconds: 300),
+        ])
+
+        let world = await currentWorld()
+        #expect(world?.sessions.map(\.seconds) == [600, 300])
+        #expect(world?.activeFocus == nil)
+    }
+
     @Test("タスクの完了と削除")
     func taskLifecycle() async throws {
         var task = TaskItem(id: uuid(2), title: "レポート", dueAt: at(9000), createdAt: at(1000))
