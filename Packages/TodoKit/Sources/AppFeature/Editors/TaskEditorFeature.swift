@@ -37,7 +37,8 @@ struct TaskEditorFeature {
         case delegate(Delegate)
 
         enum Delegate: Equatable {
-            case complete(TaskItem.ID)
+            /// 完了の確認を開いてほしい。編集中の内容を渡す。
+            case complete(TaskItem)
         }
     }
 
@@ -83,7 +84,14 @@ struct TaskEditorFeature {
 
             case .completeTapped:
                 // 実際にかかった時間を聞く画面は、親が開く。
-                return .send(.delegate(.complete(state.task.id)))
+                // 先に編集中の内容を保存しておく。完了の確認をやめても、直した内容が消えないように。
+                var task = state.task
+                task.title = task.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !task.title.isEmpty else { return .none }
+                return .run { [task] send in
+                    try await database.saveTask(task)
+                    await send(.delegate(.complete(task)))
+                }
 
             case .withdrawConfirmed:
                 var task = state.task
