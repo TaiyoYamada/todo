@@ -2,6 +2,7 @@ import ComposableArchitecture
 import DatabaseClient
 import Domain
 import Foundation
+import ShieldClient
 
 /// アプリの根。保存データを監視してロックの状態を計算し、各画面に配る。
 @Reducer
@@ -28,6 +29,8 @@ struct AppFeature {
         var insights = InsightsFeature.State()
         var onboarding: OnboardingFeature.State?
         @Presents var destination: Destination.State?
+        /// 最後にスクリーンタイムの層へ伝えた指示。同じ内容を何度も送らないために覚えておく。
+        var appliedPlan: ShieldPlan?
     }
 
     enum Action: BindableAction {
@@ -52,6 +55,7 @@ struct AppFeature {
     @Dependency(\.continuousClock) var clock
     @Dependency(\.database) var database
     @Dependency(\.date.now) var now
+    @Dependency(\.shield) var shield
     @Dependency(\.uuid) var uuid
 
     var body: some ReducerOf<Self> {
@@ -83,12 +87,12 @@ struct AppFeature {
                     state.destination = nil
                     state.onboarding = OnboardingFeature.State()
                 }
-                return scheduleTick(state)
+                return .merge(scheduleTick(state), syncShield(&state))
 
             case .tick, .becameActive:
                 guard state.board.isLoaded else { return .none }
                 refresh(&state)
-                return scheduleTick(state)
+                return .merge(scheduleTick(state), syncShield(&state))
 
             case let .today(.delegate(route)), let .plan(.delegate(route)):
                 open(route, &state)
@@ -116,6 +120,16 @@ struct AppFeature {
         let now = now
         let engine = LockEngine(calendar: calendar)
         state.$board.withLock { $0.status = engine.status(world: $0.world, now: now) }
+    }
+
+    /// ロックの状態が変わっていれば、スクリーンタイムの層へ伝える。
+    private func syncShield(_ state: inout State) -> Effect<Action> {
+        let plan = ShieldPlan(status: state.board.status)
+        guard plan != state.appliedPlan else { return .none }
+        state.appliedPlan = plan
+        return .run { [world = state.board.world] _ in
+            await shield.apply(plan, world)
+        }
     }
 
     /// 起動直後に、前回の続きを戻す。
