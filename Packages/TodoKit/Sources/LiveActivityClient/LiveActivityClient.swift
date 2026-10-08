@@ -46,8 +46,8 @@ extension LiveActivityClient: DependencyKey {
     }
 }
 
-extension DependencyValues {
-    public var liveActivity: LiveActivityClient {
+public extension DependencyValues {
+    var liveActivity: LiveActivityClient {
         get { self[LiveActivityClient.self] }
         set { self[LiveActivityClient.self] = newValue }
     }

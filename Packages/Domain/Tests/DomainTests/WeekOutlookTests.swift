@@ -1,6 +1,5 @@
 import Foundation
 import Testing
-
 @testable import Domain
 
 @Suite("週間のロック予報")
@@ -12,7 +11,7 @@ struct WeekOutlookTests {
     @Test("今日から7日ぶんを、日付順に返す")
     func sevenDays() {
         let outlook = engine.weekOutlook(world: World(), now: now)
-        #expect(outlook.map(\.dayStart) == (9...15).map { date($0, 4) })
+        #expect(outlook.map(\.dayStart) == (9 ... 15).map { date($0, 4) })
         #expect(outlook.allSatisfy { $0.severity == .clear })
     }
 

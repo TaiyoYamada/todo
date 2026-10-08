@@ -1,6 +1,5 @@
 import Foundation
 import Testing
-
 @testable import Domain
 
 @Suite("1行からのタスクの読み取り")
@@ -26,7 +25,11 @@ struct QuickAddParserTests {
         #expect(parse("レポートを明日までに 90分") == QuickAdd(title: "レポート", dueAt: date(10, 23, 59), estimateMinutes: 90))
         #expect(parse("明日18時 ゼミの準備 1時間半") == QuickAdd(title: "ゼミの準備", dueAt: date(10, 18), estimateMinutes: 90))
         #expect(parse("あさって午後6時半に課題提出") == QuickAdd(title: "課題提出", dueAt: date(11, 18, 30)))
-        #expect(parse("今日 23:59 統計学のレポート 1時間30分") == QuickAdd(title: "統計学のレポート", dueAt: date(9, 23, 59), estimateMinutes: 90))
+        #expect(parse("今日 23:59 統計学のレポート 1時間30分") == QuickAdd(
+            title: "統計学のレポート",
+            dueAt: date(9, 23, 59),
+            estimateMinutes: 90
+        ))
     }
 
     @Test("日付の書き方")
@@ -46,8 +49,16 @@ struct QuickAddParserTests {
     @Test("英語")
     func english() {
         #expect(parse("Report by Friday 2h") == QuickAdd(title: "Report", dueAt: date(9, 23, 59), estimateMinutes: 120))
-        #expect(parse("Seminar slides tomorrow 6pm 1h30m") == QuickAdd(title: "Seminar slides", dueAt: date(10, 18), estimateMinutes: 90))
-        #expect(parse("next Mon lab notebook 45 min") == QuickAdd(title: "lab notebook", dueAt: date(19, 23, 59), estimateMinutes: 45))
+        #expect(parse("Seminar slides tomorrow 6pm 1h30m") == QuickAdd(
+            title: "Seminar slides",
+            dueAt: date(10, 18),
+            estimateMinutes: 90
+        ))
+        #expect(parse("next Mon lab notebook 45 min") == QuickAdd(
+            title: "lab notebook",
+            dueAt: date(19, 23, 59),
+            estimateMinutes: 45
+        ))
         #expect(parse("Design review at 9:30am") == QuickAdd(title: "Design review", dueAt: date(10, 9, 30)))
     }
 

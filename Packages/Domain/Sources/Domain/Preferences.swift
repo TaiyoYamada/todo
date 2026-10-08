@@ -58,6 +58,6 @@ public struct Preferences: Equatable, Sendable, Codable {
             try container.decodeIfPresent(Bool.self, forKey: .hasCompletedOnboarding) ?? defaults.hasCompletedOnboarding
     }
 
-    public static let weeklyPassLimitRange = 0...5
-    public static let dayStartHourRange = 0...8
+    public static let weeklyPassLimitRange = 0 ... 5
+    public static let dayStartHourRange = 0 ... 8
 }

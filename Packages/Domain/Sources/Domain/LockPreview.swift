@@ -12,9 +12,9 @@ public struct LockPreview: Equatable, Sendable {
     public var unlocks: Bool
 }
 
-extension LockEngine {
+public extension LockEngine {
     /// `source` をいま片づけたと仮定して、ロックの見通しを計算する。保存データは変えない。
-    public func preview(resolving source: LockReason.Source, world: World, now: Date) -> LockPreview {
+    func preview(resolving source: LockReason.Source, world: World, now: Date) -> LockPreview {
         var world = world
         switch source {
         case let .goal(id):

@@ -30,7 +30,7 @@ public struct NotificationClient: Sendable {
 extension NotificationClient: DependencyKey {
     public static let liveValue = NotificationClient(
         requestAuthorization: {
-            (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])) ?? false
+            await (try? UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])) ?? false
         },
         replaceAll: { notifications in
             let center = UNUserNotificationCenter.current()
@@ -59,8 +59,8 @@ extension NotificationClient: DependencyKey {
     public static let previewValue = testValue
 }
 
-extension DependencyValues {
-    public var notifications: NotificationClient {
+public extension DependencyValues {
+    var notifications: NotificationClient {
         get { self[NotificationClient.self] }
         set { self[NotificationClient.self] = newValue }
     }

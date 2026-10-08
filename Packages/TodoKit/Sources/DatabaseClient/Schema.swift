@@ -281,9 +281,9 @@ func fetchWorld(_ db: Database) throws -> World {
     )
 }
 
-extension DatabaseClient {
+public extension DatabaseClient {
     /// SQLite に保存する実装。
-    public static func live(database: any DatabaseWriter) -> DatabaseClient {
+    static func live(database: any DatabaseWriter) -> DatabaseClient {
         DatabaseClient(
             observeWorld: { observe(in: database, fetchWorld) },
             saveGoal: { goal in

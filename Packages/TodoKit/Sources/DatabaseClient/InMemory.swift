@@ -2,9 +2,9 @@ import ConcurrencyExtras
 import Domain
 import Foundation
 
-extension DatabaseClient {
+public extension DatabaseClient {
     /// メモリ上だけで動く実装。プレビューと、DB を使わないテストで使う。
-    public static func inMemory(_ initial: World = World()) -> DatabaseClient {
+    static func inMemory(_ initial: World = World()) -> DatabaseClient {
         let store = InMemoryStore(initial)
         return DatabaseClient(
             observeWorld: { store.stream() },

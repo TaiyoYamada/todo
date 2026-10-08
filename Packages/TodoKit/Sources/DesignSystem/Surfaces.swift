@@ -1,8 +1,8 @@
 import SwiftUI
 
-extension View {
+public extension View {
     /// ガラスのような面に載せる。カードやまとまりの背景に使う。
-    public func glassCard(cornerRadius: CGFloat = 26, padding: CGFloat = 18) -> some View {
+    func glassCard(cornerRadius: CGFloat = 26, padding: CGFloat = 18) -> some View {
         self
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -10,9 +10,8 @@ extension View {
     }
 
     /// 見出し用の小さな文字。
-    public func sectionLabelStyle() -> some View {
-        self
-            .font(.footnote.weight(.semibold))
+    func sectionLabelStyle() -> some View {
+        font(.footnote.weight(.semibold))
             .textCase(.uppercase)
             .kerning(0.8)
             .foregroundStyle(.white.opacity(0.62))
@@ -40,8 +39,8 @@ public struct HeroButtonStyle: ButtonStyle {
     }
 }
 
-extension ButtonStyle where Self == HeroButtonStyle {
-    public static var hero: HeroButtonStyle { HeroButtonStyle() }
+public extension ButtonStyle where Self == HeroButtonStyle {
+    static var hero: HeroButtonStyle { HeroButtonStyle() }
 }
 
 /// 控えめな操作のボタン。
@@ -59,6 +58,6 @@ public struct QuietButtonStyle: ButtonStyle {
     }
 }
 
-extension ButtonStyle where Self == QuietButtonStyle {
-    public static var quiet: QuietButtonStyle { QuietButtonStyle() }
+public extension ButtonStyle where Self == QuietButtonStyle {
+    static var quiet: QuietButtonStyle { QuietButtonStyle() }
 }

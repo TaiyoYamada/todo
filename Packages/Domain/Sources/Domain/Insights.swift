@@ -50,7 +50,7 @@ public struct InsightsCalculator: Sendable {
         let clock = DayClock(calendar: calendar, dayStartHour: world.preferences.dayStartHour)
         let today = clock.dayStart(containing: now)
 
-        let days = (0..<dayCount).reversed().map { offset -> Insights.Day in
+        let days = (0 ..< dayCount).reversed().map { offset -> Insights.Day in
             let start = clock.offset(today, days: -offset)
             let end = clock.dayStart(after: start)
             var totals: [Goal.ID: Int] = [:]
@@ -85,8 +85,8 @@ public struct InsightsCalculator: Sendable {
             lastWeekSeconds: seconds(in: lastWeek),
             tasksBeforeLimit: beforeLimit.count,
             tasksAfterLimit: completed.count - beforeLimit.count,
-            tasksWithdrawn: world.tasks.filter { ($0.withdrawnAt ?? .distantPast) >= windowStart }.count,
-            passesThisWeek: world.passUses.filter { thisWeek.start <= $0.usedAt && $0.usedAt < thisWeek.end }.count,
+            tasksWithdrawn: world.tasks.count(where: { ($0.withdrawnAt ?? .distantPast) >= windowStart }),
+            passesThisWeek: world.passUses.count(where: { thisWeek.start <= $0.usedAt && $0.usedAt < thisWeek.end }),
             calibration: world.calibration
         )
     }

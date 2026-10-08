@@ -4,11 +4,11 @@ import Foundation
 import OSLog
 import SharedCore
 
-extension ShieldClient {
+public extension ShieldClient {
     /// 模擬の実装。実際には何もロックせず、状態を覚えて記録に出すだけ。
     ///
     /// シミュレータではスクリーンタイム API が動かないので、画面の流れを確かめるために使う。
-    public static func simulated() -> ShieldClient {
+    static func simulated() -> ShieldClient {
         let state = LockIsolated((authorization: ShieldAuthorization.notDetermined, selectionCount: 0, isLocked: false))
         return ShieldClient(
             authorization: { state.value.authorization },
@@ -29,7 +29,10 @@ extension ShieldClient {
                     return current.isLocked != plan.isLocked
                 }
                 if changed {
-                    logger.info("模擬のロック: \(plan.isLocked ? "掛けた" : "外した", privacy: .public) \(plan.title ?? "", privacy: .public)")
+                    logger
+                        .info(
+                            "模擬のロック: \(plan.isLocked ? "掛けた" : "外した", privacy: .public) \(plan.title ?? "", privacy: .public)"
+                        )
                 }
             }
         )

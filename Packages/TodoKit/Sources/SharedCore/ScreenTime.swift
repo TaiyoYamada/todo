@@ -3,7 +3,7 @@
 // 注意: このファイルの動作は未検証。実機と、Family Controls の権限(有料の開発者登録)が必要で、
 // シミュレータでは確かめられない。コンパイルが通ることだけを確認している。
 
-#if canImport(FamilyControls) && canImport(ManagedSettings) && canImport(DeviceActivity) && !targetEnvironment(simulator)
+#if canImport(FamilyControls) && !targetEnvironment(simulator)
     import DeviceActivity
     import Domain
     import FamilyControls
