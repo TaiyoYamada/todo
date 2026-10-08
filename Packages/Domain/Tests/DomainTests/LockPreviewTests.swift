@@ -59,4 +59,15 @@ struct LockPreviewTests {
         #expect(engine.status(world: world, now: now).isLocked)
         #expect(engine.preview(resolving: .goal(uuid(1)), world: world, now: now).unlocks)
     }
+
+    @Test("計測中の目標でも、終えたあとの見通しを正しく出す")
+    func duringActiveFocus() {
+        let world = World.exact(
+            goals: [.fixture(dailyMinutes: 30)],
+            activeFocus: ActiveFocus(goalID: uuid(1), startedAt: date(9, 13, 50))
+        )
+        let preview = engine.preview(resolving: .goal(uuid(1)), world: world, now: now)
+        #expect(preview.unlocks)
+        #expect(preview.isFreeForToday)
+    }
 }

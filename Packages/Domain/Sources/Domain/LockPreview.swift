@@ -19,9 +19,13 @@ public extension LockEngine {
         switch source {
         case let .goal(id):
             guard let goal = world.goal(id: id) else { break }
+            // この目標を計測中なら、計測はここで終わったものとして、記録済みのぶんから残りを求める。
+            // 計測中のぶんを残りから引いたうえで計測を消すと、二重に引いてしまう。
+            if world.activeFocus?.goalID == id {
+                world.activeFocus = nil
+            }
             let remaining = progress(of: goal, world: world, now: now).remainingSeconds
             // 残りをちょうどやり終えた、という記録を仮に足す。
-            world.activeFocus = nil
             world.sessions.append(
                 FocusSession(id: UUID(), goalID: id, startedAt: now.addingTimeInterval(-1), seconds: remaining)
             )
