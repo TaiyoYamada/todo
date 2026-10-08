@@ -34,6 +34,8 @@ struct AppFeature {
         @Presents var destination: Destination.State?
         /// 最後にスクリーンタイムの層へ伝えた指示。同じ内容を何度も送らないために覚えておく。
         var appliedPlan: ShieldPlan?
+        /// 保存データを読み終える前に届いた、外からの依頼。読み終えたら開く。
+        var pendingDeepLink: DeepLink?
     }
 
     enum Action: BindableAction {
@@ -50,7 +52,7 @@ struct AppFeature {
         case destination(PresentationAction<Destination.Action>)
     }
 
-    private enum CancelID { case observation, tick }
+    private enum CancelID { case observation, tick, sync }
 
     /// 何も予定がなくても、この間隔では状態を計算し直す。表示中の「あと◯分」を古くしないため。
     static let refreshInterval: TimeInterval = 15
@@ -81,6 +83,7 @@ struct AppFeature {
 
             case let .worldChanged(world):
                 let isFirstLoad = !state.board.isLoaded
+                let hadCompletedOnboarding = state.board.world.preferences.hasCompletedOnboarding
                 state.$board.withLock {
                     $0.world = world
                     $0.isLoaded = true
@@ -88,8 +91,14 @@ struct AppFeature {
                 refresh(&state)
                 if isFirstLoad {
                     restore(&state)
-                } else if !world.preferences.hasCompletedOnboarding, state.onboarding == nil {
+                    if let link = state.pendingDeepLink {
+                        state.pendingDeepLink = nil
+                        handle(link, &state)
+                    }
+                } else if hadCompletedOnboarding, !world.preferences.hasCompletedOnboarding, state.onboarding == nil {
                     // 設定から「はじめの説明をもう一度見る」を選んだとき。
+                    // 「済み」から「まだ」に変わった瞬間だけを見る。初回設定の最後は書き込みが2回あり、
+                    // その途中の「まだ」を見て開き直してしまうのを防ぐ。
                     state.destination = nil
                     state.onboarding = OnboardingFeature.State()
                 }
@@ -101,32 +110,23 @@ struct AppFeature {
                 return .merge(scheduleTick(state), syncOutside(&state, worldChanged: false))
 
             case let .openDeepLink(link):
-                // 初回設定の途中や、すでに何かを開いているときは、割り込まない。
-                guard state.board.isLoaded, state.onboarding == nil, state.destination == nil else { return .none }
-                switch link {
-                case .focus:
-                    let status = state.board.status
-                    // ロックの理由になっている目標を優先し、なければ、まだ終えていない今日の分。
-                    let lockedGoal = status.activeReasons.compactMap { reason -> Goal.ID? in
-                        if case let .goal(id) = reason.source { id } else { nil }
-                    }.first
-                    guard let id = lockedGoal ?? status.goals.first(where: { !$0.isComplete })?.id else {
-                        state.selectedTab = .today
-                        return .none
-                    }
-                    open(.startFocus(id), &state)
-                case .addTask:
-                    open(.editTask(nil), &state)
+                // アプリが起動していない状態から開かれると、保存データを読み終える前に届く。覚えておいて、あとで開く。
+                guard state.board.isLoaded else {
+                    state.pendingDeepLink = link
+                    return .none
                 }
+                handle(link, &state)
                 return .none
 
             case let .today(.delegate(route)), let .plan(.delegate(route)):
                 open(route, &state)
                 return .none
 
-            case let .destination(.presented(.taskEditor(.delegate(.complete(id))))):
-                // 編集画面を閉じてから、完了の確認を開く。
-                open(.completeTask(id), &state)
+            case let .destination(.presented(.taskEditor(.delegate(.complete(task))))):
+                // 編集画面を閉じてから、完了の確認を開く。編集中の内容をそのまま引き継ぐ。
+                state.destination = .taskCompletion(
+                    TaskCompletionFeature.State(task: task, measuredMinutes: task.elapsedMinutes(until: now))
+                )
                 return .none
 
             case .onboarding(.delegate(.finished)):
@@ -155,7 +155,7 @@ struct AppFeature {
     /// (たとえば、今日作った目標は今日はロックしないが、明日の朝の予約は要る)。
     /// 時間の経過だけのときは、ロックの状態が変わった場合に限る。
     private func syncOutside(_ state: inout State, worldChanged: Bool) -> Effect<Action> {
-        let plan = ShieldPlan(status: state.board.status)
+        let plan = ShieldPlan(status: state.board.status, activeFocus: state.board.world.activeFocus)
         guard worldChanged || plan != state.appliedPlan else { return .none }
         state.appliedPlan = plan
         let warnings = Self.warnings(for: state.board.status)
@@ -164,6 +164,29 @@ struct AppFeature {
             await snapshot.save(world)
             await shield.apply(plan, world)
             await notifications.replaceAll(warnings)
+        }
+        // 続けて変更が来たら、古いほうは途中でやめる。古い指示があとから適用されて、新しい状態を上書きするのを防ぐ。
+        .cancellable(id: CancelID.sync, cancelInFlight: true)
+    }
+
+    /// アプリの外からの依頼に応える。
+    private func handle(_ link: DeepLink, _ state: inout State) {
+        // 初回設定の途中や、すでに何かを開いているときは、割り込まない。
+        guard state.onboarding == nil, state.destination == nil else { return }
+        switch link {
+        case .focus:
+            let status = state.board.status
+            // ロックの理由になっている目標を優先し、なければ、まだ終えていない今日の分。
+            let lockedGoal = status.activeReasons.compactMap { reason -> Goal.ID? in
+                if case let .goal(id) = reason.source { id } else { nil }
+            }.first
+            guard let id = lockedGoal ?? status.goals.first(where: { !$0.isComplete })?.id else {
+                state.selectedTab = .today
+                return
+            }
+            open(.startFocus(id), &state)
+        case .addTask:
+            open(.editTask(nil), &state)
         }
     }
 

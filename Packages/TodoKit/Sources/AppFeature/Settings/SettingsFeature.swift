@@ -65,7 +65,7 @@ struct SettingsFeature {
 
             case .selectionChanged:
                 // 選び直した内容を、いま掛かっているロックにもすぐ反映する。
-                let plan = ShieldPlan(status: state.board.status)
+                let plan = ShieldPlan(status: state.board.status, activeFocus: state.board.world.activeFocus)
                 return .run { [world = state.board.world] send in
                     await shield.apply(plan, world)
                     await send(.shieldResponse(shield.authorization(), selectionCount: shield.selectionCount()))
