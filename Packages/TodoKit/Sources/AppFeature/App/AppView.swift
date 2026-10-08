@@ -8,12 +8,20 @@ import SwiftUI
 public struct RootView: View {
     @State private var store: StoreOf<AppFeature>
 
-    /// - Parameter sampleScenario: 見本データの状態の名前(`locked` など)。指定すると、
-    ///   保存データの代わりにメモリ上の見本データで動く。開発用の構成でだけ渡す。
-    public init(sampleScenario: String? = nil) {
+    /// - Parameters:
+    ///   - sampleScenario: 見本データの状態の名前(`locked` など)。指定すると、
+    ///     保存データの代わりにメモリ上の見本データで動く。開発用の構成でだけ渡す。
+    ///   - initialTab: 最初に開くタブの名前(`plan`、`insights`)。画面の撮影用。
+    public init(sampleScenario: String? = nil, initialTab: String? = nil) {
         let scenario = sampleScenario.flatMap(SampleData.Scenario.init(rawValue:))
+        var state = AppFeature.State()
+        switch initialTab {
+        case "plan": state.selectedTab = .plan
+        case "insights": state.selectedTab = .insights
+        default: break
+        }
         _store = State(
-            initialValue: Store(initialState: AppFeature.State()) {
+            initialValue: Store(initialState: state) {
                 AppFeature()
             } withDependencies: {
                 if let scenario {
