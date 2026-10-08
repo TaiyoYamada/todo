@@ -10,6 +10,7 @@ let package = Package(
         .library(name: "AppFeature", targets: ["AppFeature"]),
         .library(name: "DesignSystem", targets: ["DesignSystem"]),
         .library(name: "SharedCore", targets: ["SharedCore"]),
+        .library(name: "WidgetUI", targets: ["WidgetUI"]),
     ],
     dependencies: [
         .package(path: "../Domain"),
@@ -25,6 +26,7 @@ let package = Package(
             dependencies: [
                 "DatabaseClient",
                 "DesignSystem",
+                "LiveActivityClient",
                 "ShieldClient",
                 .product(name: "Domain", package: "Domain"),
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
@@ -45,6 +47,25 @@ let package = Package(
         .target(
             name: "SharedCore",
             dependencies: [.product(name: "Domain", package: "Domain")]
+        ),
+        .target(
+            name: "LiveActivityClient",
+            dependencies: [
+                "SharedCore",
+                .product(name: "Domain", package: "Domain"),
+                .product(name: "Dependencies", package: "swift-dependencies"),
+                .product(name: "DependenciesMacros", package: "swift-dependencies"),
+            ]
+        ),
+        // ウィジェットと Live Activity の見た目。拡張機能に入るので、TCA には依存させない。
+        .target(
+            name: "WidgetUI",
+            dependencies: [
+                "DesignSystem",
+                "SharedCore",
+                .product(name: "Domain", package: "Domain"),
+            ],
+            resources: [.process("Resources")]
         ),
         .target(
             name: "ShieldClient",
