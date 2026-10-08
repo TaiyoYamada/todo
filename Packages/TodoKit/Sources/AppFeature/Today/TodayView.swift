@@ -153,7 +153,7 @@ private struct HeroView: View {
                 label(.todayEmptyLabel, symbol: "sparkles")
                     .accessibilityIdentifier("today.hero.empty")
                 Text(.todayEmptyHeadline)
-                    .font(.system(size: 34, weight: .heavy, design: .rounded))
+                    .font(.hero(34))
                     .multilineTextAlignment(.center)
                 Text(.todayEmptyBody)
                     .font(.callout)
@@ -170,7 +170,7 @@ private struct HeroView: View {
                 label(.todayLockedLabel, symbol: "lock.fill")
                     .accessibilityIdentifier("today.hero.locked")
                 Text(primary.title)
-                    .font(.system(size: 44, weight: .heavy, design: .rounded))
+                    .font(.hero(44))
                     .multilineTextAlignment(.center)
                     .minimumScaleFactor(0.6)
                     .lineLimit(2)
@@ -213,7 +213,7 @@ private struct HeroView: View {
                 label(.todayFreeLabel, symbol: "checkmark.seal.fill")
                     .accessibilityIdentifier("today.hero.free")
                 Text(.todayFreeHeadline)
-                    .font(.system(size: 34, weight: .heavy, design: .rounded))
+                    .font(.hero(34))
                     .multilineTextAlignment(.center)
                 if let nextLockAt {
                     // 24 時間以内なら時刻だけを出す。深夜に「今日はもうない/次は今日 4:00」と矛盾して見えるのを避ける。
@@ -252,7 +252,7 @@ private struct HeroView: View {
     /// 残り時間。OS が毎秒描き直すので、状態を毎秒更新しなくてよい。
     private func countdown(to date: Date) -> some View {
         Text(timerInterval: status.now ... max(date, status.now), countsDown: true)
-            .font(.system(size: 76, weight: .heavy, design: .rounded))
+            .font(.hero(76))
             .monospacedDigit()
             .minimumScaleFactor(0.5)
             .lineLimit(1)
@@ -411,6 +411,8 @@ private struct TasksCard: View {
                             .frame(width: 44, height: 44)
                     }
                     .accessibilityLabel(Text(.todayCtaCompleteTask))
+                    // チェックマークの記号は「選択中」として読み上げられてしまう。まだ完了していないので、その情報を外す。
+                    .accessibilityRemoveTraits(.isSelected)
                     .accessibilityIdentifier("today.task.complete")
 
                     VStack(alignment: .leading, spacing: 3) {
