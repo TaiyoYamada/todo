@@ -62,9 +62,13 @@ struct AppView: View {
                 store.send(.openDeepLink(link))
             }
         }
-        .onChange(of: scenePhase) {
+        .onChange(of: scenePhase, initial: true) {
             if scenePhase == .active {
                 store.send(.becameActive)
+                // コントロールセンターのボタンから開かれたときは、行き先が共有の置き場に書かれている。
+                if let link = PendingDeepLink.take() {
+                    store.send(.openDeepLink(link))
+                }
             }
         }
         .fullScreenCover(item: $store.scope(state: \.destination?.focus, action: \.destination.focus)) { store in

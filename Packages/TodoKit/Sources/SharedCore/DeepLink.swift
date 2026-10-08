@@ -28,3 +28,22 @@ public enum DeepLink: Equatable, Sendable {
         return URL(string: "\(Self.scheme)://\(host)") ?? URL(fileURLWithPath: "/")
     }
 }
+
+/// 拡張機能からアプリへ渡す、開いてほしい行き先。
+///
+/// コントロールセンターのボタンは、アプリを開くことはできるが、行き先までは渡せない。
+/// そこで共有の置き場に書いておき、開いたアプリが読んで消す。
+public enum PendingDeepLink {
+    private static let key = "pendingDeepLink"
+
+    public static func set(_ link: DeepLink) {
+        AppGroup.defaults?.set(link.url.absoluteString, forKey: key)
+    }
+
+    /// 書かれていれば取り出して消す。
+    public static func take() -> DeepLink? {
+        guard let defaults = AppGroup.defaults, let value = defaults.string(forKey: key) else { return nil }
+        defaults.removeObject(forKey: key)
+        return URL(string: value).flatMap(DeepLink.init(url:))
+    }
+}
