@@ -32,6 +32,8 @@ struct TimelineCard: View {
         }
         .foregroundStyle(.white)
         .glassCard()
+        // 入れ物として扱う。そうしないと、カードの識別子が、中の見出しと行の識別子を上書きしてしまう。
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("today.forecast")
     }
 }
