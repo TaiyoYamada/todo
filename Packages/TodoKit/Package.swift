@@ -24,6 +24,7 @@ let package = Package(
             dependencies: [
                 "DatabaseClient",
                 "DesignSystem",
+                "ShieldClient",
                 .product(name: "Domain", package: "Domain"),
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
             ],
@@ -37,6 +38,14 @@ let package = Package(
                 .product(name: "DependenciesMacros", package: "swift-dependencies"),
                 .product(name: "SQLiteData", package: "sqlite-data"),
                 .product(name: "GRDB", package: "GRDB.swift"),
+            ]
+        ),
+        .target(
+            name: "ShieldClient",
+            dependencies: [
+                .product(name: "Domain", package: "Domain"),
+                .product(name: "Dependencies", package: "swift-dependencies"),
+                .product(name: "DependenciesMacros", package: "swift-dependencies"),
             ]
         ),
         .target(
