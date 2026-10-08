@@ -45,6 +45,25 @@ final class FocusTests: XCTestCase {
         waitFor(app.element("today.hero.locked"))
     }
 
+    @MainActor
+    func testStartFocusFromTimeline() {
+        let app = launchApp(.locked)
+        waitFor(app.element("today.hero.locked"))
+
+        // ロックの理由ではない目標(TOEIC)も、予報の行から先に進められる。
+        let start = app.element("today.start.TOEIC")
+        scrollUntilHittable(start, in: app)
+        start.tap()
+
+        let stop = waitFor(app.element("focus.stop"))
+        XCTAssertTrue(app.staticTexts["TOEIC"].exists)
+        attachScreenshot("Focus-running-from-timeline")
+
+        stop.tap()
+        waitFor(app.element("focus.close")).tap()
+        waitFor(app.element("today.hero.locked"))
+    }
+
     /// 計測中にホーム画面へ出て、Live Activity(Dynamic Island)の見た目を写しに残す。
     /// 表示そのものは OS が描くので、ここでは落ちないことだけを確かめる。
     @MainActor
