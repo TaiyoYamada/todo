@@ -1,0 +1,89 @@
+# XcodeGen の設定。`make bootstrap` で Todo.xcodeproj を生成する。
+name: Todo
+
+options:
+  bundleIdPrefix: com.taiyoyamada
+  developmentLanguage: en
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+# 構成名を Debug / Release で始めているのは、Xcode がローカルパッケージを
+# デバッグ用とリリース用のどちらでビルドするかを構成の種類から決めるため。
+configs:
+  Debug-Dev: debug
+  Release-Dev: release
+  Debug-Prod: debug
+  Release-Prod: release
+
+configFiles:
+  Debug-Dev: Configs/Dev.xcconfig
+  Release-Dev: Configs/Dev.xcconfig
+  Debug-Prod: Configs/Prod.xcconfig
+  Release-Prod: Configs/Prod.xcconfig
+
+packages:
+  TodoKit:
+    path: Packages/TodoKit
+  Domain:
+    path: Packages/Domain
+
+targets:
+  Todo:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+    dependencies:
+      - package: TodoKit
+        product: AppFeature
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: $(APP_DISPLAY_NAME)
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleLocalizations: [en, ja]
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        AppEnvironment: $(APP_ENVIRONMENT)
+        AppGroupIdentifier: $(APP_GROUP_ID)
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(APP_BUNDLE_ID)
+        PRODUCT_NAME: Todo
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ENABLE_USER_SCRIPT_SANDBOXING: YES
+
+schemes:
+  Todo-Dev:
+    build:
+      targets:
+        Todo: all
+    run:
+      config: Debug-Dev
+    test:
+      config: Debug-Dev
+    profile:
+      config: Release-Dev
+    analyze:
+      config: Debug-Dev
+    archive:
+      config: Release-Dev
+  Todo-Prod:
+    build:
+      targets:
+        Todo: all
+    run:
+      config: Debug-Prod
+    test:
+      config: Debug-Prod
+    profile:
+      config: Release-Prod
+    analyze:
+      config: Debug-Prod
+    archive:
+      config: Release-Prod

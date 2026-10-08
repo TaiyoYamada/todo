@@ -1,0 +1,8 @@
+// ローカル開発用。本番とは別のアプリとして端末に入る。
+
+#include "Base.xcconfig"
+
+APP_DISPLAY_NAME = Yoyu Dev
+APP_BUNDLE_ID = $(APP_BUNDLE_ID_BASE).dev
+APP_GROUP_ID = group.$(APP_BUNDLE_ID_BASE).dev
+APP_ENVIRONMENT = dev

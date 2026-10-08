@@ -11,9 +11,9 @@ SHELL := /bin/bash
 # 使えるシミュレータは `xcrun simctl list devices available` で確かめる。
 PROJECT           ?= Todo.xcodeproj
 SCHEME            ?= Todo-Dev
-DESTINATION       ?= platform=iOS Simulator,name=iPhone 17 Pro
+DESTINATION       ?= platform=iOS Simulator,name=iPhone 17
 BUILD_DESTINATION ?= generic/platform=iOS Simulator
-PACKAGE_PATH      ?= Packages/TodoKit
+PACKAGE_PATH      ?= Packages/Domain
 DERIVED_DATA      ?= DerivedData
 RESULT_DIR        ?= build/reports
 UI_TEST_TARGET    ?= TodoUITests
@@ -109,7 +109,7 @@ format-check: ## 整形が必要なファイルがないか確かめる(ファ�
 # --- 後片付け -----------------------------------------------------------------
 .PHONY: clean
 clean: ## ビルドの成果物とテスト結果を消す(生成した Todo.xcodeproj は残す)
-	rm -rf "$(DERIVED_DATA)" "$(RESULT_DIR)" "$(PACKAGE_PATH)/.build"
+	rm -rf "$(DERIVED_DATA)" "$(RESULT_DIR)" Packages/*/.build
 
 # --- ヘルプ -------------------------------------------------------------------
 .PHONY: help

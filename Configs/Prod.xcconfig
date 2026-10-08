@@ -1,0 +1,8 @@
+// 本番用。App Store に出す構成。
+
+#include "Base.xcconfig"
+
+APP_DISPLAY_NAME = Yoyu
+APP_BUNDLE_ID = $(APP_BUNDLE_ID_BASE)
+APP_GROUP_ID = group.$(APP_BUNDLE_ID_BASE)
+APP_ENVIRONMENT = prod
