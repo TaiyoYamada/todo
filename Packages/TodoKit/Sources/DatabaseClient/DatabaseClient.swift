@@ -32,8 +32,8 @@ extension DatabaseClient: TestDependencyKey {
     public static let previewValue = DatabaseClient.inMemory()
 }
 
-extension DependencyValues {
-    public var database: DatabaseClient {
+public extension DependencyValues {
+    var database: DatabaseClient {
         get { self[DatabaseClient.self] }
         set { self[DatabaseClient.self] = newValue }
     }

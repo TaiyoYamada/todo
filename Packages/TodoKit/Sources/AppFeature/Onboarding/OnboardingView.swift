@@ -164,6 +164,12 @@ struct OnboardingView: View {
                 }
                 .font(.headline)
                 .foregroundStyle(mood.accent)
+                Button {
+                    store.send(.chooseAppsTapped)
+                } label: {
+                    Label { Text(.settingsShieldChoose) } icon: { Image(systemName: "lock.app.dashed") }
+                }
+                .buttonStyle(.quiet)
             case .denied:
                 Text(.onboardingAppsDenied)
                     .font(.callout.weight(.medium))
@@ -181,6 +187,15 @@ struct OnboardingView: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .shieldAppPicker(isPresented: $store.isPickerPresented) {
+            store.send(.selectionChanged)
+        } simulated: {
+            ContentUnavailableView {
+                Label { Text(.settingsShieldSimulatedTitle) } icon: { Image(systemName: "iphone.slash") }
+            } description: {
+                Text(.settingsShieldSimulatedBody)
+            }
+        }
     }
 
     private var ready: some View {

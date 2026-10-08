@@ -30,8 +30,8 @@ extension ShieldClient: TestDependencyKey {
     public static let previewValue = ShieldClient.simulated()
 }
 
-extension DependencyValues {
-    public var shield: ShieldClient {
+public extension DependencyValues {
+    var shield: ShieldClient {
         get { self[ShieldClient.self] }
         set { self[ShieldClient.self] = newValue }
     }

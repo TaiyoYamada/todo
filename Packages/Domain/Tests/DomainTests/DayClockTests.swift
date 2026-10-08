@@ -1,6 +1,5 @@
 import Foundation
 import Testing
-
 @testable import Domain
 
 @Suite("1日と1週間の区切り")

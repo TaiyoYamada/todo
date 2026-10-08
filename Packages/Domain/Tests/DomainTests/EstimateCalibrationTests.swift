@@ -1,6 +1,5 @@
 import Foundation
 import Testing
-
 @testable import Domain
 
 @Suite("見積もりの癖の学習")
@@ -11,7 +10,10 @@ struct EstimateCalibrationTests {
 
     @Test("実績が3件に満たなければ、1.5倍を使う")
     func fallback() {
-        let calibration = EstimateCalibration(tasks: [done(1, estimate: 60, actual: 60), done(2, estimate: 60, actual: 60)])
+        let calibration = EstimateCalibration(tasks: [
+            done(1, estimate: 60, actual: 60),
+            done(2, estimate: 60, actual: 60),
+        ])
         #expect(calibration.factor == 1.5)
         #expect(!calibration.isLearned)
     }
@@ -41,21 +43,21 @@ struct EstimateCalibrationTests {
 
     @Test("見積もりより早く終わる人でも、1倍より小さくはしない")
     func lowerBound() {
-        let tasks = (1...3).map { done($0, estimate: 60, actual: 30) }
+        let tasks = (1 ... 3).map { done($0, estimate: 60, actual: 30) }
         #expect(EstimateCalibration(tasks: tasks).factor == 1.0)
     }
 
     @Test("3倍を上限にする")
     func upperBound() {
-        let tasks = (1...3).map { done($0, estimate: 30, actual: 300) }
+        let tasks = (1 ... 3).map { done($0, estimate: 30, actual: 300) }
         #expect(EstimateCalibration(tasks: tasks).factor == 3.0)
     }
 
     @Test("直近の10件だけを見る")
     func window() {
         // 古い 5 件は 3 倍、新しい 10 件は見積もりどおり。
-        let old = (1...5).map { done($0, estimate: 60, actual: 180, day: 1) }
-        let recent = (6...15).map { done($0, estimate: 60, actual: 60, day: 8) }
+        let old = (1 ... 5).map { done($0, estimate: 60, actual: 180, day: 1) }
+        let recent = (6 ... 15).map { done($0, estimate: 60, actual: 60, day: 8) }
         let calibration = EstimateCalibration(tasks: old + recent)
         #expect(calibration.factor == 1.0)
         #expect(calibration.sampleCount == 10)
@@ -72,7 +74,7 @@ struct EstimateCalibrationTests {
 
     @Test("設定が自動なら学習した倍率を、固定ならその値を使う")
     func worldFactor() {
-        let tasks = (1...3).map { done($0, estimate: 60, actual: 120) }
+        let tasks = (1 ... 3).map { done($0, estimate: 60, actual: 120) }
         var world = World(tasks: tasks)
         #expect(world.estimateFactor == 2.0)
 

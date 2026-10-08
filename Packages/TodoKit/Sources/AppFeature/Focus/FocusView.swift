@@ -21,11 +21,20 @@ struct FocusView: View {
         }
         .environment(\.mood, mood)
         .foregroundStyle(.white)
+        // 今日の分に達した瞬間、画面の中央上から波紋を広げる。
+        .ripple(at: CGPoint(x: 200, y: 320), trigger: reachedTarget)
         .animation(.spring(duration: 0.6), value: store.phase)
         .task { await store.send(.task).finish() }
         // 計測中は画面を消さない。机に置いたまま残り時間を見られるように。
         .persistentSystemOverlays(.hidden)
         .interactiveDismissDisabled()
+    }
+}
+
+extension FocusView {
+    /// 今日の分に達して終わったか。
+    fileprivate var reachedTarget: Bool {
+        if case let .finished(summary) = store.phase { summary.reachedTarget } else { false }
     }
 }
 
@@ -145,8 +154,19 @@ private struct FinishedView: View {
             .padding(.bottom, 36)
         }
         .padding(.horizontal, 24)
-        .onAppear { appeared = true }
-        .sensoryFeedback(summary.reachedTarget ? .success : .impact, trigger: appeared)
+        .background {
+            if summary.reachedTarget {
+                CelebrationBurst(colors: [mood.accent, .white, mood.accent.opacity(0.7)], trigger: appeared ? 1 : 0)
+                    .ignoresSafeArea()
+            }
+        }
+        .onAppear {
+            appeared = true
+            if summary.reachedTarget {
+                Haptics.playCelebration()
+            }
+        }
+        .sensoryFeedback(.impact, trigger: appeared) { _, _ in !summary.reachedTarget }
     }
 
     /// この計測でロックがどうなったかを一言で伝える。終えた直後に一番知りたいこと。

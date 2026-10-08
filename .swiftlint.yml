@@ -66,7 +66,6 @@ opt_in_rules:
   - private_swiftui_state
   - unused_parameter
   # 並行処理
-  - incompatible_concurrency_annotation
   - redundant_sendable
   # アクセシビリティ(VoiceOver)
   - accessibility_label_for_image
@@ -152,9 +151,11 @@ force_try: error
 custom_rules:
   # 時刻や ID を直接作ると、テストで結果を固定できない。
   # @Dependency(\.date.now) や @Dependency(\.uuid) を通す。
+  # 対象は画面のロジック(AppFeature)だけ。外の世界との境界(*Client、SharedCore)は、
+  # 本物の時刻が入ってくる場所なので対象にしない。
   no_direct_date_or_uuid:
     name: "Date() / UUID() を直接呼ばない"
-    included: "Packages/TodoKit/Sources/.*\\.swift"
+    included: "Packages/TodoKit/Sources/AppFeature/.*\\.swift"
     regex: "\\b(Date|UUID)\\(\\)|\\bDate\\.now\\b"
     excluded_match_kinds:
       - comment

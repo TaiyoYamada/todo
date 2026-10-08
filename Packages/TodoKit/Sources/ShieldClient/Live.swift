@@ -13,7 +13,7 @@ extension ShieldClient: DependencyKey {
     }()
 }
 
-#if canImport(FamilyControls) && canImport(ManagedSettings) && canImport(DeviceActivity) && !targetEnvironment(simulator)
+#if canImport(FamilyControls) && !targetEnvironment(simulator)
     import FamilyControls
 
     extension ShieldClient {

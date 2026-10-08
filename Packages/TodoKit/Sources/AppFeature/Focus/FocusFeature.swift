@@ -2,6 +2,7 @@ import ComposableArchitecture
 import DatabaseClient
 import Domain
 import Foundation
+import LiveActivityClient
 
 /// 目標の今日の分を進める、時間の計測。
 ///
@@ -59,6 +60,7 @@ struct FocusFeature {
     @Dependency(\.database) var database
     @Dependency(\.date.now) var now
     @Dependency(\.dismiss) var dismiss
+    @Dependency(\.liveActivity) var liveActivity
     @Dependency(\.uuid) var uuid
 
     var body: some ReducerOf<Self> {
@@ -101,7 +103,10 @@ struct FocusFeature {
         let focus = ActiveFocus(goalID: state.goal.id, startedAt: state.startedAt)
         let persist: Effect<Action> = state.isResumed
             ? .none
-            : .run { _ in try await database.setActiveFocus(focus) }
+            : .run { [goal = state.goal, endsAt = state.endsAt] _ in
+                try await database.setActiveFocus(focus)
+                await liveActivity.start(goal, focus.startedAt, endsAt)
+            }
 
         if let endsAt = state.endsAt {
             let delay = max(0, endsAt.timeIntervalSince(now))
@@ -137,6 +142,7 @@ struct FocusFeature {
                     try await database.addSession(session)
                 }
                 try await database.setActiveFocus(nil)
+                await liveActivity.end()
             }
         )
     }

@@ -10,6 +10,7 @@ let package = Package(
         .library(name: "AppFeature", targets: ["AppFeature"]),
         .library(name: "DesignSystem", targets: ["DesignSystem"]),
         .library(name: "SharedCore", targets: ["SharedCore"]),
+        .library(name: "WidgetUI", targets: ["WidgetUI"]),
     ],
     dependencies: [
         .package(path: "../Domain"),
@@ -25,6 +26,9 @@ let package = Package(
             dependencies: [
                 "DatabaseClient",
                 "DesignSystem",
+                "LiveActivityClient",
+                "NotificationClient",
+                "SharedCore",
                 "ShieldClient",
                 .product(name: "Domain", package: "Domain"),
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
@@ -47,6 +51,32 @@ let package = Package(
             dependencies: [.product(name: "Domain", package: "Domain")]
         ),
         .target(
+            name: "NotificationClient",
+            dependencies: [
+                .product(name: "Dependencies", package: "swift-dependencies"),
+                .product(name: "DependenciesMacros", package: "swift-dependencies"),
+            ]
+        ),
+        .target(
+            name: "LiveActivityClient",
+            dependencies: [
+                "SharedCore",
+                .product(name: "Domain", package: "Domain"),
+                .product(name: "Dependencies", package: "swift-dependencies"),
+                .product(name: "DependenciesMacros", package: "swift-dependencies"),
+            ]
+        ),
+        // ウィジェットと Live Activity の見た目。拡張機能に入るので、TCA には依存させない。
+        .target(
+            name: "WidgetUI",
+            dependencies: [
+                "DesignSystem",
+                "SharedCore",
+                .product(name: "Domain", package: "Domain"),
+            ],
+            resources: [.process("Resources")]
+        ),
+        .target(
             name: "ShieldClient",
             dependencies: [
                 "SharedCore",
@@ -57,7 +87,8 @@ let package = Package(
         ),
         .target(
             name: "DesignSystem",
-            dependencies: [.product(name: "Domain", package: "Domain")]
+            dependencies: [.product(name: "Domain", package: "Domain")],
+            resources: [.process("Shaders")]
         ),
         .testTarget(
             name: "DatabaseClientTests",

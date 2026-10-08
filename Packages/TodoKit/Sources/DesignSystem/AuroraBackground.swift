@@ -29,12 +29,12 @@ public struct AuroraBackground: View {
 
     /// 3×3 の格子に色を割り当てる。四隅を暗く、中央付近を明るくして奥行きを出す。
     private var colors: [Color] {
-        let c = mood.backdrop
-        guard c.count >= 4 else { return Array(repeating: .black, count: 9) }
+        let palette = mood.backdrop
+        guard palette.count >= 4 else { return Array(repeating: .black, count: 9) }
         return [
-            c[0], c[1], c[0],
-            c[3], c[2], c[1],
-            c[0], c[3], c[0],
+            palette[0], palette[1], palette[0],
+            palette[3], palette[2], palette[1],
+            palette[0], palette[3], palette[0],
         ]
     }
 
