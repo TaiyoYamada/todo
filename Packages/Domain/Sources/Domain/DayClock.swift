@@ -75,4 +75,21 @@ public struct DayClock: Equatable, Sendable {
         let start = offset(today, days: -daysSinceMonday)
         return DateInterval(start: start, end: offset(start, days: 7))
     }
+
+    /// `start` から `end` までの時間を、1日の区切りで分ける。
+    ///
+    /// 記録は「始めた日」のぶんとして数える。区切りをまたいだ計測を1つの記録にすると、
+    /// またいだあとのぶんが前の日に入ってしまい、今日の分から消える。
+    public func split(from start: Date, to end: Date) -> [DateInterval] {
+        guard start < end else { return [] }
+        var pieces: [DateInterval] = []
+        var cursor = start
+        while cursor < end {
+            let boundary = day(containing: cursor).end
+            let pieceEnd = min(boundary, end)
+            pieces.append(DateInterval(start: cursor, end: pieceEnd))
+            cursor = pieceEnd
+        }
+        return pieces
+    }
 }

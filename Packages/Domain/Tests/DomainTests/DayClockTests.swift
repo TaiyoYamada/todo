@@ -52,6 +52,18 @@ struct DayClockTests {
         #expect(clock.day(containing: date(9, 23, 59)).end == date(10, 0))
     }
 
+    @Test("1日の区切りをまたぐ時間は、区切りで分ける")
+    func split() {
+        #expect(clock.split(from: date(9, 10), to: date(9, 11)) == [DateInterval(start: date(9, 10), end: date(9, 11))])
+        #expect(
+            clock.split(from: date(10, 3, 50), to: date(10, 4, 10)) == [
+                DateInterval(start: date(10, 3, 50), end: date(10, 4)),
+                DateInterval(start: date(10, 4), end: date(10, 4, 10)),
+            ]
+        )
+        #expect(clock.split(from: date(9, 10), to: date(9, 10)).isEmpty)
+    }
+
     @Test("夏時間の切り替え日でも、1日は決めた時刻に始まる")
     func daylightSavingTime() {
         var newYork = Calendar(identifier: .gregorian)
