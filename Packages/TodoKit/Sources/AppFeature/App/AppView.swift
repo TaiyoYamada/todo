@@ -1,6 +1,7 @@
 import ComposableArchitecture
 import DatabaseClient
 import DesignSystem
+import SharedCore
 import SwiftUI
 
 /// アプリの入口。アプリ本体からは、この View だけが見える。
@@ -48,6 +49,11 @@ struct AppView: View {
         .preferredColorScheme(.dark)
         .tint(Mood.calm.accent)
         .task { await store.send(.task).finish() }
+        .onOpenURL { url in
+            if let link = DeepLink(url: url) {
+                store.send(.openDeepLink(link))
+            }
+        }
         .onChange(of: scenePhase) {
             if scenePhase == .active {
                 store.send(.becameActive)
