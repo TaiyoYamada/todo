@@ -17,10 +17,14 @@ open Todo.xcodeproj
 
 `Todo.xcodeproj` は生成物で、コミットしません。次のときに `make bootstrap` をやり直します。
 
-- `App/` や `UITests/` にファイルを足した、または消した
+- `App/`、`Extensions/`、`UITests/` にファイルを足した、または消した
 - `project.yml` や `Configs/*.xcconfig` を変えた
 
 `Packages/` の中にファイルを足すだけなら、やり直しは要りません。
+
+`App/Info.plist`、`Extensions/*/Info.plist`、各 `.entitlements` は、XcodeGen が `project.yml` の内容で書き出します。直すときは、ファイルではなく `project.yml` を直します。
+
+シミュレータ向けのビルドに、開発者登録は要りません。実機に入れるには、Family Controls と App Group の権限を持つ署名が要ります(未検証)。
 
 ## 2. コマンド
 
@@ -59,6 +63,7 @@ make test-app DESTINATION='platform=iOS Simulator,name=iPhone 17'
 | 設定ファイル | `Configs/Dev.xcconfig` | `Configs/Prod.xcconfig` |
 | 端末に入る名前 | Lockcast Dev | Lockcast |
 | 識別子 | `com.taiyoyamada.todo.dev` | `com.taiyoyamada.todo` |
+| 拡張機能の識別子 | 上に `.widgets`、`.shield-monitor`、`.shield-configuration` を付けたもの | 同じ |
 | App Group の識別子 | `group.com.taiyoyamada.todo.dev` | `group.com.taiyoyamada.todo` |
 | コンパイル条件 `DEV` | あり | なし |
 | 起動引数 `-sampleData` | 使える | 無視される |
@@ -90,6 +95,7 @@ make test-app DESTINATION='platform=iOS Simulator,name=iPhone 17'
 - 変更はメモリ上だけで、起動し直すと元に戻る。
 - 知らない名前を渡すと、見本データは使われず、ふつうの保存データで起動する。
 - 定義は `Packages/TodoKit/Sources/AppFeature/Support/SampleData.swift`。UI テストも同じものを使う。
+- 同じ見本データで、主要な画面の Xcode プレビューを用意してある(`Support/Previews.swift`)。画面の見た目だけを直すときは、こちらのほうが速い。
 
 模擬のロックの切り替わりは、ログで見られます。
 
@@ -99,7 +105,15 @@ xcrun simctl spawn booted log stream --level info --predicate 'subsystem == "com
 
 ## 5. 文言を足す
 
-文言はコードに直書きしません。`Packages/TodoKit/Sources/AppFeature/Resources/Localizable.xcstrings` に置きます。
+文言はコードに直書きしません。使う場所に合わせて、次のカタログに置きます。
+
+| 使う場所 | カタログ |
+|---|---|
+| アプリの画面、通知 | `Packages/TodoKit/Sources/AppFeature/Resources/Localizable.xcstrings` |
+| ウィジェット、Live Activity | `Packages/TodoKit/Sources/WidgetUI/Resources/Localizable.xcstrings` |
+| ロック画面(シールド) | `Extensions/ShieldConfiguration/Localizable.xcstrings` |
+
+手順は同じです。
 
 1. Xcode でカタログを開き、キーを足す。
 2. 英語と日本語の**両方**を入れる。片方だけでは足したことにならない。
@@ -130,6 +144,8 @@ xcrun simctl spawn booted log stream --level info --predicate 'subsystem == "com
 - 平易に書く。罪悪感や不安をあおる表現、医療的な表現(「依存症を治す」など)は使わない。
 - 時間の長さ、時刻、日付、曜日は文言に埋め込まず、`DurationText`、`TimeText` などの書式に任せ、引数で渡す。
 - カタログの JSON を直接書くときは、`"extractionState": "manual"` を付ける。
+
+ロック画面の拡張機能だけ、いまはシンボルではなくキーの文字列で参照しています(`String(localized: "shield.button")`)。打ち間違いがコンパイル時に分からないので、足すときはキーをよく確かめます。
 
 ## 6. データベースの移行を足す
 
@@ -177,6 +193,7 @@ migrator.registerMigration("v2: タスクにメモの列を足す") { db in
    - 保存データやロックの状態を見るなら、`State` に `@SharedReader(.board) var board` を置く。
    - 保存するときは `@Dependency(\.database)` の操作を呼ぶ。`Board` は書き換えない。
    - 時刻は `@Dependency(\.date.now)`、ID は `@Dependency(\.uuid)`、待ちは `@Dependency(\.continuousClock)` から受け取る。`Date()` や `UUID()` を直接呼ばない。
+   - ロックは `@Dependency(\.shield)`、通知は `@Dependency(\.notifications)`、Live Activity は `@Dependency(\.liveActivity)` を通す。
    - 判定や計算は Reducer に書かず、`Domain` に置いてテストする。
 3. View を書く。`StoreOf<…>` を受け取り、状態を描いて、操作をアクションとして送るだけにする。
 4. 開き方をつなぐ。
@@ -197,7 +214,8 @@ migrator.registerMigration("v2: タスクにメモの列を足す") { db in
 
 5. 文言をカタログに足す(5 を参照)。
 6. Reducer のテストを `Packages/TodoKit/Tests/AppFeatureTests` に足す。`TestStore` で、アクションごとの状態の変化と副作用を確かめる。
-7. 見た目を変えたら、VoiceOver、Dynamic Type、「視差効果を減らす」で確かめる。
+7. `Support/Previews.swift` に、その画面のプレビューを足す。
+8. 見た目を変えたら、VoiceOver、Dynamic Type、「視差効果を減らす」で確かめる。
 
 外部ライブラリを足すときは、先に [ADR](adr/README.md) を書きます。
 
@@ -209,11 +227,18 @@ migrator.registerMigration("v2: タスクにメモの列を足す") { db in
 |---|---|
 | ほかのアプリが実際にロックされること | スクリーンタイム API はシミュレータで動かない。模擬の実装はログを出すだけ |
 | スクリーンタイムの許可の画面 | 模擬の実装は、許可を求めると必ず成功を返す |
-| ロックするアプリの選択 | 模擬の実装は 6 件を選んだことにする。選ぶ画面そのものがまだない |
-| アプリを閉じている間の、時刻どおりのロック開始 | DeviceActivity の予約と拡張機能が要る。拡張機能はまだない |
-| ロック画面(シールド)の見た目とボタン | 拡張機能が要る。まだない |
-| App Group を通した写しの受け渡し | 権限の設定がまだない |
+| ロックするアプリの選択 | シミュレータでは OS の選択画面を出さず、説明だけを出す。模擬の実装は 6 件を選んだことにする |
+| アプリを閉じている間の、時刻どおりのロック開始 | DeviceActivity の予約と、監視の拡張機能(`Extensions/ShieldMonitor`)が要る。シミュレータ向けのビルドでは、拡張機能は何もしない |
+| ロック画面(シールド)の見た目とボタン | ロックされたアプリを開いたときに OS が出す画面。シミュレータではロックされないので出ない |
+| 実機向けの署名 | Family Controls の権限には、有料の開発者登録が要る。まだ一度も試していない |
 
 実機で確かめる項目の一覧は[公開前の確認事項](release-checklist.md)にあります。
 
-シミュレータで確かめられるのは、ロックの**判定**と、それを見せる画面です。時刻が絡む動きは、見本データと `Domain` のテストで確かめます。
+シミュレータで試せるのは、次のものです。
+
+- ロックの**判定**と、それを見せる画面。時刻が絡む動きは、見本データと `Domain` のテストで確かめる
+- ロックの前の通知(通知の許可は、初回設定を終えた直後に求められる)
+- ウィジェット(ホーム画面とロック画面)。写しは模擬の実装でも書き出す
+- 集中の Live Activity
+
+ウィジェットと通知は、ロックの状態が変わったときにしか更新されません。目標を足した直後に内容が変わらないのは、いまの作りの制限です([設計](architecture.md) 8)。
