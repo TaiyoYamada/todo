@@ -1,9 +1,9 @@
 import Domain
 import SwiftUI
 
-extension Goal.Tint {
+public extension Goal.Tint {
     /// 目標に付けた色。
-    public var color: Color {
+    var color: Color {
         switch self {
         case .indigo: Color(red: 0.42, green: 0.45, blue: 1.00)
         case .blue: Color(red: 0.24, green: 0.62, blue: 1.00)
@@ -30,7 +30,7 @@ public struct Mood: Equatable, Sendable {
     }
 
     /// 余裕がたっぷりある。落ち着いた青緑。
-    public static let calm = Mood(
+    public static let calm = Self(
         backdrop: [
             Color(red: 0.02, green: 0.05, blue: 0.12),
             Color(red: 0.03, green: 0.16, blue: 0.30),
@@ -41,7 +41,7 @@ public struct Mood: Equatable, Sendable {
     )
 
     /// ロックが近い。注意を引く橙。
-    public static let warning = Mood(
+    public static let warning = Self(
         backdrop: [
             Color(red: 0.10, green: 0.04, blue: 0.03),
             Color(red: 0.36, green: 0.14, blue: 0.05),
@@ -52,7 +52,7 @@ public struct Mood: Equatable, Sendable {
     )
 
     /// ロック中。深い赤紫。
-    public static let locked = Mood(
+    public static let locked = Self(
         backdrop: [
             Color(red: 0.08, green: 0.02, blue: 0.06),
             Color(red: 0.30, green: 0.04, blue: 0.14),
@@ -63,7 +63,7 @@ public struct Mood: Equatable, Sendable {
     )
 
     /// 今日はもう自由。明るい緑。
-    public static let free = Mood(
+    public static let free = Self(
         backdrop: [
             Color(red: 0.02, green: 0.08, blue: 0.08),
             Color(red: 0.04, green: 0.26, blue: 0.22),
@@ -74,8 +74,8 @@ public struct Mood: Equatable, Sendable {
     )
 
     /// 集中の計測中。目標の色を主役にする。
-    public static func focus(_ tint: Goal.Tint) -> Mood {
-        Mood(
+    public static func focus(_ tint: Goal.Tint) -> Self {
+        Self(
             backdrop: [
                 Color(red: 0.03, green: 0.03, blue: 0.08),
                 tint.color.opacity(0.55),
@@ -87,7 +87,7 @@ public struct Mood: Equatable, Sendable {
     }
 }
 
-extension EnvironmentValues {
+public extension EnvironmentValues {
     /// いまの画面の雰囲気。部品はここから色を取る。
-    @Entry public var mood: Mood = .calm
+    @Entry var mood: Mood = .calm
 }

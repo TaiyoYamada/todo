@@ -23,8 +23,8 @@ struct SlackEntry: TimelineEntry {
     /// 写しがまだない(アプリを一度も開いていない)ときは nil。
     let status: LockStatus?
 
-    static func placeholder(at date: Date) -> SlackEntry {
-        SlackEntry(date: date, status: nil)
+    static func placeholder(at date: Date) -> Self {
+        Self(date: date, status: nil)
     }
 }
 
@@ -53,7 +53,7 @@ struct SlackProvider: TimelineProvider {
         let engine = LockEngine(calendar: .current)
         var entries: [SlackEntry] = []
         var date = now
-        for _ in 0..<Self.lookahead {
+        for _ in 0 ..< Self.lookahead {
             let status = engine.status(world: snapshot.world, now: date)
             entries.append(SlackEntry(date: date, status: status))
             guard let next = status.nextChangeAt, next > date else { break }
@@ -188,7 +188,7 @@ struct SlackWidgetView: View {
         case let .locked(title, _, _):
             Text(title)
         case let .onPass(until), let .countdown(until, _):
-            Text(timerInterval: entry.date...max(until, entry.date), countsDown: true)
+            Text(timerInterval: entry.date ... max(until, entry.date), countsDown: true)
         case .free:
             Text(.widgetHeadlineFree)
         }
@@ -247,7 +247,7 @@ struct SlackWidgetView: View {
             Label { Text(title) } icon: { Image(systemName: "lock.fill") }
         case let .onPass(until), let .countdown(until, _):
             Label {
-                Text(timerInterval: entry.date...max(until, entry.date), countsDown: true)
+                Text(timerInterval: entry.date ... max(until, entry.date), countsDown: true)
             } icon: {
                 Image(systemName: "timer")
             }

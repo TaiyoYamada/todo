@@ -1,7 +1,6 @@
 import Domain
 import Foundation
 import Testing
-
 @testable import DatabaseClient
 
 /// 実際の SQLite(テストごとの一時データベース)に対して確かめる。
@@ -131,7 +130,8 @@ struct LiveDatabaseClientTests {
 }
 
 private func uuid(_ value: Int) -> UUID {
-    UUID(uuidString: "00000000-0000-0000-0000-" + String(format: "%012d", value))!
+    // テスト用の決まった形の文字列なので、必ず UUID になる。
+    UUID(uuidString: "00000000-0000-0000-0000-" + String(format: "%012d", value)) ?? UUID()
 }
 
 private func at(_ seconds: TimeInterval) -> Date {
