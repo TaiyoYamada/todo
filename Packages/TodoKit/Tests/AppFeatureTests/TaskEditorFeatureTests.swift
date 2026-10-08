@@ -2,7 +2,6 @@ import ComposableArchitecture
 import Domain
 import Foundation
 import Testing
-
 @testable import AppFeature
 
 @MainActor
@@ -76,6 +75,170 @@ struct TaskEditorFeatureTests {
 
         #expect(spy.writes.isEmpty)
         #expect(dismissed.value == 0)
+    }
+
+    // MARK: 1行入力からの提案
+
+    /// 締切が明日の 23:59、所要 60 分の、名前がまだ空のタスク。
+    private var blank: TaskItem {
+        .fixture(title: "", dueAt: date(10, 23, 59), estimateMinutes: 60)
+    }
+
+    @Test("名前の欄に締切と所要時間を書くと、読み取った内容を提案する")
+    func titleWithDetailsProducesSuggestion() async {
+        let store = makeStore(blank, isNew: true)
+
+        // 今日は金曜なので、「金曜まで」は今日の 23:59。
+        await store.send(.binding(.set(\.task.title, "金曜までにレポート 2時間"))) {
+            $0.task.title = "金曜までにレポート 2時間"
+            $0.suggestion = QuickAdd(title: "レポート", dueAt: date(9, 23, 59), estimateMinutes: 120)
+        }
+        // 提案しただけで、タスクの内容はまだ変えない。
+        #expect(store.state.task.dueAt == date(10, 23, 59))
+        #expect(store.state.task.estimateMinutes == 60)
+    }
+
+    @Test("英語の書き方からも提案する")
+    func englishTitleProducesSuggestion() async {
+        let store = makeStore(blank, isNew: true)
+
+        await store.send(.binding(.set(\.task.title, "Report by Friday 2h"))) {
+            $0.task.title = "Report by Friday 2h"
+            $0.suggestion = QuickAdd(title: "Report", dueAt: date(9, 23, 59), estimateMinutes: 120)
+        }
+    }
+
+    @Test("読み取れるものがない名前では、提案しない")
+    func plainTitleProducesNoSuggestion() async {
+        let store = makeStore(blank, isNew: true)
+
+        await store.send(.binding(.set(\.task.title, "統計学のレポート"))) {
+            $0.task.title = "統計学のレポート"
+        }
+        #expect(store.state.suggestion == nil)
+    }
+
+    @Test("締切や所要時間だけで名前が残らないときは、提案しない")
+    func detailsWithoutTitleProduceNoSuggestion() async {
+        let store = makeStore(blank, isNew: true)
+
+        await store.send(.binding(.set(\.task.title, "明日 2時間"))) {
+            $0.task.title = "明日 2時間"
+        }
+        #expect(store.state.suggestion == nil)
+    }
+
+    @Test("書き直して読み取れるものがなくなったら、提案を消す")
+    func suggestionClearsWhenDetailsRemoved() async {
+        let store = makeStore(blank, isNew: true)
+
+        await store.send(.binding(.set(\.task.title, "レポート 90分"))) {
+            $0.task.title = "レポート 90分"
+            $0.suggestion = QuickAdd(title: "レポート", estimateMinutes: 90)
+        }
+        await store.send(.binding(.set(\.task.title, "レポート"))) {
+            $0.task.title = "レポート"
+            $0.suggestion = nil
+        }
+    }
+
+    @Test("名前以外の欄を変えても、提案はそのまま残る")
+    func otherFieldsKeepSuggestion() async {
+        let store = makeStore(blank, isNew: true)
+
+        await store.send(.binding(.set(\.task.title, "レポート 90分"))) {
+            $0.task.title = "レポート 90分"
+            $0.suggestion = QuickAdd(title: "レポート", estimateMinutes: 90)
+        }
+        await store.send(.binding(.set(\.task.estimateMinutes, 30))) {
+            $0.task.estimateMinutes = 30
+        }
+        #expect(store.state.suggestion == QuickAdd(title: "レポート", estimateMinutes: 90))
+    }
+
+    @Test("提案を反映すると、名前、締切、所要時間が入れ替わり、提案は消える")
+    func applySuggestionFillsFields() async {
+        let store = makeStore(blank, isNew: true)
+
+        await store.send(.binding(.set(\.task.title, "明日18時 ゼミの準備 1時間半"))) {
+            $0.task.title = "明日18時 ゼミの準備 1時間半"
+            $0.suggestion = QuickAdd(title: "ゼミの準備", dueAt: date(10, 18), estimateMinutes: 90)
+        }
+        await store.send(.applySuggestionTapped) {
+            $0.task.title = "ゼミの準備"
+            $0.task.dueAt = date(10, 18)
+            $0.task.estimateMinutes = 90
+            $0.suggestion = nil
+        }
+        await store.send(.saveTapped)
+        await store.finish()
+
+        #expect(spy.writes == [.saveTask(.fixture(title: "ゼミの準備", dueAt: date(10, 18), estimateMinutes: 90))])
+    }
+
+    @Test("提案に締切しかなければ、所要時間は変えない。所要時間しかなければ、締切は変えない")
+    func applySuggestionKeepsMissingParts() async {
+        let store = makeStore(blank, isNew: true)
+
+        await store.send(.binding(.set(\.task.title, "10/12 17:00 奨学金の書類"))) {
+            $0.task.title = "10/12 17:00 奨学金の書類"
+            $0.suggestion = QuickAdd(title: "奨学金の書類", dueAt: date(12, 17))
+        }
+        await store.send(.applySuggestionTapped) {
+            $0.task.title = "奨学金の書類"
+            $0.task.dueAt = date(12, 17)
+            $0.suggestion = nil
+        }
+        #expect(store.state.task.estimateMinutes == 60)
+
+        await store.send(.binding(.set(\.task.title, "奨学金の書類 40分"))) {
+            $0.task.title = "奨学金の書類 40分"
+            $0.suggestion = QuickAdd(title: "奨学金の書類", estimateMinutes: 40)
+        }
+        await store.send(.applySuggestionTapped) {
+            $0.task.title = "奨学金の書類"
+            $0.task.estimateMinutes = 40
+            $0.suggestion = nil
+        }
+        #expect(store.state.task.dueAt == date(12, 17))
+    }
+
+    @Test("読み取った所要時間は、5 分刻みに丸め、選べる範囲(5〜600 分)に収めて反映する")
+    func applySuggestionRoundsAndClampsEstimate() async {
+        let cases = [
+            // 刻みに合わせて丸める。
+            ("レポート 43分", 45),
+            ("レポート 72分", 70),
+            ("レポート 1.2時間", 70),
+            ("レポート 58分", 60),
+            // 範囲からはみ出す値は、端に寄せる。
+            ("レポート 1分", 5),
+            ("レポート 2分", 5),
+            ("レポート 20時間", 600),
+            ("レポート 601分", 600),
+            // 範囲の端と、刻みどおりの値はそのまま。
+            ("レポート 5分", 5),
+            ("レポート 10時間", 600),
+            ("レポート 90分", 90),
+        ]
+        let store = makeStore(blank, isNew: true)
+        // 名前の欄を書き換えるたびの状態は追わず、反映した結果だけを確かめる。
+        store.exhaustivity = .off
+
+        for (text, expected) in cases {
+            await store.send(.binding(.set(\.task.title, text)))
+            await store.send(.applySuggestionTapped)
+            #expect(store.state.task.estimateMinutes == expected, "\(text)")
+            #expect(store.state.task.title == "レポート", "\(text)")
+            #expect(store.state.suggestion == nil, "\(text)")
+        }
+    }
+
+    @Test("提案がないときに反映を押しても、何も変わらない")
+    func applyWithoutSuggestionDoesNothing() async {
+        let store = makeStore(.fixture(), isNew: false)
+
+        await store.send(.applySuggestionTapped)
     }
 
     // MARK: 着手リミット
