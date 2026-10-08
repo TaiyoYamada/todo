@@ -93,4 +93,13 @@ struct EstimateCalibrationTests {
         // すぐ終えても、最低 5 分として扱う。
         #expect(task.elapsedMinutes(until: date(9, 13, 1)) == 5)
     }
+
+    @Test("見積もりどおりにしたタスクには、倍率を掛けない")
+    func exactEstimate() {
+        var task = TaskItem.fixture(dueAt: date(9, 23, 59), estimateMinutes: 120)
+        #expect(task.startLimit(factor: 1.5) == date(9, 20, 59))
+
+        task.usesExactEstimate = true
+        #expect(task.startLimit(factor: 1.5) == date(9, 21, 59))
+    }
 }

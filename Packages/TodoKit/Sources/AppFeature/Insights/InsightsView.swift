@@ -48,7 +48,7 @@ private struct WeekSummary: View {
                 .accessibilityIdentifier("insights.week.title")
                 .sectionLabelStyle()
             Text(DurationText.compact(minutes: insights.thisWeekSeconds / 60))
-                .font(.system(size: 52, weight: .heavy, design: .rounded))
+                .font(.hero(52))
                 .monospacedDigit()
                 .contentTransition(.numericText())
             comparison
@@ -169,7 +169,7 @@ private struct CalibrationCard: View {
                     .font(.system(.title, design: .rounded, weight: .bold))
                     .foregroundStyle(.white.opacity(0.6))
                 Text(factor, format: .number.precision(.fractionLength(0 ... 2)))
-                    .font(.system(size: 52, weight: .heavy, design: .rounded))
+                    .font(.hero(52))
                     .monospacedDigit()
                     .foregroundStyle(mood.accent)
             }
@@ -222,7 +222,7 @@ private struct TasksSummary: View {
     private func stat(_ value: Int, _ title: LocalizedStringResource, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(value, format: .number)
-                .font(.system(size: 34, weight: .heavy, design: .rounded))
+                .font(.hero(34))
                 .monospacedDigit()
                 .foregroundStyle(color)
             Text(title)

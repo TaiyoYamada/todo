@@ -111,6 +111,7 @@ struct LiveDatabaseClientTests {
         try await client.saveTask(task)
 
         task.startedAt = at(2000)
+        task.usesExactEstimate = true
         task.completedAt = at(5000)
         task.actualMinutes = 95
         try await client.saveTask(task)
