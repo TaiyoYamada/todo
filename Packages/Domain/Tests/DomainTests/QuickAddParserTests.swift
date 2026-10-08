@@ -107,5 +107,12 @@ struct QuickAddParserTests {
         #expect(parse("今日中にレポート").title == "レポート")
         #expect(parse("On call handoff tomorrow").title == "On call handoff")
         #expect(parse("のりを買う 18時").title == "のりを買う")
+        #expect(parse("明日の中間テスト").title == "中間テスト")
+        #expect(parse("月曜は中国語").title == "中国語")
+        #expect(parse("金曜 中野に行く").title == "中野に行く")
+        #expect(parse("明日 はがきを出す").title == "はがきを出す")
+        #expect(parse("2時間 のり弁を買う").title == "のり弁を買う")
+        #expect(parse("Sign in tomorrow").title == "Sign in")
+        #expect(parse("今日中 レポート").title == "レポート")
     }
 }
