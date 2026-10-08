@@ -35,26 +35,63 @@ open Todo.xcodeproj
 | `make bootstrap` | `Todo.xcodeproj` を生成する |
 | `make build` | アプリを iOS シミュレータ向けにビルドする |
 | `make test-domain` | `Domain` のテストを macOS 上で実行する。シミュレータを使わないので速い |
-| `make test-app` | スキームに入っているテストをシミュレータで実行する(`DatabaseClientTests`、`AppFeatureTests`、`TodoUITests`) |
-| `make test-ui` | UI テストだけを実行する |
+| `make test-app` | スキームに入っているテストをシミュレータで実行する(`DatabaseClientTests`、`AppFeatureTests`、`TodoUITests`)。結果は `build/reports/Test.xcresult` |
+| `make test-ui` | UI テストだけを実行する。結果は `build/reports/UITest.xcresult` |
 | `make test` | `test-domain` のあとに `test-app` |
 | `make lint` | SwiftLint と SwiftFormat で検査する(ファイルは変えない) |
 | `make format` | SwiftFormat で整形する(ファイルを書き換える) |
+| `make format-check` | SwiftFormat の検査だけを行う(ファイルは変えない) |
 | `make clean` | ビルドの成果物とテスト結果を消す |
 
 変数で対象を切り替えられます。
 
 ```sh
 make build SCHEME=Todo-Prod
-make test-app DESTINATION='platform=iOS Simulator,name=iPhone 17'
+make test-app DESTINATION='platform=iOS Simulator,name=iPhone Air'
 ```
 
 既定のシミュレータは `iPhone 17` です。手元にないときは `xcrun simctl list devices available` で確かめて、`DESTINATION` を上書きします。
 
+テストの件数と状況(2026-10-09、PR #13 の時点):
+
+| テスト | 件数 | 実行 | 状況 |
+|---|---|---|---|
+| `Domain`(判定と計算) | 66 | `make test-domain` | 通る |
+| `AppFeatureTests`(画面のロジック) | 193 | `make test-app` | 通る |
+| `DatabaseClientTests`(保存) | 8 | `make test-app` | 通る |
+| `TodoUITests`(画面の操作) | 30 | `make test-ui`、`make test-app` | 通る |
+
+シミュレータを使うテストは、iPhone Air(iOS 27.0)で確かめました。
+
 注意点:
 
-- `make lint` は、2026-10-09 時点で違反を報告して失敗します。SwiftLint の指摘と、SwiftFormat の整形が必要なファイルが残っています。
-- CI は手動実行だけで、まだ一度も実行していません。手元の `make test` が品質の確認になります。
+- `make lint` は、2026-10-09 時点で通ります。プッシュの前に通しておきます。
+- CI は手動実行だけで、まだ一度も実行していません。手元の `make test` と `make lint` が品質の確認になります。
+
+### SwiftFormat と `#if`
+
+SwiftFormat は、120 文字を超える `#if` の行も折り返します。`#if` の条件は1行に書く必要があるので、折り返されるとビルドが通らなくなります。
+
+```swift
+// 折り返されて、ビルドが通らなくなる例
+#if canImport(FamilyControls) && canImport(ManagedSettings) && canImport(DeviceActivity) &&
+    !targetEnvironment(simulator)
+```
+
+`#if a && b && c` のような長い条件は書かず、1行が 120 文字に収まる短い条件にします。いまのコードの条件は、どれも短く収まっています(`#if canImport(FamilyControls) && !targetEnvironment(simulator)` など)。
+
+### UI テストの画面の写し
+
+UI テストは、要所で画面の写し(スクリーンショット)をテスト結果に付けます(`UITests/Support.swift` の `attachScreenshot`)。見た目の確認に使います。取り出すには、テストのあとで次を実行します。
+
+```sh
+xcrun xcresulttool export attachments --path build/reports/UITest.xcresult --output-path build/reports/screenshots
+```
+
+- `make test-app` で実行したときは、`--path` を `build/reports/Test.xcresult` にします。
+- 出力先のフォルダに、画像と、どのテストの何という名前の写しかを書いた `manifest.json` ができます。
+- 名前は `Today-locked-top`、`Today-taskLocked-after-start-ja` のように、画面、状態、言語で付けています。
+- `build/` は Git の管理から外してあります。
 
 ## 3. スキーム
 
@@ -67,7 +104,7 @@ make test-app DESTINATION='platform=iOS Simulator,name=iPhone 17'
 | App Group の識別子 | `group.com.taiyoyamada.todo.dev` | `group.com.taiyoyamada.todo` |
 | URL スキーム | `lockcast-dev` | `lockcast` |
 | コンパイル条件 `DEV` | あり | なし |
-| 起動引数 `-sampleData` | 使える | 無視される |
+| 起動引数 `-sampleData`、`-sampleTab` | 使える | 無視される |
 | スキームに入っているテスト | あり | なし |
 | 保存データ | 別(別のアプリとして入るため) | 別 |
 
@@ -81,21 +118,31 @@ make test-app DESTINATION='platform=iOS Simulator,name=iPhone 17'
 
 `Todo-Dev` で、起動引数 `-sampleData <状態>` を付けると、保存データの代わりにメモリ上の見本データで動きます。
 
-| 状態 | 場面 |
+| 状態 | 場面 | 「今日」のいちばん上 |
+|---|---|---|
+| `locked` | 今日の分(大学院入試 45 分、TOEIC 20 分)が残っている。大学院入試でロックされている | ロック中。主ボタンは計測の開始 |
+| `taskLocked` | 大学院入試は終えた。タスク(統計学のレポート)の着手リミットを過ぎて、ロックされている | ロック中。主ボタンは「いま始める」 |
+| `countdown` | 大学院入試は終えた。TOEIC のロックが 2 時間 14 分後に来る | 次のロックまでの余裕 |
+| `free` | 今日の分をすべて終え、今日が締切のタスクも完了した | 今日は自由 |
+| `fresh` | 何も登録していない | 初回設定から始まる |
+
+`fresh` 以外には、過去 13 日ぶんの記録、未完了のタスク 2 件、完了済みのタスク 3 件(見積もりの学習に使われる)、2 日前のパス 1 回が入ります。`taskLocked` では、未完了のタスクのうち 1 件の締切が 1 時間後になります。`free` では、その 1 件が完了済みになります。
+
+起動引数 `-sampleTab <タブ>` を付けると、最初に開くタブを選べます。画面の撮影と UI テストのためのものです。
+
+| 値 | 最初に開くタブ |
 |---|---|
-| `locked` | 今日の分(大学院入試 45 分、TOEIC 20 分)が残っていて、ロックされている |
-| `countdown` | 大学院入試は終えた。TOEIC のロックが 2 時間 14 分後に来る |
-| `free` | 今日の分をすべて終え、今日が締切のタスクも完了した |
-| `fresh` | 何も登録していない。初回設定から始まる |
+| `plan` | 予定 |
+| `insights` | 振り返り |
+| 付けない、またはほかの値 | 今日 |
 
-`fresh` 以外には、過去 13 日ぶんの記録、未完了のタスク 2 件、完了済みのタスク 3 件(見積もりの学習に使われる)、2 日前のパス 1 回が入ります。`free` では、未完了のタスクのうち 1 件も完了済みになります。
-
-- 付け方: Xcode のスキームの編集画面で、Run > Arguments に `-sampleData locked` を足す。コマンドラインからの起動は [README](../../README.md) を参照。
+- 付け方: Xcode のスキームの編集画面で、Run > Arguments に `-sampleData locked` を足す。コマンドラインからの起動は [README](../../README.md) を参照。2つを並べてもよい(`-sampleData countdown -sampleTab plan`)。
+- どちらの引数も、読むのは開発用の構成(`DEV`)だけ。`Todo-Prod` では無視される。
 - 何時に起動しても同じ場面になるよう、時刻は起動した時点から計算する。そのため、見本データでは1日の開始時刻が設定の範囲(0〜8 時)を外れることがある。
 - 目標名とタスク名は、端末の言語が日本語なら日本語、それ以外は英語になる。
 - 変更はメモリ上だけで、起動し直すと元に戻る。
 - 知らない名前を渡すと、見本データは使われず、ふつうの保存データで起動する。
-- 定義は `Packages/TodoKit/Sources/AppFeature/Support/SampleData.swift`。UI テストも同じものを使う。
+- 定義は `Packages/TodoKit/Sources/AppFeature/Support/SampleData.swift`。UI テストも同じものを使う(`UITests/Support.swift` の `launchApp`)。
 - 同じ見本データで、主要な画面の Xcode プレビューを用意してある(`Support/Previews.swift`)。画面の見た目だけを直すときは、こちらのほうが速い。
 
 ウィジェットやコントロールセンターから開く動きは、URL を直接開いて試せます。
@@ -105,7 +152,9 @@ xcrun simctl openurl booted lockcast-dev://focus      # いちばん先にやる
 xcrun simctl openurl booted lockcast-dev://add-task   # タスクの追加を開く
 ```
 
-模擬のロックの切り替わりは、ログで見られます。
+コントロールセンターのボタンは、URL ではなく App Group の `UserDefaults` に行き先を書いて渡します([設計](architecture.md) 4)。この道は、上のコマンドでは試せません。
+
+模擬のロックの切り替わりと、Live Activity を始められなかった理由は、ログで見られます。
 
 ```sh
 xcrun simctl spawn booted log stream --level info --predicate 'subsystem == "com.taiyoyamada.todo"'
@@ -120,7 +169,7 @@ xcrun simctl spawn booted log stream --level info --predicate 'subsystem == "com
 | アプリの画面、通知 | `Packages/TodoKit/Sources/AppFeature/Resources/Localizable.xcstrings` |
 | ウィジェット、Live Activity | `Packages/TodoKit/Sources/WidgetUI/Resources/Localizable.xcstrings` |
 | ロック画面(シールド) | `Extensions/ShieldConfiguration/Localizable.xcstrings` |
-| コントロールセンターのボタン | `Extensions/Widgets/Localizable.xcstrings` |
+| コントロールセンターのボタン | `Extensions/Widgets/Localizable.xcstrings` と `App/Resources/Localizable.xcstrings` の両方(同じ内容) |
 
 手順は同じです。
 
@@ -154,7 +203,9 @@ xcrun simctl spawn booted log stream --level info --predicate 'subsystem == "com
 - 時間の長さ、時刻、日付、曜日は文言に埋め込まず、`DurationText`、`TimeText` などの書式に任せ、引数で渡す。
 - カタログの JSON を直接書くときは、`"extractionState": "manual"` を付ける。
 
-拡張機能の側にある2つのカタログ(ロック画面、コントロールセンターのボタン)は、シンボルではなくキーの文字列で参照しています(`String(localized: "shield.button")`、`Label("control.focus.title", …)`)。打ち間違いがコンパイル時に分からないので、足すときはキーをよく確かめます。
+拡張機能の側にある2つのカタログ(ロック画面、コントロールセンターのボタン)と、`App/Resources` のカタログは、シンボルではなくキーの文字列で参照しています(`String(localized: "shield.button")`、`Label("control.focus.title", …)`)。打ち間違いがコンパイル時に分からないので、足すときはキーをよく確かめます。
+
+コントロールセンターのボタンの文言が2か所にあるのは、ボタンが呼ぶ App Intent(`Extensions/Shared/StartFocusIntent.swift`)を、ウィジェットの拡張機能とアプリ本体の両方に入れているためです。直すときは両方を直します。
 
 ## 6. データベースの移行を足す
 
@@ -202,7 +253,8 @@ migrator.registerMigration("v2: タスクにメモの列を足す") { db in
    - 保存データやロックの状態を見るなら、`State` に `@SharedReader(.board) var board` を置く。
    - 保存するときは `@Dependency(\.database)` の操作を呼ぶ。`Board` は書き換えない。
    - 時刻は `@Dependency(\.date.now)`、ID は `@Dependency(\.uuid)`、待ちは `@Dependency(\.continuousClock)` から受け取る。`Date()` や `UUID()` を直接呼ばない(`AppFeature` の中は SwiftLint が検査する)。
-   - ロックは `@Dependency(\.shield)`、通知は `@Dependency(\.notifications)`、Live Activity は `@Dependency(\.liveActivity)` を通す。
+   - ロックは `@Dependency(\.shield)`、通知は `@Dependency(\.notifications)`、Live Activity は `@Dependency(\.liveActivity)`、写しは `@Dependency(\.snapshot)` を通す。
+   - 写し、ロック、通知をアプリの外へ伝えるのは `AppFeature.syncOutside` だけにする。画面の Reducer は、保存するだけでよい。保存データが変われば、`syncOutside` が伝える([ADR 0008](adr/0008-single-sync-point-for-extensions.md))。
    - 判定や計算は Reducer に書かず、`Domain` に置いてテストする。
 3. View を書く。`StoreOf<…>` を受け取り、状態を描いて、操作をアクションとして送るだけにする。
 4. 開き方をつなぐ。
@@ -237,7 +289,7 @@ migrator.registerMigration("v2: タスクにメモの列を足す") { db in
 | ほかのアプリが実際にロックされること | スクリーンタイム API はシミュレータで動かない。模擬の実装はログを出すだけ |
 | スクリーンタイムの許可の画面 | 模擬の実装は、許可を求めると必ず成功を返す |
 | ロックするアプリの選択 | シミュレータでは OS の選択画面を出さず、説明だけを出す。模擬の実装は 6 件を選んだことにする |
-| アプリを閉じている間の、時刻どおりのロック開始 | DeviceActivity の予約と、監視の拡張機能(`Extensions/ShieldMonitor`)が要る。シミュレータ向けのビルドでは、拡張機能は何もしない |
+| アプリを閉じている間の、時刻どおりのロック開始と解除 | DeviceActivity の予約と、監視の拡張機能(`Extensions/ShieldMonitor`)が要る。シミュレータ向けのビルドでは、拡張機能は何もしない。1日の開始時刻に前の日のロックを外すこと、計測が今日の分に達した時刻に外すことも、ここに入る |
 | ロック画面(シールド)の見た目とボタン | ロックされたアプリを開いたときに OS が出す画面。シミュレータではロックされないので出ない |
 | 実機向けの署名 | Family Controls の権限には、有料の開発者登録が要る。まだ一度も試していない |
 
@@ -247,8 +299,15 @@ migrator.registerMigration("v2: タスクにメモの列を足す") { db in
 
 - ロックの**判定**と、それを見せる画面。時刻が絡む動きは、見本データと `Domain` のテストで確かめる
 - ロックの前の通知(通知の許可は、初回設定を終えた直後に求められる)
-- ウィジェット(ホーム画面とロック画面)。写しは模擬の実装でも書き出す
-- ウィジェットやコントロールセンターのボタンから、計測の画面を開く動き
+- ウィジェット(ホーム画面とロック画面)。写しは、アプリ本体が保存データの変更のたびに書き出す
+- ウィジェットから計測の画面を開く動き(URL)
 - 集中の Live Activity
 
-ウィジェットと通知は、ロックの状態が変わったときにしか更新されません。目標を足した直後に内容が変わらないのは、いまの作りの制限です([設計](architecture.md) 8)。
+「試せる」と「確かめた」は別です。2026-10-09 時点で、シミュレータでも確かめていないものがあります。
+
+| もの | 状況 |
+|---|---|
+| ウィジェットの見た目 | 見ていない |
+| Live Activity の見た目 | 開始の要求が通り、システムに登録されることは、ログで確かめた。画面に出た様子は見ていない |
+| コントロールセンターのボタン | 見た目も、押して計測の画面まで進むことも、確かめていない |
+| 通知が届くこと | 予約の内容は Reducer のテストで確かめている。届くところを確かめた記録はない |
