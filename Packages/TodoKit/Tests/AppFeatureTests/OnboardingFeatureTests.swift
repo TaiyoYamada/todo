@@ -24,6 +24,7 @@ struct OnboardingFeatureTests {
             OnboardingFeature()
         } withDependencies: {
             $0.fix(now: LockIsolated(now), database: spy)
+            $0.shield.authorization = { authorization }
             $0.shield.requestAuthorization = { authorization }
             $0.shield.selectionCount = { selectionCount }
         }
@@ -144,6 +145,30 @@ struct OnboardingFeatureTests {
         // 許可がなくても、あとで設定することにして先へ進める。
         await store.send(.nextTapped) {
             $0.step = .ready
+        }
+    }
+
+    @Test("アプリを選ぶボタンを押すと、選ぶ画面を出す")
+    func chooseAppsPresentsPicker() async {
+        var initial = state(at: .apps, title: "院試")
+        initial.authorization = .approved
+        let store = makeStore(initial)
+
+        await store.send(.chooseAppsTapped) {
+            $0.isPickerPresented = true
+        }
+    }
+
+    @Test("選ぶ画面で選び直すと、選んだ数を読み直す")
+    func selectionChangeReloadsCount() async {
+        var initial = state(at: .apps, title: "院試")
+        initial.authorization = .approved
+        initial.selectionCount = 2
+        let store = makeStore(initial, selectionCount: 9)
+
+        await store.send(.selectionChanged)
+        await store.receive(\.authorizationResponse) {
+            $0.selectionCount = 9
         }
     }
 

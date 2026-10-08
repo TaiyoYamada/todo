@@ -1,6 +1,7 @@
 import ComposableArchitecture
 import Domain
 import Foundation
+import ShieldClient
 import Testing
 @testable import AppFeature
 
@@ -14,13 +15,24 @@ struct SettingsFeatureTests {
     /// 保存済みの設定。初期値と区別できるよう、いくつか変えてある。
     let saved = Preferences(dayStartHour: 5, buffer: .quarter, weeklyPassLimit: 3, hasCompletedOnboarding: true)
 
-    private func makeStore() -> TestStoreOf<SettingsFeature> {
-        prepareBoard(World(preferences: saved), now: now)
+    /// スクリーンタイムの層へ伝えた指示。
+    let applied = LockIsolated<[ShieldPlan]>([])
+
+    private func makeStore(
+        world: World? = nil,
+        authorization: ShieldAuthorization = .approved,
+        selectionCount: Int = 6
+    ) -> TestStoreOf<SettingsFeature> {
+        prepareBoard(world ?? World(preferences: saved), now: now)
         return TestStore(initialState: SettingsFeature.State()) {
             SettingsFeature()
         } withDependencies: {
             $0.database = spy.client
             $0.countDismiss(into: dismissed)
+            $0.shield.authorization = { authorization }
+            $0.shield.requestAuthorization = { authorization }
+            $0.shield.selectionCount = { selectionCount }
+            $0.shield.apply = { [applied] plan, _ in applied.withValue { $0.append(plan) } }
         }
     }
 
@@ -99,5 +111,65 @@ struct SettingsFeatureTests {
 
         #expect(spy.writes.isEmpty)
         #expect(dismissed.value == 1)
+    }
+
+    // MARK: ロックするアプリ
+
+    @Test("開いたときに、ロックの許可の状態と、選んでいるアプリの数を読む")
+    func taskLoadsShieldState() async {
+        let store = makeStore(authorization: .approved, selectionCount: 4)
+
+        await store.send(.task)
+        await store.receive(\.shieldResponse) {
+            $0.authorization = .approved
+            $0.selectionCount = 4
+        }
+    }
+
+    @Test("許可を求めて認められると、許可済みになり、選んだ数が入る")
+    func allowRequestsAuthorization() async {
+        let store = makeStore()
+
+        await store.send(.allowTapped)
+        await store.receive(\.shieldResponse) {
+            $0.authorization = .approved
+            $0.selectionCount = 6
+        }
+    }
+
+    @Test("許可が認められなければ、認められなかった状態になる")
+    func allowDenied() async {
+        let store = makeStore(authorization: .denied, selectionCount: 0)
+
+        await store.send(.allowTapped)
+        await store.receive(\.shieldResponse) {
+            $0.authorization = .denied
+        }
+    }
+
+    @Test("アプリを選ぶボタンを押すと、選ぶ画面を出す")
+    func chooseAppsPresentsPicker() async {
+        let store = makeStore()
+
+        await store.send(.chooseAppsTapped) {
+            $0.isPickerPresented = true
+        }
+    }
+
+    @Test("選び直すと、いまのロックの指示を伝え直し、選んだ数を読み直す")
+    func selectionChangeReappliesShield() async {
+        // 朝からロック中の目標がある。
+        let world = World.exact(goals: [.fixture()])
+        let store = makeStore(world: world, selectionCount: 9)
+
+        await store.send(.selectionChanged)
+        await store.receive(\.shieldResponse) {
+            $0.authorization = .approved
+            $0.selectionCount = 9
+        }
+
+        #expect(applied.value == [ShieldPlan(isLocked: true, title: "院試", remainingSeconds: 30 * 60)])
+        // 設定そのものは変えていないので、保存はしない。
+        #expect(spy.writes.isEmpty)
     }
 }
