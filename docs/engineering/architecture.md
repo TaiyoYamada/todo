@@ -1,6 +1,6 @@
 # 設計の全体像
 
-最終更新: 2026-10-09(`develop` の 14c9880 時点のコードに基づく)
+最終更新: 2026-10-09(`develop` の 1ec66b7 時点のコードに基づく)
 
 コードがどう組まれているかをまとめます。決定の理由は [adr/](adr/README.md) にあります。
 まだ作っていないものは「未実装」、動作を確かめていないものは「未検証」と書きます。
@@ -21,12 +21,12 @@
 | パッケージ | モジュール | 役割 | 依存 |
 |---|---|---|---|
 | `Packages/Domain` | `Domain` | 純粋なロジックと型。ロックの判定、余裕、ロック予報、週間の見込み、片づけたあとの見通し、見積もりの補正、1行入力の読み取り、振り返りの集計 | Foundation のみ |
-| `Packages/TodoKit` | `AppFeature` | すべての画面の Reducer と View、文言カタログ、見本データ、プレビュー | 下の `*Client`、`DesignSystem`、`Domain`、TCA |
+| `Packages/TodoKit` | `AppFeature` | すべての画面の Reducer と View、文言カタログ、見本データ、プレビュー | 下の `*Client`、`SharedCore`、`DesignSystem`、`Domain`、TCA |
 | | `DatabaseClient` | 保存データの窓口。SQLite の実装とメモリ上の実装 | `Domain`、Dependencies、SQLiteData、GRDB |
 | | `ShieldClient` | アプリをロックする仕組みとの境界。実機用と模擬の実装、アプリを選ぶ画面 | `Domain`、`SharedCore`、Dependencies |
 | | `NotificationClient` | 端末の通知の窓口 | Dependencies |
 | | `LiveActivityClient` | 集中の計測を Live Activity として出す窓口 | `Domain`、`SharedCore`、Dependencies |
-| | `SharedCore` | 拡張機能にも入れる部分。App Group、保存データの写し、スクリーンタイム API の呼び出し、Live Activity に渡す型 | `Domain`、Apple 標準のみ |
+| | `SharedCore` | 拡張機能にも入れる部分。App Group、保存データの写し、スクリーンタイム API の呼び出し、Live Activity に渡す型、アプリの外から開くときの行き先(`DeepLink`) | `Domain`、Apple 標準のみ |
 | | `WidgetUI` | ウィジェットと Live Activity の見た目、その文言カタログ | `Domain`、`SharedCore`、`DesignSystem` |
 | | `DesignSystem` | 色(`Mood`)、背景、カード、ボタン、進み具合の輪、時間の表示、達成時の演出(波紋、光の粒、振動) | `Domain`、SwiftUI |
 
@@ -35,7 +35,7 @@
 | ターゲット | 場所 | 中身 | 依存 |
 |---|---|---|---|
 | `Todo` | `App/` | アプリ本体。`RootView` を表示し、開発用の構成でだけ起動引数 `-sampleData` を読む | `AppFeature` |
-| `TodoWidgets` | `Extensions/Widgets/` | ウィジェットと Live Activity の入口だけ | `WidgetUI` |
+| `TodoWidgets` | `Extensions/Widgets/` | ウィジェットと Live Activity の入口。コントロールセンターに置くボタン(`FocusControl`)だけは、ここに実装がある | `WidgetUI`、`SharedCore` |
 | `TodoShieldMonitor` | `Extensions/ShieldMonitor/` | 予約した時刻に起こされ、ロックを掛け直す。**未検証** | `SharedCore` |
 | `TodoShieldConfiguration` | `Extensions/ShieldConfiguration/` | ロックされたアプリを開いたときの画面の文言と色を決める。**未検証** | `SharedCore` |
 
@@ -43,12 +43,13 @@
 
 画面は機能ごとのターゲットに分けず、1つの `AppFeature` ターゲットにフォルダで分けて置いています(`App/`、`Today/`、`Focus/`、`Plan/`、`Editors/`、`Insights/`、`Settings/`、`Onboarding/`、`Support/`)。ビルドが遅くなったら分割します。
 
-拡張機能は使えるメモリが小さいので、TCA と DB を入れません。スクリーンタイムの2つは `SharedCore` だけに、ウィジェットは `WidgetUI` に依存します。
+拡張機能は使えるメモリが小さいので、TCA と DB を入れません。スクリーンタイムの2つは `SharedCore` だけに、ウィジェットは `WidgetUI` と `SharedCore` に依存します。
 
 ```mermaid
 flowchart TD
     App["Todo(アプリ本体)"] --> AppFeature
     Widgets["TodoWidgets"] --> WidgetUI
+    Widgets --> SharedCore
     Monitor["TodoShieldMonitor"] --> SharedCore
     ShieldConfig["TodoShieldConfiguration"] --> SharedCore
 
@@ -58,6 +59,7 @@ flowchart TD
         AppFeature --> NotificationClient
         AppFeature --> LiveActivityClient
         AppFeature --> DesignSystem
+        AppFeature --> SharedCore
         ShieldClient --> SharedCore
         LiveActivityClient --> SharedCore
         WidgetUI --> SharedCore
@@ -273,6 +275,17 @@ Live Activity に出るのは集中の計測だけです。次のロックまで
 - 保存データを読み終える前(`Board.isLoaded == false`)は背景だけを出します。読み終える前に初回設定を出さないためです。
 - ロックするアプリを選ぶ画面は、`Destination` ではなく、設定と初回設定の View に付けた `shieldAppPicker` で出します(`ShieldClient` にある View の拡張)。実機では OS の選択画面(`FamilyActivityPicker`)、シミュレータでは「選べません」という説明が出ます。
 
+### アプリの外から開く
+
+URL で、アプリの特定の場面を開けます(`DeepLink`)。スキームは構成ごとに違い、本番用は `lockcast`、開発用は `lockcast-dev` です。両方を同じ端末に入れても混ざりません。
+
+| URL | 開くもの | 使っている場所 |
+|---|---|---|
+| `lockcast://focus` | いちばん先にやるべき目標の計測。ロックの理由になっている目標を優先し、なければ、まだ終えていない今日の分。どちらもなければ「今日」のタブ | ウィジェットを押したとき、コントロールセンターのボタン |
+| `lockcast://add-task` | タスクの追加 | いまは使っている場所がない |
+
+`AppView` が `.onOpenURL` で受け取り、`AppFeature` の `.openDeepLink` が `Route` と同じ `open(_:_:)` で開きます。保存データを読み終える前、初回設定の途中、すでに何かを開いているときは、何もしません。
+
 ## 5. 永続化
 
 SQLite に保存します。場所は `SQLiteData.defaultDatabase()` が決め、プレビューとテストでは一時的なデータベースになります。開けなかったときはメモリ上の実装に切り替えて起動を続けます(保存はされません)。
@@ -347,15 +360,16 @@ DB のほかに保存しているものが2つあります。どちらも App Gr
 
 ## 6. 文言と多言語
 
-文言カタログは3つあります。どれも元の言語は英語で、日本語と英語の両方を入れます(2026-10-09 時点で抜けなし)。
+文言カタログは4つあります。どれも元の言語は英語で、日本語と英語の両方を入れます(2026-10-09 時点で抜けなし)。
 
 | カタログ | 件数 | 参照のしかた |
 |---|---|---|
 | `Packages/TodoKit/Sources/AppFeature/Resources/Localizable.xcstrings` | 156 | 生成されたシンボル(`Text(.todaySlackLabel)`) |
 | `Packages/TodoKit/Sources/WidgetUI/Resources/Localizable.xcstrings` | 17 | 生成されたシンボル(`Text(.widgetSlackName)`) |
 | `Extensions/ShieldConfiguration/Localizable.xcstrings` | 5 | キーの文字列(`String(localized: "shield.button")`) |
+| `Extensions/Widgets/Localizable.xcstrings` | 2 | キーの文字列(`Label("control.focus.title", …)`)。コントロールセンターのボタンの名前と説明 |
 
-- 生成されたシンボルで参照するのが原則です。キーを文字列で書きません。詳しくは [ADR 0006](adr/0006-string-catalog-symbols.md) と[開発の手順](development.md)。ロック画面の拡張機能だけ、いまはキーの文字列で参照しています。
+- 生成されたシンボルで参照するのが原則です。キーを文字列で書きません。詳しくは [ADR 0006](adr/0006-string-catalog-symbols.md) と[開発の手順](development.md)。拡張機能の側にある2つのカタログは、キーの文字列で参照しています。コントロールセンターのボタンは、App Intents の名前がビルド時に文字列リテラルから読み取られるためです(コードのコメントによる)。ロック画面のほうは、理由の記載がありません。
 - 時間の長さ、時刻、曜日は文言にせず、`DurationText`、`TimeText`、`Calendar` の書式で言語に合わせます。
 - 通知の文言は、予約した時点の言語で固定されます。
 - 見本データの目標名とタスク名はカタログに入れず、`SampleData` の中で端末の言語を見て切り替えています。
@@ -372,7 +386,7 @@ DB のほかに保存しているものが2つあります。どちらも App Gr
 方針は次のとおりです。
 
 - 判定と計算は `Domain` に置き、境界の値(ちょうどの時刻、0 件、日付の変わり目)を含めてテストする。ロックの判定を間違えると、外れない、または掛からないという一番困る不具合になるため。
-- Reducer は TCA の `TestStore` で確かめる。時刻、ID、DB、ロックは依存を差し替えて固定する。そのために、Reducer の中で `Date()` や `UUID()` を直接呼ばない(SwiftLint の独自ルールで検査)。
+- Reducer は TCA の `TestStore` で確かめる。時刻、ID、DB、ロックは依存を差し替えて固定する。そのために、`AppFeature` の中では `Date()` や `UUID()` を直接呼ばない(SwiftLint の独自ルールで検査。外の世界との境界である `*Client` と `SharedCore` は対象外)。
 - 通知と Live Activity の依存は、テストとプレビューでは何もしない実装になる。各テストが差し替えなくて済む。
 - UI テストは、壊れると使えなくなる流れに絞る。見本データで起動するので `Todo-Dev` でだけ動く。
 - スクリーンタイムのコードは自動テストの対象外。実機で手で確かめる([公開前の確認事項](release-checklist.md))。
@@ -409,6 +423,7 @@ DB のほかに保存しているものが2つあります。どちらも App Gr
 | 振り返りの「ロックの前に完了」 | いまの倍率で着手リミットを計算し直して数える。倍率が変わると、過去のタスクの分類も変わる |
 | 削除と取り下げ | タスクを削除すると、取り下げの回数に数えられずに理由が消える。目標を削除して作り直すと、その日はロックされない |
 | 許可の取り消し | スクリーンタイムの許可の状態を見るのは、初回設定と設定の画面だけ。設定アプリで許可を切られても、ほかの画面は気づかない |
-| 依存を通さない時刻 | `TimeText`、`GoalEditorView` の一部、ウィジェット、拡張機能、通知と Live Activity の実装は、`Calendar.current` や現在時刻を直接使う。アプリ本体の Reducer とは別の経路で時刻を読む |
+| アプリの外から開いたときの取りこぼし | アプリが起動していない状態でウィジェットやコントロールを押すと、保存データを読み終える前に URL が届き、無視される可能性がある(読み終える前のリンクは捨てる作りのため。動かして確かめてはいない) |
+| 依存を通さない時刻 | `AppFeature` の中でも、`TimeText`、`GoalEditorView` の一部、見本データは `Calendar.current` や現在時刻を直接使う。ウィジェット、拡張機能、`*Client` の実装が直接使うのは意図どおり |
 | `World` の読み直し | 集中の記録とパスの記録を全件読む。件数の上限や古い記録の整理は決めていない |
-| 静的解析 | `make lint` は違反を報告する(行の長さ、画像のアクセシビリティ、`Date()` の直接呼び出しなど)。未解消 |
+| 静的解析 | `make lint` は違反を報告して失敗する。#11 で減ったが、SwiftLint の指摘と、SwiftFormat の整形が必要なファイルが残っている |
