@@ -11,6 +11,7 @@ Lockcast(仮称)の文書の一覧です。アプリの概要と始め方は、�
 | [product/spec.md](product/spec.md) | 仕様。ロックの規則、タスクの着手、余裕の表示、画面、実装の状況、未検証の部分 |
 | [product/decision-log.md](product/decision-log.md) | 仕様に関する決定と理由の記録。区切りごとの見直し(壁打ち)も含む |
 | [product/roadmap.md](product/roadmap.md) | これからの予定。いまの状態、最近済んだこと、次にやること、オーナーに決めてほしいこと |
+| [screenshots/README.md](screenshots/README.md) | 画面の一覧。UI テストがシミュレータで撮ったもの |
 
 ## 開発
 
