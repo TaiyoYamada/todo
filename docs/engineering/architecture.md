@@ -503,7 +503,7 @@ DB のほかに保存しているものが3つあります。どれも App Group
 
 | 対象 | 場所 | 実行 | 件数 | 確かめていること |
 |---|---|---|---|---|
-| `Domain` | `Packages/Domain/Tests/DomainTests` | `make test-domain`(macOS、シミュレータ不要) | 67 | 1日と1週間の区切り(夏時間、区切りでの分割を含む)、ロックの判定、片づけたあとの見通し、週間の見込み、見積もりの補正、1行入力の読み取り、振り返りの集計 |
+| `Domain` | `Packages/Domain/Tests/DomainTests` | `make test-domain`(macOS、シミュレータ不要) | 68 | 1日と1週間の区切り(夏時間、区切りでの分割を含む)、ロックの判定、片づけたあとの見通し、週間の見込み、見積もりの補正、1行入力の読み取り、振り返りの集計 |
 | Reducer | `Packages/TodoKit/Tests/AppFeatureTests` | `make test-app` | 193 | すべての画面の Reducer。アプリの外への連絡の順と取り消し、外からの依頼、通知の内容、今日の行の並べ方も含む |
 | `DatabaseClient` | `Packages/TodoKit/Tests/DatabaseClientTests` | `make test-app` | 8 | 実際の SQLite(テストごとの一時データベース)に対する読み書き、連鎖削除、変更の通知 |
 | UI | `UITests` | `make test-ui`(`make test-app` にも含まれる) | 30 | 見本データで起動し、起動時の表示(4つの状態、日本語と英語)、初回設定、集中の開始と停止、目標とタスクの追加、1行入力の提案、タスクの完了、「いま始める」から完了まで、タブ、設定、振り返りを通す |

@@ -56,7 +56,7 @@ make test-app DESTINATION='platform=iOS Simulator,name=iPhone Air'
 
 | テスト | 件数 | 実行 | 状況 |
 |---|---|---|---|
-| `Domain`(判定と計算) | 67 | `make test-domain` | 通る |
+| `Domain`(判定と計算) | 68 | `make test-domain` | 通る |
 | `AppFeatureTests`(画面のロジック) | 193 | `make test-app` | 通る |
 | `DatabaseClientTests`(保存) | 8 | `make test-app` | 通る |
 | `TodoUITests`(画面の操作) | 30 | `make test-ui`、`make test-app` | 通る |
