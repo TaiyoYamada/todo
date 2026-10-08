@@ -885,6 +885,74 @@
         }
       }
     },
+    "notification.start.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your apps stay locked until “%@” is done."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」を終えるまで、選んだアプリは開けません。"
+          }
+        }
+      }
+    },
+    "notification.start.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locked"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ロックが始まりました"
+          }
+        }
+      }
+    },
+    "notification.warn.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%@” isn't done yet. Finish it now and you won't be locked."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」がまだ終わっていません。いま片づければ、ロックされずに済みます。"
+          }
+        }
+      }
+    },
+    "notification.warn.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 minutes until lock"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "あと30分でロック"
+          }
+        }
+      }
+    },
     "onboarding.apps.allow" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1476,6 +1544,108 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "はじめの説明をもう一度見る"
+          }
+        }
+      }
+    },
+    "settings.shield.choose" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose apps"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリを選ぶ"
+          }
+        }
+      }
+    },
+    "settings.shield.count" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld selected"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld件"
+          }
+        }
+      }
+    },
+    "settings.shield.footer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "These are the apps that won't open while something is unfinished. Your choice stays on this iPhone."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "やることが終わっていない間、開けなくなるアプリです。選んだ内容はこの iPhone の中にだけ保存されます。"
+          }
+        }
+      }
+    },
+    "settings.shield.header" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Locked apps"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ロックするアプリ"
+          }
+        }
+      }
+    },
+    "settings.shield.simulated.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choosing apps and real locking need an iPhone. Here, the lock is simulated so the rest of the app can be tried."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アプリの選択と実際のロックには iPhone が必要です。ここではロックを模擬して、ほかの部分を試せるようにしています。"
+          }
+        }
+      }
+    },
+    "settings.shield.simulated.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not available in the Simulator"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "シミュレータでは選べません"
           }
         }
       }

@@ -1,0 +1,41 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "shield.button" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "OK" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "OK" } }
+      }
+    },
+    "shield.subtitle.fallback" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Finish what you decided, then come back." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "決めたことを終えてから、戻ってきてください。" } }
+      }
+    },
+    "shield.subtitle.goal %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%lld more minutes today, and this opens." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "今日の分をあと%lld分やると、開けるようになります。" } }
+      }
+    },
+    "shield.subtitle.task" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "It's past the time to start. Finish it, and this opens." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "着手リミットを過ぎました。終わらせると、開けるようになります。" } }
+      }
+    },
+    "shield.title.fallback" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Locked" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ロック中" } }
+      }
+    }
+  },
+  "version" : "1.1"
+}
