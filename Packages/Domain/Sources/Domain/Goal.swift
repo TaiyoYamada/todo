@@ -38,9 +38,9 @@ public struct Goal: Identifiable, Equatable, Hashable, Sendable, Codable {
     public var dailySeconds: Int { dailyMinutes * 60 }
 }
 
-extension Goal {
+public extension Goal {
     /// その日のうち、いつからロックの理由になるか。
-    public enum LockStart: Equatable, Hashable, Sendable, Codable {
+    enum LockStart: Equatable, Hashable, Sendable, Codable {
         /// 1日の開始から。
         case dayStart
         /// 指定した時刻から。値は 0 時からの分(0..<1440)。
@@ -48,7 +48,7 @@ extension Goal {
     }
 
     /// 目標に付ける色。実際の色は DesignSystem が決める。
-    public enum Tint: String, CaseIterable, Sendable, Codable {
+    enum Tint: String, CaseIterable, Sendable, Codable {
         case indigo, blue, teal, green, orange, pink, purple, red
     }
 }

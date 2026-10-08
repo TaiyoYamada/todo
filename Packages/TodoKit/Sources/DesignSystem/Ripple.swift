@@ -1,10 +1,10 @@
 import SwiftUI
 
-extension View {
+public extension View {
     /// `trigger` が変わるたびに、`origin` から波紋を広げる。
     ///
     /// 「視差効果を減らす」が有効なときは何もしない。
-    public func ripple(at origin: CGPoint, trigger: some Equatable) -> some View {
+    func ripple(at origin: CGPoint, trigger: some Equatable) -> some View {
         modifier(RippleEffect(origin: origin, trigger: trigger))
     }
 }

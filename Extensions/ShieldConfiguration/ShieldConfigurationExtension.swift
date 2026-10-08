@@ -36,7 +36,10 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
                 text: reason?.title ?? String(localized: "shield.title.fallback"),
                 color: .white
             ),
-            subtitle: ShieldConfiguration.Label(text: subtitle(for: reason), color: UIColor.white.withAlphaComponent(0.75)),
+            subtitle: ShieldConfiguration.Label(
+                text: subtitle(for: reason),
+                color: UIColor.white.withAlphaComponent(0.75)
+            ),
             primaryButtonLabel: ShieldConfiguration.Label(text: String(localized: "shield.button"), color: .black),
             primaryButtonBackgroundColor: accent
         )

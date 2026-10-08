@@ -73,6 +73,7 @@ private struct LockScreenView: View {
                     .foregroundStyle(tint)
                     .frame(width: 36, height: 36)
                     .background(tint.opacity(0.2), in: .circle)
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(attributes.goalTitle)
                         .font(.headline)
@@ -101,7 +102,7 @@ private struct Clock: View {
     var body: some View {
         Group {
             if let endsAt = state.endsAt {
-                Text(timerInterval: state.startedAt...max(endsAt, state.startedAt), countsDown: true)
+                Text(timerInterval: state.startedAt ... max(endsAt, state.startedAt), countsDown: true)
             } else {
                 Text(state.startedAt, style: .timer)
             }
@@ -119,7 +120,7 @@ private struct Bar: View {
 
     var body: some View {
         if let endsAt = state.endsAt {
-            ProgressView(timerInterval: state.startedAt...max(endsAt, state.startedAt), countsDown: false) {
+            ProgressView(timerInterval: state.startedAt ... max(endsAt, state.startedAt), countsDown: false) {
                 EmptyView()
             } currentValueLabel: {
                 EmptyView()

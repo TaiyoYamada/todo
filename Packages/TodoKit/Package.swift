@@ -28,6 +28,7 @@ let package = Package(
                 "DesignSystem",
                 "LiveActivityClient",
                 "NotificationClient",
+                "SharedCore",
                 "ShieldClient",
                 .product(name: "Domain", package: "Domain"),
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),

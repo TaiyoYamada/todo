@@ -1,12 +1,12 @@
 import SharedCore
 import SwiftUI
 
-extension View {
+public extension View {
     /// ロックするアプリを選ぶ画面を出す。
     ///
     /// 実機では OS の選択画面(FamilyActivityPicker)を、シミュレータでは `simulated` の内容を出す。
     /// 選んだ内容は端末の中にだけ保存され、アプリからは「どのアプリか」を知ることができない。
-    public func shieldAppPicker(
+    func shieldAppPicker(
         isPresented: Binding<Bool>,
         onChange: @escaping () -> Void,
         @ViewBuilder simulated: @escaping () -> some View

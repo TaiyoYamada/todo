@@ -51,7 +51,7 @@ public struct QuickAddParser: Sendable {
     private static func halfWidthASCII(_ text: String) -> String {
         String(String.UnicodeScalarView(text.unicodeScalars.map { scalar in
             switch scalar.value {
-            case 0xFF01...0xFF5E: Unicode.Scalar(scalar.value - 0xFEE0) ?? scalar
+            case 0xFF01 ... 0xFF5E: Unicode.Scalar(scalar.value - 0xFEE0) ?? scalar
             case 0x3000: " "
             default: scalar
             }
@@ -91,7 +91,7 @@ public struct QuickAddParser: Sendable {
             var parts = calendar.dateComponents([.year], from: now)
             parts.month = month
             parts.day = day
-            if var date = calendar.date(from: parts), (1...12).contains(month), (1...31).contains(day) {
+            if var date = calendar.date(from: parts), (1 ... 12).contains(month), (1 ... 31).contains(day) {
                 // もう過ぎた日付なら、来年のこととして読む。
                 if date < today {
                     date = calendar.date(byAdding: .year, value: 1, to: date) ?? date
@@ -187,7 +187,7 @@ public struct QuickAddParser: Sendable {
         default:
             break
         }
-        guard (0...24).contains(hour), (0...59).contains(minute) else { return nil }
+        guard (0 ... 24).contains(hour), (0 ... 59).contains(minute) else { return nil }
         // 「24時」は、その日の終わりとして 23:59 に読み替える。
         return hour == 24 ? (23, 59) : (hour, minute)
     }
@@ -212,7 +212,27 @@ public struct QuickAddParser: Sendable {
 
     /// 日付などを取り除いたあとに残る、つなぎの言葉と記号を落とす。
     private static func cleanTitle(_ text: String) -> String {
-        let particles = ["までに", "まで", "迄に", "迄", "締切", "〆切", "に", "の", "は", "を", "で", "by", "due", "until", "before", "on", "at", "for", "in"]
+        let particles = [
+            "までに",
+            "まで",
+            "迄に",
+            "迄",
+            "締切",
+            "〆切",
+            "に",
+            "の",
+            "は",
+            "を",
+            "で",
+            "by",
+            "due",
+            "until",
+            "before",
+            "on",
+            "at",
+            "for",
+            "in",
+        ]
         let trimSet = CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: "、。,.・-:;()()"))
         var title = text.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
             .trimmingCharacters(in: trimSet)
@@ -224,7 +244,9 @@ public struct QuickAddParser: Sendable {
                 let lowered = title.lowercased()
                 // 英語のつなぎ言葉は、単語として独立しているときだけ落とす(「Design」の末尾の in などを削らない)。
                 let isWord = particle.allSatisfy(\.isASCII)
-                if lowered.hasSuffix(particle), !isWord || lowered.dropLast(particle.count).last.map({ $0 == " " }) ?? true {
+                if lowered.hasSuffix(particle),
+                   !isWord || lowered.dropLast(particle.count).last.map({ $0 == " " }) ?? true
+                {
                     title = String(title.dropLast(particle.count)).trimmingCharacters(in: trimSet)
                     changed = true
                 }
@@ -254,7 +276,7 @@ public struct QuickAddParser: Sendable {
             let result = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
             let range = Range(result.range, in: text)
         else { return nil }
-        let groups = (1..<result.numberOfRanges).map { index -> String? in
+        let groups = (1 ..< result.numberOfRanges).map { index -> String? in
             Range(result.range(at: index), in: text).map { String(text[$0]) }
         }
         return Match(range: range, groups: groups)

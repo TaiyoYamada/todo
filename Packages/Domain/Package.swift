@@ -2,8 +2,8 @@
 
 import PackageDescription
 
-// 純粋なロジックと型だけを置くパッケージ。
-// Foundation 以外に依存しないので、macOS 上で `swift test` を回せる。
+/// 純粋なロジックと型だけを置くパッケージ。
+/// Foundation 以外に依存しないので、macOS 上で `swift test` を回せる。
 let package = Package(
     name: "Domain",
     platforms: [.iOS(.v26), .macOS(.v26)],
