@@ -1,0 +1,19 @@
+# Dependabot: GitHub Actions で使っているアクションの更新を、週に1度確かめる。
+# 注意: Dependabot は既定のブランチ(main)にあるこのファイルだけを読む。
+#       develop にあるだけでは動かず、main に入ってから有効になる。
+# Swift パッケージの更新は、対象の Package.swift ができてから追加を検討する。
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    # Git-flow に合わせて、プルリクエストは develop に向ける
+    target-branch: develop
+    open-pull-requests-limit: 5
+    # コミットメッセージの先頭を、このリポジトリの形(<type>: ...)に合わせる
+    commit-message:
+      prefix: "ci"

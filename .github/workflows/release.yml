@@ -1,0 +1,130 @@
+# ============================================================================
+#  仮置き(PLACEHOLDER): TestFlight への配信は、まだ実装していない
+# ============================================================================
+#
+# 有料の Apple Developer Program に登録していないため、署名も配信もできない。
+# このワークフローは、準備が整ったときに何が要るかを残しておくためのもの。
+# 手動でしか動かず、動かしても案内を出して失敗するだけで、何も配信しない。
+# 下の手順と、コメントにしてあるジョブは、どれも実行して確かめたものではない(未検証)。
+#
+# ■ 配信できるようにするまでの手順
+#   1. Apple Developer Program(有料)に登録する。
+#   2. Apple Developer で、アプリ本体と各拡張機能の App ID(Bundle ID)を登録し、
+#      App Group など必要な機能を有効にする。
+#   3. スクリーンタイム API を配信版で使うために、Family Controls (Distribution) の
+#      利用を Apple に申請し、承認を受ける。使う Bundle ID ごとに要る。
+#   4. App Store Connect にアプリを作る。
+#   5. App Store Connect の「ユーザとアクセス > 統合 > App Store Connect API」で
+#      API キーを発行し、下の Secrets を登録する。
+#   6. 書き出しの設定(ExportOptions.plist。method は app-store-connect、
+#      destination は upload)をリポジトリに足す。
+#   7. 下のコメントにしてある testflight ジョブを有効にし、placeholder ジョブを消す。
+#   8. 手動で実行して確かめてから、必要ならタグのプッシュ(v*)で動くようにする。
+#
+# ■ 登録が要る Secrets(Settings > Secrets and variables > Actions)
+#   APP_STORE_CONNECT_KEY_ID        API キーの ID
+#   APP_STORE_CONNECT_ISSUER_ID     API キーの Issuer ID
+#   APP_STORE_CONNECT_PRIVATE_KEY   API キー(.p8)の中身を base64 にしたもの
+#                                   作り方: base64 -i AuthKey_XXXXXXXXXX.p8 | pbcopy
+#   APPLE_TEAM_ID                   開発チームの ID(10 文字)
+#
+#   上は、API キーを使って Xcode に署名を任せる(-allowProvisioningUpdates)場合の一覧。
+#   証明書とプロファイルを自分で管理する場合は、代わりに次のものが要る。
+#   DISTRIBUTION_CERTIFICATE_P12    配布用の証明書(.p12)を base64 にしたもの
+#   DISTRIBUTION_CERTIFICATE_PASSWORD  .p12 のパスワード
+#   PROVISIONING_PROFILES           アプリ本体と各拡張機能のプロファイル(base64)
+#   KEYCHAIN_PASSWORD               CI 上で作る一時的なキーチェーンのパスワード
+#
+#   .p8 や .p12 そのものは、リポジトリに入れない(.gitignore で除外してある)。
+
+name: "Release (TestFlight) - 未実装の仮置き"
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  placeholder:
+    name: 未実装の案内
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: まだ配信できないことを知らせる
+        run: |
+          echo "::error title=未実装::TestFlight への配信はまだ実装していません。必要な準備は .github/workflows/release.yml の冒頭を参照してください。"
+          exit 1
+
+  # --- ここから下は、準備ができたら有効にする下書き(未検証) ------------------
+  #
+  # testflight:
+  #   name: TestFlight に配信する
+  #   # 公開は main からだけ行う
+  #   if: github.ref == 'refs/heads/main'
+  #   # Xcode 27 が要る。イメージの選び方は ci.yml の「実行環境」を参照
+  #   runs-on: xcode-27
+  #   timeout-minutes: 60
+  #   env:
+  #     XCODE_VERSION: "27.0"
+  #     ARCHIVE_PATH: build/Todo.xcarchive
+  #     API_KEY_PATH: ${{ runner.temp }}/AuthKey.p8
+  #   steps:
+  #     - name: チェックアウト
+  #       uses: actions/checkout@v7
+  #
+  #     - name: Xcode を選ぶ
+  #       run: sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app"
+  #
+  #     - name: XcodeGen を入れてプロジェクトを生成する
+  #       run: |
+  #         brew install xcodegen
+  #         make bootstrap
+  #
+  #     - name: API キーを置く
+  #       env:
+  #         APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+  #       run: echo "$APP_STORE_CONNECT_PRIVATE_KEY" | base64 --decode > "$API_KEY_PATH"
+  #
+  #     - name: アーカイブする(Todo-Prod)
+  #       env:
+  #         APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+  #         APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+  #         APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+  #       run: |
+  #         set -o pipefail
+  #         xcodebuild archive \
+  #           -project Todo.xcodeproj \
+  #           -scheme Todo-Prod \
+  #           -destination "generic/platform=iOS" \
+  #           -archivePath "$ARCHIVE_PATH" \
+  #           -skipMacroValidation -skipPackagePluginValidation \
+  #           -allowProvisioningUpdates \
+  #           -authenticationKeyPath "$API_KEY_PATH" \
+  #           -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
+  #           -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" \
+  #           DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+  #           CURRENT_PROJECT_VERSION="${{ github.run_number }}" | xcbeautify
+  #
+  #     - name: 書き出して App Store Connect に送る
+  #       env:
+  #         APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+  #         APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+  #       run: |
+  #         set -o pipefail
+  #         xcodebuild -exportArchive \
+  #           -archivePath "$ARCHIVE_PATH" \
+  #           -exportOptionsPlist <ExportOptions.plist の場所> \
+  #           -exportPath build/export \
+  #           -allowProvisioningUpdates \
+  #           -authenticationKeyPath "$API_KEY_PATH" \
+  #           -authenticationKeyID "$APP_STORE_CONNECT_KEY_ID" \
+  #           -authenticationKeyIssuerID "$APP_STORE_CONNECT_ISSUER_ID" | xcbeautify
+  #
+  #     - name: API キーを消す
+  #       if: always()
+  #       run: rm -f "$API_KEY_PATH"

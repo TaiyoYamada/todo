@@ -1,0 +1,121 @@
+# CI: 検査(SwiftLint / SwiftFormat)と、ビルド + テスト
+#
+# ■ いまは手動実行のみ
+#   最初の開発が一段落するまで、プッシュやプルリクエストでは自動で走らせない。
+#   実行するには、GitHub の Actions 画面で「CI」を選び「Run workflow」を押すか、
+#   `gh workflow run ci.yml --ref <ブランチ>` を使う。
+#   注意: 手動実行は、このファイルが既定のブランチ(main)に入ってから使えるようになる。
+#
+# ■ 自動実行に切り替えるとき
+#   下の `on:` の中でコメントにしてある pull_request と push の行の「# 」を外す。
+#   workflow_dispatch は残しておくと、手動でも実行できる。
+#
+# ■ このワークフローはまだ一度も実行していない(未検証)
+#   作った時点ではプロジェクト本体(project.yml やソース)がなく、試せていない。
+#   初めて実行するときは、下の「実行環境」のメモと合わせて見直すこと。
+
+name: CI
+
+on:
+  workflow_dispatch:
+  # pull_request:
+  #   branches: [develop, main]
+  #   paths-ignore: ["**.md", "docs/**", "LICENSE"]
+  # push:
+  #   branches: [develop, main]
+  #   paths-ignore: ["**.md", "docs/**", "LICENSE"]
+
+permissions:
+  contents: read
+
+# 同じブランチで新しい実行が始まったら、古い実行を止める
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# ■ 実行環境(2026-10-09 に actions/runner-images の README で確認)
+#   このプロジェクトのビルドには Xcode 27(Swift 6.4)が要る。
+#   - `macos-26` / `macos-latest` の Xcode は 26.x までで、Xcode 27 は入っていない。
+#   - Xcode 27 が入っているのは `xcode-27` というラベルのイメージ(macOS 27 ベース)。
+#     まだ「preview」の扱いで、内容が変わったり、実行待ちが長くなったりすることがある。
+#     既定の Xcode は 27.0(/Applications/Xcode_27.0.app)。27.1 と 27.2 beta も入っている。
+#   - `xcode-27` に入っている iOS シミュレータは iOS 27.0 の
+#     iPhone 17 / iPhone 17e / iPhone 18 Pro / iPhone 18 Pro Max / iPhone Air。
+#     Makefile の既定(iPhone 17 Pro)は入っていないので、ここでは iPhone 17 を指定している。
+#   - 入っている道具: SwiftFormat 0.63.0、xcbeautify 3.2.1。SwiftLint と XcodeGen は入っていないので brew で入れる。
+#   Xcode の版は下の XCODE_VERSION で決まり、「Xcode を選ぶ」のステップで切り替えている。
+#   イメージが正式版になったら、runs-on と合わせて見直す。
+#   https://github.com/actions/runner-images/blob/main/images/macos/xcode-27-arm64-Readme.md
+env:
+  XCODE_VERSION: "27.0"
+  DESTINATION: platform=iOS Simulator,name=iPhone 17,OS=27.0
+  # xcbeautify の出力を GitHub の注釈(エラーの位置表示)にする。Makefile が読む
+  XCBEAUTIFY_FLAGS: --renderer github-actions
+  HOMEBREW_NO_AUTO_UPDATE: "1"
+  HOMEBREW_NO_INSTALL_CLEANUP: "1"
+
+jobs:
+  lint:
+    name: 検査(SwiftLint / SwiftFormat)
+    # 検査は Xcode の版に左右されないので、正式版のイメージを使う
+    runs-on: macos-26
+    timeout-minutes: 10
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v7
+
+      - name: SwiftLint を入れる
+        run: brew install swiftlint
+
+      # 手元と CI で版が違うと、検査の結果が食い違うことがある。
+      # 食い違ったら、手元で `brew upgrade swiftlint swiftformat` を試す
+      - name: 道具の版を表示する
+        run: |
+          echo "SwiftLint   $(swiftlint version)"
+          echo "SwiftFormat $(swiftformat --version)"
+
+      - name: 検査する
+        run: make lint
+
+  build-test:
+    name: ビルドとテスト
+    # Xcode 27 が要るので、preview の xcode-27 イメージを使う(上の「実行環境」を参照)
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v7
+
+      # ここで Xcode の版を決めている
+      - name: Xcode を選ぶ
+        run: |
+          sudo xcode-select -s "/Applications/Xcode_${XCODE_VERSION}.app"
+          xcodebuild -version
+          swift --version
+
+      - name: 使えるシミュレータを表示する
+        run: xcrun simctl list devices available
+
+      - name: XcodeGen を入れる
+        run: brew install xcodegen
+
+      - name: プロジェクトを生成する
+        run: make bootstrap
+
+      - name: ロジックのテスト(macOS)
+        run: make test-domain
+
+      - name: ビルド(Todo-Dev)
+        run: make build
+
+      - name: ユニットテストと UI テスト(シミュレータ)
+        run: make test-app DESTINATION="$DESTINATION"
+
+      - name: テスト結果を保存する
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: build/reports/*.xcresult
+          if-no-files-found: ignore
+          retention-days: 7

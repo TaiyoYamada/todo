@@ -1,0 +1,56 @@
+# SwiftFormat(nicklockwood/SwiftFormat)の設定
+# 整形は SwiftFormat、検査は SwiftLint と役割を分けている。
+# 整形と食い違う SwiftLint のルールは .swiftlint.yml 側で無効にしてある。
+# 使い方: make format(整形) / make format-check(検査のみ)
+
+# --- 対象 ---------------------------------------------------------------
+--swift-version 6.0
+--language-mode 6
+--exclude .build,**/.build,DerivedData,build,**/Generated,**/*.generated.swift
+
+# --- インデントと改行 ---------------------------------------------------
+--indent 4
+--tab-width 4
+--smart-tabs enabled
+--indent-case false
+--ifdef indent
+--linebreaks lf
+--trim-whitespace always
+
+# --- 折り返し(1行 120 文字まで) ---------------------------------------
+--max-width 120
+--wrap-arguments before-first
+--wrap-parameters before-first
+--wrap-collections before-first
+--wrap-conditions preserve
+--closing-paren balanced
+--call-site-paren balanced
+
+# --- カンマと import ----------------------------------------------------
+--trailing-commas always
+--import-grouping testable-last
+
+# --- 書き方 -------------------------------------------------------------
+--self remove
+--semicolons never
+--else-position same-line
+--guard-else auto
+--pattern-let hoist
+--void-type Void
+--header ignore
+# プロトコルの要件で使わない引数が出るのは普通なので、クロージャの引数だけを _ にする
+--strip-unused-args closure-only
+
+# --- 属性の位置 ---------------------------------------------------------
+# @Reducer や @MainActor は型や関数の前の行に、
+# @Dependency や @State のような保存プロパティの属性は同じ行に置く
+--type-attributes prev-line
+--func-attributes prev-line
+--stored-var-attributes same-line
+--computed-var-attributes preserve
+--complex-attributes preserve
+
+# --- ルールの追加と除外 -------------------------------------------------
+--enable isEmpty
+# 1行で書ける計算プロパティや関数を無理に複数行にしない
+--disable wrapPropertyBodies,wrapFunctionBodies

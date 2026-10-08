@@ -1,0 +1,167 @@
+# SwiftLint の設定
+# 整形は SwiftFormat(.swiftformat)、検査は SwiftLint と役割を分けている。
+# SwiftFormat が直す範囲と食い違うルールは、ここでは有効にしない。
+# 使い方: make lint
+
+included:
+  - App
+  - Extensions
+  - Packages/TodoKit/Sources
+  - Packages/TodoKit/Tests
+
+excluded:
+  - .build
+  - DerivedData
+  - build
+  - Packages/TodoKit/.build
+  - "**/Generated"
+  - "**/*.generated.swift"
+
+# --- 無効にするルール -----------------------------------------------------
+disabled_rules:
+  # SwiftFormat が末尾のカンマを付ける(--trailing-commas always)
+  - trailing_comma
+  # SwiftFormat が複数行の条件や引数のあとで波かっこを次の行に送る(wrapMultilineStatementBraces)
+  - opening_brace
+  # 引数の折り返しは SwiftFormat に任せる(--wrap-arguments before-first)
+  - vertical_parameter_alignment
+  # TODO コメントは作業の目印として許す
+  - todo
+
+# --- 追加で有効にするルール -----------------------------------------------
+opt_in_rules:
+  # 意図が伝わる書き方
+  - array_init
+  - contains_over_filter_count
+  - contains_over_filter_is_empty
+  - contains_over_first_not_nil
+  - contains_over_range_nil_comparison
+  - empty_collection_literal
+  - empty_count
+  - empty_string
+  - first_where
+  - flatmap_over_map_reduce
+  - last_where
+  - legacy_multiple
+  - optional_enum_case_matching
+  - pattern_matching_keywords
+  - prefer_self_in_static_references
+  - prefer_self_type_over_type_of_self
+  - reduce_into
+  - redundant_nil_coalescing
+  - shorthand_optional_binding
+  - sorted_first_last
+  - toggle_bool
+  - yoda_condition
+  # 落ちにくくする
+  - fatal_error_message
+  - force_unwrapping
+  - identical_operands
+  - unhandled_throwing_task
+  - unavailable_function
+  - weak_delegate
+  # 設計のほころびを見つける
+  - lower_acl_than_parent
+  - overridden_super_call
+  - private_swiftui_state
+  - unused_parameter
+  # 並行処理
+  - incompatible_concurrency_annotation
+  - redundant_sendable
+  # アクセシビリティ(VoiceOver)
+  - accessibility_label_for_image
+  - accessibility_trait_for_button
+  # ファイル
+  - file_name_no_space
+
+# --- しきい値 -------------------------------------------------------------
+# SwiftFormat の --max-width 120 と合わせる。URL やコメントは折り返せないので数えない
+line_length:
+  warning: 120
+  error: 160
+  ignores_urls: true
+  ignores_comments: true
+  ignores_interpolated_strings: true
+  ignores_function_declarations: false
+
+# TCA の Reducer は、アクションごとの分岐が1つの本体に集まるので長くなる。
+# 分ける目安は残しつつ、通常より緩めている。
+function_body_length:
+  warning: 80
+  error: 150
+
+type_body_length:
+  warning: 400
+  error: 600
+
+file_length:
+  warning: 500
+  error: 800
+  ignore_comment_only_lines: true
+
+# switch の case を数えると、アクションの数だけ複雑さが増えてしまう
+cyclomatic_complexity:
+  warning: 12
+  error: 20
+  ignores_case_statements: true
+
+# Feature > State / Action > Alert や Delegate、と3段まで入れ子になる
+nesting:
+  type_level:
+    warning: 3
+    error: 5
+  function_level:
+    warning: 3
+    error: 5
+
+function_parameter_count:
+  warning: 6
+  error: 8
+
+large_tuple:
+  warning: 3
+  error: 4
+
+identifier_name:
+  min_length:
+    warning: 2
+    error: 1
+  max_length:
+    warning: 50
+    error: 60
+  excluded:
+    - id
+    - x
+    - y
+    - i
+
+type_name:
+  min_length: 3
+  max_length:
+    warning: 50
+    error: 60
+
+# テストでは強制アンラップを SwiftFormat が XCTUnwrap / #require に直す(noForceUnwrapInTests)
+force_unwrapping:
+  severity: warning
+
+force_cast: error
+force_try: error
+
+# --- プロジェクト独自のルール ---------------------------------------------
+custom_rules:
+  # 時刻や ID を直接作ると、テストで結果を固定できない。
+  # @Dependency(\.date.now) や @Dependency(\.uuid) を通す。
+  no_direct_date_or_uuid:
+    name: "Date() / UUID() を直接呼ばない"
+    included: "Packages/TodoKit/Sources/.*\\.swift"
+    regex: "\\b(Date|UUID)\\(\\)|\\bDate\\.now\\b"
+    excluded_match_kinds:
+      - comment
+      - doccomment
+      - string
+    message: "時刻や ID は @Dependency(\\.date.now) / @Dependency(\\.uuid) から受け取る。"
+    severity: warning
+
+reporter: xcode
+check_for_updates: false
