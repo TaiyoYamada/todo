@@ -12,6 +12,8 @@ Lockcast(仮称)の文書の一覧です。アプリの概要と始め方は、�
 | [product/decision-log.md](product/decision-log.md) | 仕様に関する決定と理由の記録。区切りごとの見直し(壁打ち)も含む |
 | [product/roadmap.md](product/roadmap.md) | これからの予定。いまの状態、最近済んだこと、次にやること、オーナーに決めてほしいこと |
 | [screenshots/README.md](screenshots/README.md) | 画面の一覧。UI テストがシミュレータで撮ったもの |
+| [product/store-listing-draft.md](product/store-listing-draft.md) | App Store の掲載文の下書き(日本語と英語)。書くときの決まり、未決定の項目 |
+| [product/privacy-policy-draft.md](product/privacy-policy-draft.md) | プライバシーポリシーの下書き。いまのコードが扱うデータの一覧。法的な確認は未了 |
 
 ## 開発
 
