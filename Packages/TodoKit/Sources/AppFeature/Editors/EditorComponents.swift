@@ -49,6 +49,7 @@ struct ChipRow: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityAddTraits(isSelected ? .isSelected : [])
+                    .accessibilityIdentifier("chip.\(value)")
                 }
             }
         }

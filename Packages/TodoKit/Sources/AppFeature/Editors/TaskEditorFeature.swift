@@ -55,7 +55,8 @@ struct TaskEditorFeature {
         BindingReducer()
         Reduce { state, action in
             switch action {
-            case .binding(\.task.title):
+            // 画面の入力欄($store.task.title)は、task 全体を書き換える形で届く。どちらの形でも読み取る。
+            case .binding(\.task.title), .binding(\.task):
                 // 「金曜までにレポート 2時間」のように書かれたら、締切と所要時間を読み取って提案する。
                 let parsed = QuickAddParser(calendar: calendar).parse(state.task.title, now: now)
                 state.suggestion = parsed.hasDetails && !parsed.title.isEmpty ? parsed : nil

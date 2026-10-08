@@ -83,6 +83,7 @@ struct TodayView: View {
                     .frame(width: 40, height: 40)
             }
             .accessibilityLabel(Text(.commonAdd))
+            .accessibilityIdentifier("today.add")
             Button {
                 store.send(.settingsTapped)
             } label: {
@@ -91,6 +92,7 @@ struct TodayView: View {
                     .frame(width: 40, height: 40)
             }
             .accessibilityLabel(Text(.todaySettings))
+            .accessibilityIdentifier("today.settings")
         }
         .foregroundStyle(.white)
         .padding(.top, 8)
@@ -149,6 +151,7 @@ private struct HeroView: View {
             switch hero {
             case .empty:
                 label(.todayEmptyLabel, symbol: "sparkles")
+                    .accessibilityIdentifier("today.hero.empty")
                 Text(.todayEmptyHeadline)
                     .font(.system(size: 34, weight: .heavy, design: .rounded))
                     .multilineTextAlignment(.center)
@@ -160,10 +163,12 @@ private struct HeroView: View {
                     Text(.todayAddGoal)
                 }
                 .buttonStyle(.hero)
+                .accessibilityIdentifier("today.hero.addGoal")
                 .padding(.top, 6)
 
             case let .locked(primary, others):
                 label(.todayLockedLabel, symbol: "lock.fill")
+                    .accessibilityIdentifier("today.hero.locked")
                 Text(primary.title)
                     .font(.system(size: 44, weight: .heavy, design: .rounded))
                     .multilineTextAlignment(.center)
@@ -183,6 +188,7 @@ private struct HeroView: View {
 
             case let .onPass(until, primary):
                 label(.todayPassLabel, symbol: "hourglass")
+                    .accessibilityIdentifier("today.hero.onPass")
                 countdown(to: until)
                 Text(.todayPassHint)
                     .font(.callout.weight(.medium))
@@ -192,6 +198,7 @@ private struct HeroView: View {
 
             case let .countdown(until, reason):
                 label(.todaySlackLabel, symbol: "timer")
+                    .accessibilityIdentifier("today.hero.countdown")
                 countdown(to: until)
                 if let reason {
                     Text(.todaySlackReason(TimeText.clock(until), reason.title))
@@ -204,6 +211,7 @@ private struct HeroView: View {
 
             case let .freeToday(nextLockAt):
                 label(.todayFreeLabel, symbol: "checkmark.seal.fill")
+                    .accessibilityIdentifier("today.hero.free")
                 Text(.todayFreeHeadline)
                     .font(.system(size: 34, weight: .heavy, design: .rounded))
                     .multilineTextAlignment(.center)
@@ -275,6 +283,7 @@ private struct HeroView: View {
                 }
             }
             .buttonStyle(.hero)
+            .accessibilityIdentifier("today.hero.startFocus")
 
         case let .task(id):
             if let startedAt = world.task(id: id)?.startedAt {
@@ -296,6 +305,7 @@ private struct HeroView: View {
                     Label { Text(.todayCtaCompleteTask) } icon: { Image(systemName: "checkmark") }
                 }
                 .buttonStyle(.hero)
+                .accessibilityIdentifier("today.hero.completeTask")
             } else {
                 Button {
                     onStartTask(id)
@@ -303,12 +313,14 @@ private struct HeroView: View {
                     Label { Text(.todayCtaStartTask) } icon: { Image(systemName: "play.fill") }
                 }
                 .buttonStyle(.hero)
+                .accessibilityIdentifier("today.hero.startTask")
                 Button {
                     onCompleteTask(id)
                 } label: {
                     Text(.todayCtaAlreadyDone)
                 }
                 .buttonStyle(.quiet)
+                .accessibilityIdentifier("today.hero.completeTask")
             }
         }
         outlook(resolving: reason.source)
@@ -351,6 +363,7 @@ private struct HeroView: View {
                 }
             }
             .buttonStyle(.hero)
+            .accessibilityIdentifier("today.hero.startFocus")
             outlook(resolving: .goal(suggestedGoal.id))
         }
     }
@@ -384,6 +397,7 @@ private struct TasksCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(.todayTasksLaterTitle)
+                .accessibilityIdentifier("today.tasks.title")
                 .sectionLabelStyle()
             ForEach(tasks) { task in
                 let limit = world.startLimit(of: task)
@@ -397,6 +411,7 @@ private struct TasksCard: View {
                             .frame(width: 44, height: 44)
                     }
                     .accessibilityLabel(Text(.todayCtaCompleteTask))
+                    .accessibilityIdentifier("today.task.complete")
 
                     VStack(alignment: .leading, spacing: 3) {
                         Text(task.title)

@@ -61,6 +61,7 @@ struct SettingsView: View {
                     } label: {
                         Text(.settingsReplayOnboarding)
                     }
+                    .accessibilityIdentifier("settings.replayOnboarding")
                     LabeledContent {
                         Text(verbatim: Self.version)
                     } label: {
@@ -87,6 +88,7 @@ struct SettingsView: View {
                     } label: {
                         Text(.commonDone)
                     }
+                    .accessibilityIdentifier("settings.done")
                 }
             }
         }

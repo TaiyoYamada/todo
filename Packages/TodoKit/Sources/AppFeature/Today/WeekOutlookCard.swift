@@ -10,6 +10,7 @@ struct WeekOutlookCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(.todayWeekTitle)
+                .accessibilityIdentifier("today.week.title")
                 .sectionLabelStyle()
             HStack(alignment: .top, spacing: 0) {
                 ForEach(Array(days.enumerated()), id: \.element.id) { index, day in
