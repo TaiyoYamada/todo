@@ -9,20 +9,28 @@ import Foundation
 /// テスト用の暦。東京時間のグレゴリオ暦に固定して、実行する場所で結果が変わらないようにする。
 let tokyo: Calendar = {
     var calendar = Calendar(identifier: .gregorian)
-    calendar.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+    guard let timeZone = TimeZone(identifier: "Asia/Tokyo") else {
+        preconditionFailure("東京のタイムゾーンが見つからない")
+    }
+    calendar.timeZone = timeZone
     return calendar
 }()
 
 /// 2026年10月の日時を作る。10/9 は金曜日。
 func date(_ day: Int, _ hour: Int = 0, _ minute: Int = 0, _ second: Int = 0) -> Date {
-    tokyo.date(
-        from: DateComponents(year: 2026, month: 10, day: day, hour: hour, minute: minute, second: second)
-    )!
+    let components = DateComponents(year: 2026, month: 10, day: day, hour: hour, minute: minute, second: second)
+    guard let date = tokyo.date(from: components) else {
+        preconditionFailure("日時を作れない: \(components)")
+    }
+    return date
 }
 
 /// `UUIDGenerator.incrementing` が作る ID と同じ並び(0 から)。
 func uuid(_ value: Int) -> UUID {
-    UUID(uuidString: "00000000-0000-0000-0000-" + String(format: "%012d", value))!
+    guard let uuid = UUID(uuidString: "00000000-0000-0000-0000-" + String(format: "%012d", value)) else {
+        preconditionFailure("ID を作れない: \(value)")
+    }
+    return uuid
 }
 
 // MARK: - データ
