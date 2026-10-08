@@ -1,0 +1,493 @@
+import ComposableArchitecture
+import DesignSystem
+import Domain
+import SwiftUI
+
+struct TodayView: View {
+    let store: StoreOf<TodayFeature>
+
+    var body: some View {
+        let status = store.board.status
+        let mood = Mood(hero: store.hero, status: status)
+
+        ScrollView {
+            VStack(spacing: 20) {
+                header
+                HeroView(
+                    hero: store.hero,
+                    status: status,
+                    suggestedGoal: status.goals.first { !$0.isComplete },
+                    onStartFocus: { store.send(.startFocusTapped($0)) },
+                    onCompleteTask: { store.send(.completeTaskTapped($0)) },
+                    onUsePass: { store.send(.usePassConfirmed) },
+                    onAddGoal: { store.send(.addGoalTapped) }
+                )
+                if !status.forecast.isEmpty {
+                    ForecastCard(entries: status.forecast, dayStart: status.today.start)
+                }
+                if !status.goals.isEmpty {
+                    GoalsCard(
+                        goals: status.goals,
+                        onStart: { store.send(.startFocusTapped($0)) },
+                        onOpen: { store.send(.goalTapped($0)) }
+                    )
+                }
+                if !upcomingTasks.isEmpty {
+                    TasksCard(
+                        tasks: upcomingTasks,
+                        world: store.board.world,
+                        now: status.now,
+                        onComplete: { store.send(.completeTaskTapped($0)) },
+                        onOpen: { store.send(.taskTapped($0)) }
+                    )
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 40)
+        }
+        .scrollIndicators(.hidden)
+        .background { AuroraBackground(mood: mood) }
+        .environment(\.mood, mood)
+        .animation(.smooth(duration: 0.5), value: store.hero)
+    }
+
+    private var header: some View {
+        HStack {
+            Text(store.board.status.today.start, format: .dateTime.month().day().weekday(.wide))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.7))
+            Spacer()
+            Menu {
+                Button {
+                    store.send(.addGoalTapped)
+                } label: {
+                    Label { Text(.todayAddGoal) } icon: { Image(systemName: "target") }
+                }
+                Button {
+                    store.send(.addTaskTapped)
+                } label: {
+                    Label { Text(.todayAddTask) } icon: { Image(systemName: "calendar.badge.clock") }
+                }
+            } label: {
+                Image(systemName: "plus")
+                    .font(.body.weight(.semibold))
+                    .frame(width: 40, height: 40)
+            }
+            .accessibilityLabel(Text(.commonAdd))
+            Button {
+                store.send(.settingsTapped)
+            } label: {
+                Image(systemName: "gearshape.fill")
+                    .font(.body)
+                    .frame(width: 40, height: 40)
+            }
+            .accessibilityLabel(Text(.todaySettings))
+        }
+        .foregroundStyle(.white)
+        .padding(.top, 8)
+    }
+
+    /// 近いうちに着手リミットが来るタスク。多すぎると読まれないので、上から数件だけ。
+    private var upcomingTasks: [TaskItem] {
+        let world = store.board.world
+        return Array(world.openTasks.sorted { world.startLimit(of: $0) < world.startLimit(of: $1) }.prefix(4))
+    }
+}
+
+extension Mood {
+    /// いまの状態に合う雰囲気。ロックが近づくほど、色で緊張を伝える。
+    init(hero: Hero, status: LockStatus) {
+        switch hero {
+        case .empty:
+            self = .calm
+        case .locked:
+            self = .locked
+        case .onPass:
+            self = .warning
+        case let .countdown(until, _):
+            self = until.timeIntervalSince(status.now) < 3600 ? .warning : .calm
+        case .freeToday:
+            self = .free
+        }
+    }
+}
+
+// MARK: - いちばん上の表示
+
+private struct HeroView: View {
+    let hero: Hero
+    let status: LockStatus
+    let suggestedGoal: GoalProgress?
+    let onStartFocus: (Goal.ID) -> Void
+    let onCompleteTask: (TaskItem.ID) -> Void
+    let onUsePass: () -> Void
+    let onAddGoal: () -> Void
+
+    @Environment(\.mood) private var mood
+
+    var body: some View {
+        VStack(spacing: 14) {
+            switch hero {
+            case .empty:
+                label(.todayEmptyLabel, symbol: "sparkles")
+                Text(.todayEmptyHeadline)
+                    .font(.system(size: 34, weight: .heavy, design: .rounded))
+                    .multilineTextAlignment(.center)
+                Text(.todayEmptyBody)
+                    .font(.callout)
+                    .foregroundStyle(.white.opacity(0.75))
+                    .multilineTextAlignment(.center)
+                Button(action: onAddGoal) {
+                    Text(.todayAddGoal)
+                }
+                .buttonStyle(.hero)
+                .padding(.top, 6)
+
+            case let .locked(primary, others):
+                label(.todayLockedLabel, symbol: "lock.fill")
+                Text(primary.title)
+                    .font(.system(size: 44, weight: .heavy, design: .rounded))
+                    .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.6)
+                    .lineLimit(2)
+                Text(hint(for: primary))
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.8))
+                if others > 0 {
+                    Text(.todayLockedMore(others))
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                action(for: primary)
+                    .padding(.top, 6)
+                passButton
+
+            case let .onPass(until, primary):
+                label(.todayPassLabel, symbol: "hourglass")
+                countdown(to: until)
+                Text(.todayPassHint)
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(.white.opacity(0.8))
+                action(for: primary)
+                    .padding(.top, 6)
+
+            case let .countdown(until, reason):
+                label(.todaySlackLabel, symbol: "timer")
+                countdown(to: until)
+                if let reason {
+                    Text(.todaySlackReason(TimeText.clock(until), reason.title))
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.8))
+                        .multilineTextAlignment(.center)
+                }
+                suggestion
+                    .padding(.top, 6)
+
+            case let .freeToday(nextLockAt):
+                label(.todayFreeLabel, symbol: "checkmark.seal.fill")
+                Text(.todayFreeHeadline)
+                    .font(.system(size: 34, weight: .heavy, design: .rounded))
+                    .multilineTextAlignment(.center)
+                if let nextLockAt {
+                    Text(.todayFreeNext(TimeText.dayAndClock(nextLockAt)))
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.75))
+                }
+                suggestion
+                    .padding(.top, 6)
+            }
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 28)
+    }
+
+    private func label(_ text: LocalizedStringResource, symbol: String) -> some View {
+        Label {
+            Text(text)
+        } icon: {
+            Image(systemName: symbol)
+        }
+        .font(.footnote.weight(.bold))
+        .textCase(.uppercase)
+        .kerning(1.2)
+        .foregroundStyle(mood.accent)
+        .padding(.vertical, 7)
+        .padding(.horizontal, 14)
+        .background(mood.accent.opacity(0.16), in: .capsule)
+    }
+
+    /// 残り時間。OS が毎秒描き直すので、状態を毎秒更新しなくてよい。
+    private func countdown(to date: Date) -> some View {
+        Text(timerInterval: status.now...max(date, status.now), countsDown: true)
+            .font(.system(size: 76, weight: .heavy, design: .rounded))
+            .monospacedDigit()
+            .minimumScaleFactor(0.5)
+            .lineLimit(1)
+            .contentTransition(.numericText(countsDown: true))
+            .shadow(color: mood.accent.opacity(0.5), radius: 24)
+            .accessibilityLabel(Text(.todaySlackLabel))
+    }
+
+    private func hint(for reason: LockReason) -> LocalizedStringResource {
+        if let remaining = reason.remainingSeconds {
+            .todayLockedGoalHint(DurationText.compact(seconds: remaining))
+        } else {
+            .todayLockedTaskHint
+        }
+    }
+
+    @ViewBuilder
+    private func action(for reason: LockReason) -> some View {
+        switch reason.source {
+        case let .goal(id):
+            Button {
+                onStartFocus(id)
+            } label: {
+                Label { Text(.todayCtaStartFocus(reason.title)) } icon: { Image(systemName: "play.fill") }
+            }
+            .buttonStyle(.hero)
+
+        case let .task(id):
+            Button {
+                onCompleteTask(id)
+            } label: {
+                Label { Text(.todayCtaCompleteTask) } icon: { Image(systemName: "checkmark") }
+            }
+            .buttonStyle(.hero)
+        }
+    }
+
+    /// ロックされていないときの提案。まだ終えていない今日の分があれば、先に進めるよう促す。
+    @ViewBuilder
+    private var suggestion: some View {
+        if let suggestedGoal {
+            Button {
+                onStartFocus(suggestedGoal.id)
+            } label: {
+                Label {
+                    Text(.todayCtaStartFocus(suggestedGoal.goal.title))
+                } icon: {
+                    Image(systemName: "play.fill")
+                }
+            }
+            .buttonStyle(.hero)
+        }
+    }
+
+    @ViewBuilder
+    private var passButton: some View {
+        if status.passesRemaining > 0 {
+            HoldToConfirmButton(tint: mood.accent, action: onUsePass) {
+                Text(.todayPassButton(status.passesRemaining))
+            }
+        } else {
+            Text(.todayPassNone)
+                .font(.footnote)
+                .foregroundStyle(.white.opacity(0.55))
+                .padding(.top, 4)
+        }
+    }
+}
+
+// MARK: - ロック予報
+
+private struct ForecastCard: View {
+    let entries: [ForecastEntry]
+    let dayStart: Date
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(.todayForecastTitle)
+                .sectionLabelStyle()
+            VStack(spacing: 0) {
+                ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+                    ForecastRow(
+                        entry: entry,
+                        isFromMorning: entry.at == dayStart,
+                        isLast: index == entries.count - 1
+                    )
+                }
+            }
+        }
+        .glassCard()
+    }
+}
+
+private struct ForecastRow: View {
+    let entry: ForecastEntry
+    let isFromMorning: Bool
+    let isLast: Bool
+
+    @Environment(\.mood) private var mood
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Group {
+                if isFromMorning {
+                    Text(.todayForecastFromMorning)
+                } else {
+                    Text(TimeText.clock(entry.at))
+                }
+            }
+            .font(.subheadline.weight(.semibold))
+            .monospacedDigit()
+            .foregroundStyle(.white.opacity(entry.state == .cleared ? 0.45 : 0.85))
+            .frame(width: 62, alignment: .leading)
+
+            // 時刻順に点を縦線でつなぎ、1日の流れとして見せる。
+            VStack(spacing: 0) {
+                Image(systemName: symbol)
+                    .font(.footnote.weight(.bold))
+                    .foregroundStyle(color)
+                    .frame(width: 22, height: 22)
+                if !isLast {
+                    Rectangle()
+                        .fill(.white.opacity(0.16))
+                        .frame(width: 2)
+                        .frame(maxHeight: .infinity)
+                }
+            }
+
+            Text(entry.title)
+                .font(.body.weight(.medium))
+                .strikethrough(entry.state == .cleared, color: .white.opacity(0.5))
+                .foregroundStyle(.white.opacity(entry.state == .cleared ? 0.5 : 1))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, isLast ? 0 : 18)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var symbol: String {
+        switch entry.state {
+        case .cleared: "checkmark.circle.fill"
+        case .active: "lock.circle.fill"
+        case .upcoming: "circle.dotted"
+        }
+    }
+
+    private var color: Color {
+        switch entry.state {
+        case .cleared: .white.opacity(0.45)
+        case .active: mood.accent
+        case .upcoming: .white.opacity(0.85)
+        }
+    }
+}
+
+// MARK: - 今日の分
+
+private struct GoalsCard: View {
+    let goals: [GoalProgress]
+    let onStart: (Goal.ID) -> Void
+    let onOpen: (Goal.ID) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(.todayGoalsTitle)
+                .sectionLabelStyle()
+            ForEach(goals) { progress in
+                HStack(spacing: 14) {
+                    ProgressRing(fraction: progress.fraction, lineWidth: 5, tint: progress.goal.tint.color) {
+                        Image(systemName: progress.isComplete ? "checkmark" : progress.goal.symbol)
+                            .font(.footnote.weight(.bold))
+                            .foregroundStyle(progress.goal.tint.color)
+                            .contentTransition(.symbolEffect(.replace))
+                    }
+                    .frame(width: 44, height: 44)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(progress.goal.title)
+                            .font(.body.weight(.semibold))
+                            .lineLimit(1)
+                        Text(
+                            .todayGoalsProgress(
+                                DurationText.compact(minutes: progress.doneSeconds / 60),
+                                DurationText.compact(minutes: progress.goal.dailyMinutes)
+                            )
+                        )
+                        .font(.footnote)
+                        .foregroundStyle(.white.opacity(0.65))
+                        .monospacedDigit()
+                        if progress.lockStartsAt == nil {
+                            Text(.todayGoalsNoLockToday)
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.5))
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(.rect)
+                    .onTapGesture { onOpen(progress.id) }
+
+                    Button {
+                        onStart(progress.id)
+                    } label: {
+                        Image(systemName: "play.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .background(progress.goal.tint.color.opacity(0.32), in: .circle)
+                    }
+                    .accessibilityLabel(Text(.todayCtaStartFocus(progress.goal.title)))
+                }
+            }
+        }
+        .foregroundStyle(.white)
+        .glassCard()
+    }
+}
+
+// MARK: - 締切
+
+private struct TasksCard: View {
+    let tasks: [TaskItem]
+    let world: World
+    let now: Date
+    let onComplete: (TaskItem.ID) -> Void
+    let onOpen: (TaskItem.ID) -> Void
+
+    @Environment(\.mood) private var mood
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(.todayTasksTitle)
+                .sectionLabelStyle()
+            ForEach(tasks) { task in
+                let limit = world.startLimit(of: task)
+                HStack(spacing: 14) {
+                    Button {
+                        onComplete(task.id)
+                    } label: {
+                        Image(systemName: "circle")
+                            .font(.title2)
+                            .foregroundStyle(.white.opacity(0.7))
+                            .frame(width: 44, height: 44)
+                    }
+                    .accessibilityLabel(Text(.todayCtaCompleteTask))
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(task.title)
+                            .font(.body.weight(.semibold))
+                            .lineLimit(2)
+                        Text(.todayTasksDue(TimeText.dayAndClock(task.dueAt)))
+                            .font(.footnote)
+                            .foregroundStyle(.white.opacity(0.65))
+                        Label {
+                            Text(.todayTasksStartLimit(TimeText.dayAndClock(limit)))
+                        } icon: {
+                            Image(systemName: limit <= now ? "lock.fill" : "lock.open")
+                        }
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(limit <= now ? mood.accent : .white.opacity(0.75))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(.rect)
+                    .onTapGesture { onOpen(task.id) }
+                }
+            }
+        }
+        .foregroundStyle(.white)
+        .glassCard()
+    }
+}
