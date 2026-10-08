@@ -15,14 +15,14 @@
 
 | 区分 | 内容 |
 |---|---|
-| 実装済み | 初回設定、今日(余裕、片づけたあとの見通し、時刻順の1本にまとめたロック予報、これからの7日、この先の締切)、集中の計測、予定(目標とタスクの追加と編集、1行からの締切と所要時間の読み取り)、タスクの着手(「いま始める」)、タスク完了時の実績入力、見積もりの自動補正、振り返り、設定、パス、ロックの前の通知、ウィジェット、コントロールセンターのボタン、集中の Live Activity |
-| 実装済みだが、見た目を確かめていない | ウィジェット、Live Activity(開始の要求が通ることは確かめた)、コントロールセンターのボタン |
+| 実装済み | 初回設定、今日(余裕、片づけたあとの見通し、時刻順の1本にまとめたロック予報、これからの7日、この先の締切)、集中の計測、予定(目標とタスクの追加と編集、1行からの締切と所要時間の読み取り)、タスクの着手(「いま始める」)、タスク完了時の実績入力、見積もりの自動補正(理由の説明と、タスクごとの「見積もりどおり」への切り替えつき)、振り返り、設定、パス、ロックの前の通知、ウィジェット、コントロールセンターのボタン、集中の Live Activity |
+| 実装済みだが、見た目を確かめきれていない | ウィジェット(配置は開発用の画面で確かめた。ホーム画面に置いた様子はまだ)、Live Activity(開始の要求が通ることは確かめた)、コントロールセンターのボタン |
 | コードはあるが実機で未検証 | スクリーンタイム API によるロック、ロックの開始と解除の時刻の予約、予約の時刻にロックを掛け直す拡張機能、ロック画面の文言を決める拡張機能、ロックするアプリを選ぶ画面 |
 | まだない | ロック画面のボタンの動き、タスクの計測の画面、目標の保管、抜け道への対策、課金。アプリアイコンは仮のもの(権利は未確認) |
-| テスト | 判定と計算(`Domain`)66 件、画面のロジック(Reducer)193 件、保存(`DatabaseClient`)8 件、UI テスト 30 件。PR #13 の時点で、すべて通った。`make lint` も通る |
+| テスト | 判定と計算(`Domain`)67 件、画面のロジック(Reducer)193 件、保存(`DatabaseClient`)8 件、UI テスト 30 件。すべて通っている。`make lint` も通る |
 
 シミュレータでは、ロックの状態は計算され画面に出ますが、ほかのアプリは実際には止まりません。
-詳しくは[仕様](docs/product/spec.md)の「実装の状況」と[設計](docs/engineering/architecture.md)の「分かっている制限」にあります。
+詳しくは[仕様](docs/product/spec.md)の「実装の状況」と[設計](docs/engineering/architecture.md)の「分かっている制限」にあります。いまの画面は[画面の一覧](docs/screenshots/README.md)で見られます。
 
 ## 必要なもの
 
@@ -66,7 +66,7 @@ open Todo.xcodeproj   # スキーム Todo-Dev を選んで実行する
 | `free` | 今日の分をすべて終えて、自由 |
 | `fresh` | 何も登録していない。初回設定から始まる |
 
-最初に開くタブは、`-sampleTab plan`(予定)または `-sampleTab insights`(振り返り)で選べます。
+最初に開くタブは、`-sampleTab plan`(予定)または `-sampleTab insights`(振り返り)で選べます。`-sampleTab widgets` を付けると、ウィジェットの見た目を並べた開発用の画面が出ます。
 
 Xcode では、スキームの編集画面で Run > Arguments に `-sampleData locked` を足します。コマンドラインでは次のとおりです。
 
@@ -113,6 +113,7 @@ Makefile              開発用のコマンド
 | [docs/engineering/development.md](docs/engineering/development.md) | 開発の手順 |
 | [docs/engineering/release-checklist.md](docs/engineering/release-checklist.md) | 公開前の確認事項 |
 | [docs/engineering/adr/](docs/engineering/adr/README.md) | 技術的な決定の記録 |
+| [docs/screenshots/](docs/screenshots/README.md) | 画面の一覧(UI テストが撮ったもの) |
 | [docs/research/](docs/research/README.md) | 市場、競合、事業モデル、リスクの調査 |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | ブランチ、コミット、プルリクエストの約束 |
 
