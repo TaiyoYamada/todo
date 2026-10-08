@@ -31,7 +31,6 @@ let package = Package(
                 "SharedCore",
                 "ShieldClient",
                 "SnapshotClient",
-                "WidgetUI",
                 .product(name: "Domain", package: "Domain"),
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture"),
             ],
