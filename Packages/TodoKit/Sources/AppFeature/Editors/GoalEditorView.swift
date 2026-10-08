@@ -18,6 +18,7 @@ struct GoalEditorView: View {
                     }
                     .font(.title3.weight(.semibold))
                     .focused($isTitleFocused)
+                    .accessibilityIdentifier("goalEditor.title")
                     symbolPicker
                     tintPicker
                 }
@@ -84,6 +85,7 @@ struct GoalEditorView: View {
                     } label: {
                         Text(.commonCancel)
                     }
+                    .accessibilityIdentifier("goalEditor.cancel")
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
@@ -92,6 +94,7 @@ struct GoalEditorView: View {
                         Text(store.isNew ? .commonAdd : .commonSave)
                     }
                     .disabled(!store.canSave)
+                    .accessibilityIdentifier("goalEditor.save")
                 }
             }
             .tint(tint)

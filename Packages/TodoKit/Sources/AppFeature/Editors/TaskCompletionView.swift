@@ -11,6 +11,7 @@ struct TaskCompletionView: View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(.completionTitle)
+                    .accessibilityIdentifier("completion.title")
                     .font(.title2.weight(.bold))
                 Text(store.task.title)
                     .font(.headline)
@@ -37,6 +38,7 @@ struct TaskCompletionView: View {
                 Label { Text(.completionConfirm) } icon: { Image(systemName: "checkmark") }
             }
             .buttonStyle(.hero)
+            .accessibilityIdentifier("completion.confirm")
 
             Button {
                 store.send(.cancelTapped)
@@ -46,6 +48,7 @@ struct TaskCompletionView: View {
             }
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(.secondary)
+            .accessibilityIdentifier("completion.cancel")
         }
         .padding(24)
         .environment(\.mood, mood)

@@ -19,6 +19,7 @@ struct TaskEditorView: View {
                     }
                     .font(.title3.weight(.semibold))
                     .focused($isTitleFocused)
+                    .accessibilityIdentifier("taskEditor.title")
                     if let suggestion = store.suggestion {
                         Button {
                             store.send(.applySuggestionTapped)
@@ -32,6 +33,7 @@ struct TaskEditorView: View {
                             .font(.subheadline.weight(.semibold))
                         }
                         .transition(.opacity.combined(with: .move(edge: .top)))
+                        .accessibilityIdentifier("taskEditor.suggestion")
                     }
                 } footer: {
                     if store.isNew {
@@ -98,6 +100,7 @@ struct TaskEditorView: View {
                     } label: {
                         Text(.commonCancel)
                     }
+                    .accessibilityIdentifier("taskEditor.cancel")
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button {
@@ -106,6 +109,7 @@ struct TaskEditorView: View {
                         Text(store.isNew ? .commonAdd : .commonSave)
                     }
                     .disabled(!store.canSave)
+                    .accessibilityIdentifier("taskEditor.save")
                 }
             }
             .tint(tint)
