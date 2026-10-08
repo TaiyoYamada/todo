@@ -2,7 +2,6 @@ import ConcurrencyExtras
 import Domain
 import Foundation
 import OSLog
-import SharedCore
 
 public extension ShieldClient {
     /// 模擬の実装。実際には何もロックせず、状態を覚えて記録に出すだけ。
@@ -21,9 +20,7 @@ public extension ShieldClient {
                 return .approved
             },
             selectionCount: { state.value.selectionCount },
-            apply: { plan, world in
-                // ウィジェットは模擬の環境でも動くので、写しは本物と同じように書き出す。
-                SnapshotStore.save(world, now: Date())
+            apply: { plan, _ in
                 let changed = state.withValue { current -> Bool in
                     defer { current.isLocked = plan.isLocked }
                     return current.isLocked != plan.isLocked

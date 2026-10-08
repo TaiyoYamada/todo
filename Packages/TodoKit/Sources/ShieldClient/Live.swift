@@ -29,11 +29,9 @@ extension ShieldClient: DependencyKey {
                 },
                 selectionCount: { SelectionStore.count },
                 apply: { plan, world in
-                    let now = Date()
-                    // 拡張機能が読む写しを先に更新する。予約の時刻に起こされたとき、最新の状況で判定できるように。
-                    SnapshotStore.save(world, now: now)
+                    // 拡張機能が読む写しは、呼び出し側(AppFeature)がこの前に書き出している。
                     ShieldApplier.apply(isLocked: plan.isLocked)
-                    MonitorScheduler.reschedule(plan: plan, world: world, now: now)
+                    MonitorScheduler.reschedule(plan: plan, world: world, now: Date())
                 }
             )
         }

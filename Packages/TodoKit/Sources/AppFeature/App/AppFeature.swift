@@ -5,6 +5,7 @@ import Foundation
 import NotificationClient
 import SharedCore
 import ShieldClient
+import SnapshotClient
 
 /// アプリの根。保存データを監視してロックの状態を計算し、各画面に配る。
 @Reducer
@@ -60,6 +61,7 @@ struct AppFeature {
     @Dependency(\.date.now) var now
     @Dependency(\.notifications) var notifications
     @Dependency(\.shield) var shield
+    @Dependency(\.snapshot) var snapshot
     @Dependency(\.uuid) var uuid
 
     var body: some ReducerOf<Self> {
@@ -91,12 +93,12 @@ struct AppFeature {
                     state.destination = nil
                     state.onboarding = OnboardingFeature.State()
                 }
-                return .merge(scheduleTick(state), syncShield(&state))
+                return .merge(scheduleTick(state), syncOutside(&state, worldChanged: true))
 
             case .tick, .becameActive:
                 guard state.board.isLoaded else { return .none }
                 refresh(&state)
-                return .merge(scheduleTick(state), syncShield(&state))
+                return .merge(scheduleTick(state), syncOutside(&state, worldChanged: false))
 
             case let .openDeepLink(link):
                 // 初回設定の途中や、すでに何かを開いているときは、割り込まない。
@@ -147,13 +149,19 @@ struct AppFeature {
         state.$board.withLock { $0.status = engine.status(world: $0.world, now: now) }
     }
 
-    /// ロックの状態が変わっていれば、スクリーンタイムの層へ伝える。
-    private func syncShield(_ state: inout State) -> Effect<Action> {
+    /// アプリの外(ウィジェット、スクリーンタイム、通知)へ、いまの状況を伝える。
+    ///
+    /// 保存データが変わったときは必ず伝える。ロックの状態が同じでも、予約すべき時刻が変わっていることがあるため
+    /// (たとえば、今日作った目標は今日はロックしないが、明日の朝の予約は要る)。
+    /// 時間の経過だけのときは、ロックの状態が変わった場合に限る。
+    private func syncOutside(_ state: inout State, worldChanged: Bool) -> Effect<Action> {
         let plan = ShieldPlan(status: state.board.status)
-        guard plan != state.appliedPlan else { return .none }
+        guard worldChanged || plan != state.appliedPlan else { return .none }
         state.appliedPlan = plan
         let warnings = Self.warnings(for: state.board.status)
         return .run { [world = state.board.world] _ in
+            // 写しを先に書く。スクリーンタイムの拡張機能が、予約の時刻に最新の状況で判定できるように。
+            await snapshot.save(world)
             await shield.apply(plan, world)
             await notifications.replaceAll(warnings)
         }
@@ -250,7 +258,9 @@ struct AppFeature {
 
         case let .completeTask(id):
             guard let task = world.task(id: id) else { return }
-            state.destination = .taskCompletion(TaskCompletionFeature.State(task: task))
+            state.destination = .taskCompletion(
+                TaskCompletionFeature.State(task: task, measuredMinutes: task.elapsedMinutes(until: now))
+            )
 
         case .openSettings:
             state.destination = .settings(SettingsFeature.State())
