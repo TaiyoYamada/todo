@@ -95,7 +95,7 @@ private struct RunningView: View {
                 Text(store.startedAt, style: .timer)
             }
         }
-        .font(.system(size: 64, weight: .heavy, design: .rounded))
+        .font(.hero(64))
         .monospacedDigit()
         .minimumScaleFactor(0.6)
         .lineLimit(1)
@@ -118,7 +118,7 @@ private struct FinishedView: View {
             Spacer()
 
             Image(systemName: summary.reachedTarget ? "checkmark.seal.fill" : "pause.circle.fill")
-                .font(.system(size: 96, weight: .bold))
+                .font(.hero(96, weight: .bold))
                 .foregroundStyle(mood.accent)
                 .symbolEffect(.bounce, value: appeared)
                 .shadow(color: mood.accent.opacity(0.7), radius: 30)
@@ -126,7 +126,7 @@ private struct FinishedView: View {
 
             Text(summary.reachedTarget ? .focusFinishedTitleDone : .focusFinishedTitlePaused)
                 .accessibilityIdentifier("focus.finished.title")
-                .font(.system(size: 36, weight: .heavy, design: .rounded))
+                .font(.hero(36))
                 .multilineTextAlignment(.center)
 
             Text(.focusFinishedSession(DurationText.compact(seconds: summary.sessionSeconds)))
