@@ -2,9 +2,9 @@ import ComposableArchitecture
 import DatabaseClient
 import Domain
 import Foundation
+import NotificationClient
 import ShieldClient
 import Testing
-
 @testable import AppFeature
 
 @MainActor
@@ -17,11 +17,20 @@ struct AppFeatureTests {
     let clock = TestClock()
     /// スクリーンタイムの層へ伝えた指示。伝えた順。
     let applied = LockIsolated<[ShieldPlan]>([])
+    /// 予約し直した通知。予約し直すたびに 1 件。
+    let scheduled = LockIsolated<[[LockNotification]]>([])
+    /// 通知の許可を求めた回数。
+    let authorizationRequests = LockIsolated(0)
     /// 1日 30 分の目標。朝からロックする。
     let goal = Goal.fixture()
 
-    private func makeStore(database: DatabaseClient? = nil) -> TestStoreOf<AppFeature> {
-        TestStore(initialState: AppFeature.State()) {
+    private func makeStore(
+        database: DatabaseClient? = nil,
+        onboarding: OnboardingFeature.State? = nil
+    ) -> TestStoreOf<AppFeature> {
+        var initialState = AppFeature.State()
+        initialState.onboarding = onboarding
+        return TestStore(initialState: initialState) {
             AppFeature()
         } withDependencies: {
             $0.fix(now: now, database: DatabaseSpy())
@@ -30,6 +39,13 @@ struct AppFeatureTests {
             }
             $0.continuousClock = clock
             $0.shield.apply = { [applied] plan, _ in applied.withValue { $0.append(plan) } }
+            $0.notifications.replaceAll = { [scheduled] notifications in
+                scheduled.withValue { $0.append(notifications) }
+            }
+            $0.notifications.requestAuthorization = { [authorizationRequests] in
+                authorizationRequests.withValue { $0 += 1 }
+                return true
+            }
         }
     }
 
@@ -42,9 +58,12 @@ struct AppFeatureTests {
     }
 
     /// 読み込みを済ませた状態から始める。画面の移動だけを確かめるテストで使う。
-    private func makeLoadedStore(_ world: World) -> TestStoreOf<AppFeature> {
+    private func makeLoadedStore(
+        _ world: World,
+        onboarding: OnboardingFeature.State? = nil
+    ) -> TestStoreOf<AppFeature> {
         prepareBoard(world, now: now.value)
-        return makeStore()
+        return makeStore(onboarding: onboarding)
     }
 
     // MARK: 起動
@@ -326,6 +345,18 @@ struct AppFeatureTests {
         await store.cancelRemainingEffects()
     }
 
+    @Test("初回設定を終えた直後に、通知の許可を求める")
+    func finishingOnboardingRequestsNotificationPermission() async {
+        let store = makeLoadedStore(World(), onboarding: OnboardingFeature.State())
+
+        await store.send(.onboarding(.delegate(.finished))) {
+            $0.onboarding = nil
+        }
+        await store.finish()
+
+        #expect(authorizationRequests.value == 1)
+    }
+
     // MARK: 画面の移動
 
     @Test("集中を始める依頼で、今日すでに記録した量を引き継いだ計測の画面を開く")
@@ -445,5 +476,31 @@ struct AppFeatureTests {
         await store.send(.today(.delegate(.completeTask(uuid(9)))))
 
         #expect(store.state.destination == nil)
+    }
+
+    // MARK: 通知の予約
+
+    @Test("ロックの見込みが変わるたびに、通知を予約し直す")
+    func reschedulesNotificationsWithShield() async {
+        let store = makeStore()
+        let world = World.exact(tasks: [.fixture(dueAt: date(9, 18))])
+
+        await store.send(.worldChanged(world)) {
+            $0.$board.withLock { $0 = .loaded(world, now: start) }
+            $0.appliedPlan = ShieldPlan(isLocked: false, wakeTimes: [date(9, 16)])
+        }
+        #expect(scheduled.value == [AppFeature.warnings(for: status(world))])
+        #expect(scheduled.value.first?.count == 2)
+
+        // 片づけると、予約は空に置き換わる。
+        var completed = world
+        completed.tasks[0].completedAt = start
+        completed.tasks[0].actualMinutes = 120
+        await store.send(.worldChanged(completed)) {
+            $0.$board.withLock { $0 = .loaded(completed, now: start) }
+            $0.appliedPlan = ShieldPlan(isLocked: false)
+        }
+        #expect(scheduled.value == [AppFeature.warnings(for: status(world)), []])
+        await store.cancelRemainingEffects()
     }
 }
