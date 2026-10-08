@@ -26,8 +26,8 @@ extension SnapshotClient: DependencyKey {
     public static let previewValue = testValue
 }
 
-extension DependencyValues {
-    public var snapshot: SnapshotClient {
+public extension DependencyValues {
+    var snapshot: SnapshotClient {
         get { self[SnapshotClient.self] }
         set { self[SnapshotClient.self] = newValue }
     }
