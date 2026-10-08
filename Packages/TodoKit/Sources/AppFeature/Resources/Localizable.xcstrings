@@ -171,6 +171,23 @@
         }
       }
     },
+    "completion.measured" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ since you started (you estimated %2$@). Adjust it if you took breaks."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "始めてから%1$@たちました(見積もりは%2$@)。休んだ時間があれば直してください。"
+          }
+        }
+      }
+    },
     "completion.notYet" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2024,6 +2041,23 @@
         }
       }
     },
+    "today.cta.alreadyDone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "It's already done"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もう終わっている"
+          }
+        }
+      }
+    },
     "today.cta.completeTask" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2054,6 +2088,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "「%@」を始める"
+          }
+        }
+      }
+    },
+    "today.cta.startTask" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start now"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "いま始める"
           }
         }
       }
@@ -2462,6 +2513,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ に「%2$@」でロック"
+          }
+        }
+      }
+    },
+    "today.task.working" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Working"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "作業中"
           }
         }
       }
