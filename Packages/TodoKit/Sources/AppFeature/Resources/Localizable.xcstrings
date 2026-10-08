@@ -1922,6 +1922,40 @@
         }
       }
     },
+    "task.startLimit.explain.fallback" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your apps lock at this time if it isn't done. You estimated %1$@, but most things take about %2$@× as long as planned, so %3$@ is set aside. This adapts once you've finished a few tasks."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この時刻までに終わっていなければロックします。見積もりは%1$@ですが、たいていのことは予定の約%2$@倍かかるので、%3$@を見込んでいます。タスクをいくつか終えると、あなたの実績に合わせます。"
+          }
+        }
+      }
+    },
+    "task.startLimit.explain.fixed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your apps lock at this time if it isn't done. You estimated %1$@, and your setting multiplies estimates by %2$@, so %3$@ is set aside."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この時刻までに終わっていなければロックします。見積もりは%1$@で、設定で%2$@倍にしているので、%3$@を見込んでいます。"
+          }
+        }
+      }
+    },
     "task.startLimit.label" : {
       "extractionState" : "manual",
       "localizations" : {
