@@ -411,6 +411,8 @@ private struct TasksCard: View {
                             .frame(width: 44, height: 44)
                     }
                     .accessibilityLabel(Text(.todayCtaCompleteTask))
+                    // チェックマークの記号は「選択中」として読み上げられてしまう。まだ完了していないので、その情報を外す。
+                    .accessibilityRemoveTraits(.isSelected)
                     .accessibilityIdentifier("today.task.complete")
 
                     VStack(alignment: .leading, spacing: 3) {

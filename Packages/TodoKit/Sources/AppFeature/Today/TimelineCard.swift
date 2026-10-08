@@ -190,6 +190,8 @@ private struct TimelineRow: View {
                         .background(.white.opacity(0.14), in: .circle)
                 }
                 .accessibilityLabel(Text(.todayCtaCompleteTask))
+                // チェックマークの記号は「選択中」として読み上げられてしまう。まだ完了していないので、その情報を外す。
+                .accessibilityRemoveTraits(.isSelected)
                 .accessibilityIdentifier("today.complete.\(task.title)")
             }
         }
