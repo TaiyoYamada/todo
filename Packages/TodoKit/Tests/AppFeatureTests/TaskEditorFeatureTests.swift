@@ -108,6 +108,19 @@ struct TaskEditorFeatureTests {
         }
     }
 
+    @Test("画面の入力欄からは task 全体の書き換えとして届く。その形でも提案する")
+    func titleEditedThroughTaskBindingProducesSuggestion() async {
+        let store = makeStore(blank, isNew: true)
+        var edited = blank
+        edited.title = "Report by Friday 2h"
+
+        // SwiftUI の `$store.task.title` は、`\.task.title` ではなく `\.task` の変更として送られる。
+        await store.send(.binding(.set(\.task, edited))) {
+            $0.task = edited
+            $0.suggestion = QuickAdd(title: "Report", dueAt: date(9, 23, 59), estimateMinutes: 120)
+        }
+    }
+
     @Test("読み取れるものがない名前では、提案しない")
     func plainTitleProducesNoSuggestion() async {
         let store = makeStore(blank, isNew: true)
