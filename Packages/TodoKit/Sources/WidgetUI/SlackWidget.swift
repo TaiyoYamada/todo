@@ -116,10 +116,19 @@ struct SlackWidgetView: View {
     @Environment(\.widgetFamily) private var family
 
     var body: some View {
-        let content = SlackContent(entry: entry)
-        families(content)
+        SlackWidgetBody(entry: entry, family: family)
             // 押したら、やるべきことの計測がすぐ始められる画面へ。
             .widgetURL(DeepLink.focus.url)
+    }
+}
+
+/// ウィジェットの中身。サイズの種類を引数で受け取るので、ウィジェットの外(開発用の一覧)でも描ける。
+struct SlackWidgetBody: View {
+    let entry: SlackEntry
+    let family: WidgetFamily
+
+    var body: some View {
+        families(SlackContent(entry: entry))
     }
 
     @ViewBuilder
@@ -131,14 +140,55 @@ struct SlackWidgetView: View {
             rectangular(content)
                 .containerBackground(for: .widget) { Color.clear }
         default:
-            home(content)
-                .containerBackground(for: .widget) {
-                    LinearGradient(
-                        colors: [content.mood.backdrop[1], content.mood.backdrop[2], content.mood.backdrop[3]],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
+            Group {
+                if family == .systemMedium {
+                    // 横長のウィジェットは、右側に今日のロック予報を並べる。
+                    HStack(spacing: 14) {
+                        home(content)
+                        forecast
+                    }
+                } else {
+                    home(content)
                 }
+            }
+            .containerBackground(for: .widget) {
+                LinearGradient(
+                    colors: [content.mood.backdrop[1], content.mood.backdrop[2], content.mood.backdrop[3]],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        }
+    }
+
+    /// 今日のうち、まだ片づいていないものを時刻順に3つまで。
+    @ViewBuilder
+    private var forecast: some View {
+        let pending = (entry.status?.forecast ?? []).filter { $0.state != .cleared }.prefix(3)
+        if !pending.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(Array(pending), id: \.id) { item in
+                    HStack(spacing: 6) {
+                        Image(systemName: item.state == .active ? "lock.fill" : "circle.dotted")
+                            .font(.caption2.weight(.bold))
+                            .frame(width: 14)
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text(item.title)
+                                .font(.caption.weight(.semibold))
+                                .lineLimit(1)
+                            Text(item.at, style: .time)
+                                .font(.caption2)
+                                .monospacedDigit()
+                                .foregroundStyle(.white.opacity(0.65))
+                        }
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: 124, maxHeight: .infinity, alignment: .topLeading)
+            .padding(.top, 2)
         }
     }
 
