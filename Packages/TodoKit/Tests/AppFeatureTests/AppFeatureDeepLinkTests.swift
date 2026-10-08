@@ -1,0 +1,151 @@
+import ComposableArchitecture
+import Domain
+import Foundation
+import SharedCore
+import Testing
+@testable import AppFeature
+
+@MainActor
+@Suite("アプリの外から開く")
+struct AppFeatureDeepLinkTests {
+    /// 10/9(金)14:00。
+    let start = date(9, 14)
+    /// 1日 30 分の目標。朝からロックする。
+    let goal = Goal.fixture()
+
+    /// 保存データを読み終えた状態のストア。
+    private func makeLoadedStore(
+        _ world: World,
+        onboarding: OnboardingFeature.State? = nil
+    ) -> TestStoreOf<AppFeature> {
+        prepareBoard(world, now: start)
+        return makeStore(onboarding: onboarding)
+    }
+
+    private func makeStore(onboarding: OnboardingFeature.State? = nil) -> TestStoreOf<AppFeature> {
+        var initialState = AppFeature.State()
+        initialState.onboarding = onboarding
+        return TestStore(initialState: initialState) {
+            AppFeature()
+        } withDependencies: {
+            $0.fix(now: LockIsolated(start), database: DatabaseSpy())
+        }
+    }
+
+    @Test("計測を始めるリンクは、ロックの理由になっている目標の計測を開く")
+    func focusLinkOpensLockedGoal() async {
+        // 先頭の目標は 20:00 からのロックで、まだ理由になっていない。2つ目が朝からロック中。
+        let later = Goal.fixture(1, title: "TOEIC", lockStart: .timeOfDay(minutes: 20 * 60))
+        let locked = Goal.fixture(2, title: "院試")
+        let world = World.exact(
+            goals: [later, locked],
+            sessions: [.fixture(goal: 2, startedAt: date(9, 9), minutes: 5)]
+        )
+        let store = makeLoadedStore(world)
+
+        await store.send(.openDeepLink(.focus)) {
+            $0.destination = .focus(FocusFeature.State(goal: locked, startedAt: start, baseSeconds: 5 * 60))
+        }
+    }
+
+    @Test("ロックの理由になっている目標がなければ、まだ終えていない今日の分の計測を開く")
+    func focusLinkOpensFirstIncompleteGoal() async {
+        // 1つ目は今日の分を終えている。2つ目は 20:00 からのロックで、まだ終えていない。
+        let done = Goal.fixture(1, title: "院試")
+        let pending = Goal.fixture(2, title: "TOEIC", lockStart: .timeOfDay(minutes: 20 * 60))
+        let world = World.exact(
+            goals: [done, pending],
+            sessions: [.fixture(goal: 1, startedAt: date(9, 9), minutes: 30)]
+        )
+        let store = makeLoadedStore(world)
+
+        await store.send(.openDeepLink(.focus)) {
+            $0.destination = .focus(FocusFeature.State(goal: pending, startedAt: start, baseSeconds: 0))
+        }
+    }
+
+    @Test("タスクでロックされていても、計測を始めるリンクは目標の計測を開く")
+    func focusLinkSkipsTaskReasons() async {
+        let pending = Goal.fixture(lockStart: .timeOfDay(minutes: 20 * 60))
+        // 着手リミットは 13:00 で、もう過ぎている。
+        let world = World.exact(goals: [pending], tasks: [.fixture(dueAt: date(9, 15))])
+        let store = makeLoadedStore(world)
+        #expect(store.state.board.status.isLocked)
+
+        await store.send(.openDeepLink(.focus)) {
+            $0.destination = .focus(FocusFeature.State(goal: pending, startedAt: start, baseSeconds: 0))
+        }
+    }
+
+    @Test("進める目標がなければ、計測を始めるリンクは今日の画面を出すだけにする")
+    func focusLinkWithNothingToDoShowsToday() async {
+        let world = World.exact(goals: [goal], sessions: [.fixture(startedAt: date(9, 9), minutes: 30)])
+        let store = makeLoadedStore(world)
+
+        await store.send(.binding(.set(\.selectedTab, .insights))) {
+            $0.selectedTab = .insights
+        }
+        await store.send(.openDeepLink(.focus)) {
+            $0.selectedTab = .today
+        }
+        #expect(store.state.destination == nil)
+    }
+
+    @Test("タスクを追加するリンクは、新しいタスクの編集画面を開く")
+    func addTaskLinkOpensEditor() async {
+        let store = makeLoadedStore(.exact(goals: [goal]))
+
+        await store.send(.openDeepLink(.addTask)) {
+            $0.destination = .taskEditor(
+                TaskEditorFeature.State(
+                    task: TaskItem(id: uuid(0), title: "", dueAt: date(10, 23, 59), createdAt: start),
+                    isNew: true
+                )
+            )
+        }
+    }
+
+    @Test("保存データを読み終える前のリンクは、無視する")
+    func deepLinkIgnoredBeforeLoad() async {
+        let store = makeStore()
+
+        await store.send(.openDeepLink(.addTask))
+        await store.send(.openDeepLink(.focus))
+
+        #expect(store.state.destination == nil)
+    }
+
+    @Test("初回設定の途中のリンクは、無視する")
+    func deepLinkIgnoredDuringOnboarding() async {
+        let store = makeLoadedStore(.exact(goals: [goal]), onboarding: OnboardingFeature.State())
+
+        await store.send(.openDeepLink(.focus))
+        await store.send(.openDeepLink(.addTask))
+
+        #expect(store.state.destination == nil)
+        #expect(store.state.onboarding != nil)
+    }
+
+    @Test("すでに何かの画面を開いているときのリンクは、割り込まない")
+    func deepLinkIgnoredWhileDestinationOpen() async {
+        let store = makeLoadedStore(.exact(goals: [goal]))
+
+        await store.send(.today(.delegate(.openSettings))) {
+            $0.destination = .settings(SettingsFeature.State())
+        }
+        await store.send(.openDeepLink(.focus))
+        await store.send(.openDeepLink(.addTask))
+
+        #expect(store.state.destination == .settings(SettingsFeature.State()))
+    }
+
+    @Test("リンクの URL は、行き先に読み替えられる")
+    func deepLinkParsesURL() throws {
+        #expect(try DeepLink(url: #require(URL(string: "lockcast://focus"))) == .focus)
+        #expect(try DeepLink(url: #require(URL(string: "lockcast://add-task"))) == .addTask)
+        #expect(try DeepLink(url: #require(URL(string: "lockcast://unknown"))) == nil)
+        // 作った URL は、同じ行き先として読み戻せる。
+        #expect(DeepLink(url: DeepLink.focus.url) == .focus)
+        #expect(DeepLink(url: DeepLink.addTask.url) == .addTask)
+    }
+}
