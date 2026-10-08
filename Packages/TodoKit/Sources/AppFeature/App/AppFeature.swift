@@ -162,7 +162,10 @@ struct AppFeature {
         return .run { [world = state.board.world] _ in
             // 写しを先に書く。スクリーンタイムの拡張機能が、予約の時刻に最新の状況で判定できるように。
             await snapshot.save(world)
+            // 取り消されても、呼び出しの途中で勝手に止まりはしない。次へ進む前に、自分で確かめる。
+            guard !Task.isCancelled else { return }
             await shield.apply(plan, world)
+            guard !Task.isCancelled else { return }
             await notifications.replaceAll(warnings)
         }
         // 続けて変更が来たら、古いほうは途中でやめる。古い指示があとから適用されて、新しい状態を上書きするのを防ぐ。

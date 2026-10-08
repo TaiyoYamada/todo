@@ -167,6 +167,44 @@ struct AppFeatureSyncTests {
         await store.cancelRemainingEffects()
     }
 
+    // MARK: 続けて変わったとき
+
+    @Test("連絡の途中で次の変更が来たら、古い連絡はそこでやめる。古い指示が、新しい指示のあとから伝わることはない")
+    func supersededSyncStopsBeforeApplyingStalePlan() async {
+        // 1 つ目は、16:00 に着手リミットが来るタスクだけ。2 つ目は、朝からロックする目標が増えている。
+        let first = World.exact(tasks: [.fixture(dueAt: date(9, 18))])
+        let second = World.exact(goals: [goal], tasks: [.fixture(dueAt: date(9, 18))])
+        let store = makeStore()
+        // 1 つ目の写しの書き出しを、合図があるまで終わらせない。その間に 2 つ目の変更が届く。
+        let firstSnapshot = LockIsolated<CheckedContinuation<Void, Never>?>(nil)
+        store.dependencies.snapshot.save = { [calls] world in
+            calls.withValue { $0.append(.snapshot(world)) }
+            if world == first {
+                await withCheckedContinuation { firstSnapshot.setValue($0) }
+            }
+        }
+
+        await store.send(.worldChanged(first)) {
+            $0.$board.withLock { $0 = .loaded(first, now: start) }
+            $0.appliedPlan = ShieldPlan(isLocked: false, wakeTimes: [date(9, 16)])
+        }
+        #expect(calls.value == [.snapshot(first)])
+
+        await store.send(.worldChanged(second)) {
+            $0.$board.withLock { $0 = .loaded(second, now: start) }
+            $0.appliedPlan = ShieldPlan(isLocked: true, title: "院試", wakeTimes: [date(9, 16)])
+        }
+        let expected: [Call] = [.snapshot(first)] + sync(second)
+        #expect(calls.value == expected)
+
+        // 止めておいた 1 つ目を進める。ロックの指示と通知は、もう伝えない。
+        firstSnapshot.value?.resume()
+        await Task.megaYield()
+        #expect(calls.value == expected)
+        #expect(!calls.value.contains(.shield(ShieldPlan(isLocked: false, wakeTimes: [date(9, 16)]), first)))
+        await store.cancelRemainingEffects()
+    }
+
     // MARK: 時間が進んだだけのとき
 
     @Test("時刻が進んだだけでは、ロックの指示が変わらない限り、何も伝えない")
