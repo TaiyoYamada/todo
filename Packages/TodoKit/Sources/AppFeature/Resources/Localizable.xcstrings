@@ -1,0 +1,13 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "today.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Today" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "今日" } }
+      }
+    }
+  },
+  "version" : "1.1"
+}
