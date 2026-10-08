@@ -78,8 +78,14 @@ struct FocusFeature {
                 return finish(&state, at: now)
 
             case .continueTapped:
-                // 今日の分は終わっているので、終わりのない計測として続ける。
-                state.baseSeconds = max(state.goal.dailySeconds, state.board.status.goals.first { $0.id == state.goal.id }?.recordedSeconds ?? 0)
+                // 止めたところから続ける。今日の分に届いていれば、終わりのない計測になる。
+                // 保存した記録が共有の状態に届く前に押されても狂わないよう、いまの計測のぶんは手元で足す。
+                var done = state.baseSeconds
+                if case let .finished(summary) = state.phase, summary.sessionSeconds >= Self.minimumSeconds {
+                    done += summary.sessionSeconds
+                }
+                let recorded = state.board.status.goals.first { $0.id == state.goal.id }?.recordedSeconds ?? 0
+                state.baseSeconds = max(done, recorded)
                 state.startedAt = now
                 state.isResumed = false
                 state.phase = .running
