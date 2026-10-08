@@ -34,16 +34,25 @@ public enum DeepLink: Equatable, Sendable {
 /// コントロールセンターのボタンは、アプリを開くことはできるが、行き先までは渡せない。
 /// そこで共有の置き場に書いておき、開いたアプリが読んで消す。
 public enum PendingDeepLink {
-    private static let key = "pendingDeepLink"
+    private static let linkKey = "pendingDeepLink"
+    private static let dateKey = "pendingDeepLinkDate"
 
-    public static func set(_ link: DeepLink) {
-        AppGroup.defaults?.set(link.url.absoluteString, forKey: key)
+    /// 書かれてから、この秒数を過ぎた依頼は捨てる。
+    /// 読みそこねた依頼が、次に別の用事でアプリを開いたときに働いてしまうのを防ぐ。
+    public static let lifetime: TimeInterval = 15
+
+    public static func set(_ link: DeepLink, now: Date = Date()) {
+        AppGroup.defaults?.set(link.url.absoluteString, forKey: linkKey)
+        AppGroup.defaults?.set(now.timeIntervalSinceReferenceDate, forKey: dateKey)
     }
 
-    /// 書かれていれば取り出して消す。
-    public static func take() -> DeepLink? {
-        guard let defaults = AppGroup.defaults, let value = defaults.string(forKey: key) else { return nil }
-        defaults.removeObject(forKey: key)
+    /// 書かれていれば取り出して消す。古すぎるものは、消すだけで返さない。
+    public static func take(now: Date = Date()) -> DeepLink? {
+        guard let defaults = AppGroup.defaults, let value = defaults.string(forKey: linkKey) else { return nil }
+        let writtenAt = Date(timeIntervalSinceReferenceDate: defaults.double(forKey: dateKey))
+        defaults.removeObject(forKey: linkKey)
+        defaults.removeObject(forKey: dateKey)
+        guard now.timeIntervalSince(writtenAt) <= lifetime else { return nil }
         return URL(string: value).flatMap(DeepLink.init(url:))
     }
 }
