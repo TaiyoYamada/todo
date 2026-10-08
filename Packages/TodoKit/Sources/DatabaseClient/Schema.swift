@@ -354,35 +354,38 @@ public extension DatabaseClient {
                 }
             },
             replaceAll: { world in
-                try await database.write { db in
-                    try SessionRecord.delete().execute(db)
-                    try PassUseRecord.delete().execute(db)
-                    try TaskRecord.delete().execute(db)
-                    try GoalRecord.delete().execute(db)
-                    for goal in world.goals {
-                        try GoalRecord.insert { GoalRecord(goal) }.execute(db)
-                    }
-                    for task in world.tasks {
-                        try TaskRecord.insert { TaskRecord(task) }.execute(db)
-                    }
-                    for session in world.sessions {
-                        try SessionRecord.insert { SessionRecord(session) }.execute(db)
-                    }
-                    for passUse in world.passUses {
-                        try PassUseRecord.insert { PassUseRecord(passUse) }.execute(db)
-                    }
-                    try AppStateRecord
-                        .where { $0.id.eq(AppStateRecord.rowID) }
-                        .update {
-                            $0.preferences = world.preferences.json
-                            $0.activeFocusGoalID = world.activeFocus?.goalID
-                            $0.activeFocusStartedAt = world.activeFocus?.startedAt.timeIntervalSince1970
-                        }
-                        .execute(db)
-                }
+                try await database.write { db in try replaceContents(with: world, in: db) }
             }
         )
     }
+}
+
+/// 保存データをすべて消して、`world` の内容に入れ替える。1回の書き込みの中で呼ぶ。
+private func replaceContents(with world: World, in db: Database) throws {
+    try SessionRecord.delete().execute(db)
+    try PassUseRecord.delete().execute(db)
+    try TaskRecord.delete().execute(db)
+    try GoalRecord.delete().execute(db)
+    for goal in world.goals {
+        try GoalRecord.insert { GoalRecord(goal) }.execute(db)
+    }
+    for task in world.tasks {
+        try TaskRecord.insert { TaskRecord(task) }.execute(db)
+    }
+    for session in world.sessions {
+        try SessionRecord.insert { SessionRecord(session) }.execute(db)
+    }
+    for passUse in world.passUses {
+        try PassUseRecord.insert { PassUseRecord(passUse) }.execute(db)
+    }
+    try AppStateRecord
+        .where { $0.id.eq(AppStateRecord.rowID) }
+        .update {
+            $0.preferences = world.preferences.json
+            $0.activeFocusGoalID = world.activeFocus?.goalID
+            $0.activeFocusStartedAt = world.activeFocus?.startedAt.timeIntervalSince1970
+        }
+        .execute(db)
 }
 
 extension DatabaseClient: DependencyKey {
