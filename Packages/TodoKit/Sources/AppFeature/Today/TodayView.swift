@@ -3,11 +3,10 @@ import DesignSystem
 import Domain
 import SwiftUI
 
-/// 「今日」の画面の、もう1つの作り方。
+/// 「今日」の画面。次のロックまでの余裕を、錠前のキャラクターと大きな数字で見せる。
 ///
-/// 単色、太い枠、沈むボタン、錠前のキャラクターで作る。質感(グラデーションやガラス)ではなく、
-/// 動きで楽しく見せる。ロジックは `TodayFeature` をそのまま使い、見た目だけが違う。
-struct PlayfulTodayView: View {
+/// 単色、太い枠、沈むボタンで作る。質感(グラデーションやガラス)ではなく、動きで楽しく見せる。
+struct TodayView: View {
     let store: StoreOf<TodayFeature>
     @Dependency(\.calendar) private var calendar
     @State private var appeared = false
@@ -36,6 +35,10 @@ struct PlayfulTodayView: View {
                     PlayfulWeek(days: LockEngine(calendar: calendar).weekOutlook(world: world, now: status.now))
                         .entrance(appeared, order: 2)
                 }
+                if !laterTasks.isEmpty {
+                    PlayfulLaterTasks(tasks: laterTasks, world: world, now: status.now, send: { store.send($0) })
+                        .entrance(appeared, order: 3)
+                }
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 40)
@@ -43,6 +46,19 @@ struct PlayfulTodayView: View {
         .scrollIndicators(.hidden)
         .background(Playful.background.ignoresSafeArea())
         .onAppear { appeared = true }
+    }
+
+    /// 明日以降に着手リミットが来るタスク。今日のぶんはロック予報に出ているので、ここには出さない。
+    /// 多すぎると読まれないので、近いものから数件だけ。
+    private var laterTasks: [TaskItem] {
+        let world = store.board.world
+        let todayEnd = store.board.status.today.end
+        return Array(
+            world.openTasks
+                .filter { world.startLimit(of: $0) >= todayEnd }
+                .sorted { world.startLimit(of: $0) < world.startLimit(of: $1) }
+                .prefix(4)
+        )
     }
 
     private func header(_ status: LockStatus) -> some View {
@@ -67,6 +83,7 @@ struct PlayfulTodayView: View {
             }
             .buttonStyle(.chunkyIcon(Playful.neutral))
             .accessibilityLabel(Text(.commonAdd))
+            .accessibilityIdentifier("today.add")
 
             Button {
                 store.send(.settingsTapped)
@@ -75,6 +92,7 @@ struct PlayfulTodayView: View {
             }
             .buttonStyle(.chunkyIcon(Playful.neutral))
             .accessibilityLabel(Text(.todaySettings))
+            .accessibilityIdentifier("today.settings")
         }
         .padding(.top, 8)
     }
@@ -104,7 +122,10 @@ private struct PlayfulHero: View {
     var body: some View {
         VStack(spacing: 14) {
             LockMascot(mood: mood, tone: tone)
-            SpeechBubble { Text(line) }
+            SpeechBubble {
+                Text(line)
+                    .accessibilityIdentifier(identifier)
+            }
             headline
             actions
         }
@@ -120,6 +141,17 @@ private struct PlayfulHero: View {
     }
 
     // MARK: 状態から決まるもの
+
+    /// UI テストが、いまの状態を見分けるための名前。
+    private var identifier: String {
+        switch hero {
+        case .empty: "today.hero.empty"
+        case .locked: "today.hero.locked"
+        case .onPass: "today.hero.onPass"
+        case .countdown: "today.hero.countdown"
+        case .freeToday: "today.hero.free"
+        }
+    }
 
     private var isSoon: Bool {
         if case let .countdown(until, _) = hero { return until.timeIntervalSince(status.now) < 3600 }
@@ -211,6 +243,7 @@ private struct PlayfulHero: View {
                 Text(.todayAddGoal)
             }
             .buttonStyle(.chunky(tone))
+            .accessibilityIdentifier("today.hero.addGoal")
 
         case let .locked(primary, _):
             reasonAction(primary)
@@ -247,6 +280,7 @@ private struct PlayfulHero: View {
                     }
                 }
                 .buttonStyle(.chunky(tone))
+                .accessibilityIdentifier("today.hero.startFocus")
                 outlook(resolving: .goal(suggestedGoal.id))
             }
         }
@@ -266,15 +300,29 @@ private struct PlayfulHero: View {
                 }
             }
             .buttonStyle(.chunky(tone))
+            .accessibilityIdentifier("today.hero.startFocus")
 
         case let .task(id):
-            if world.task(id: id)?.startedAt != nil {
+            if let startedAt = world.task(id: id)?.startedAt {
+                // 取りかかったあとは、経過時間を見せながら、終わったら押せるようにしておく。
+                Label {
+                    HStack(spacing: 6) {
+                        Text(.todayTaskWorking)
+                        Text(startedAt, style: .timer)
+                    }
+                } icon: {
+                    Image(systemName: "figure.run")
+                }
+                .font(.system(.footnote, design: .rounded, weight: .heavy))
+                .monospacedDigit()
+                .foregroundStyle(tone.face)
                 Button {
                     tap(.completeTaskTapped(id))
                 } label: {
                     Label { Text(.todayCtaCompleteTask) } icon: { Image(systemName: "checkmark") }
                 }
                 .buttonStyle(.chunky(tone))
+                .accessibilityIdentifier("today.hero.completeTask")
             } else {
                 Button {
                     tap(.startTaskTapped(id))
@@ -282,12 +330,14 @@ private struct PlayfulHero: View {
                     Label { Text(.todayCtaStartTask) } icon: { Image(systemName: "play.fill") }
                 }
                 .buttonStyle(.chunky(tone))
+                .accessibilityIdentifier("today.hero.startTask")
                 Button {
                     tap(.completeTaskTapped(id))
                 } label: {
                     Text(.todayCtaAlreadyDone)
                 }
-                .buttonStyle(.chunky(Playful.neutral))
+                .buttonStyle(.chunkySecondary)
+                .accessibilityIdentifier("today.hero.completeTask")
             }
         }
     }
@@ -319,232 +369,5 @@ private struct PlayfulHero: View {
 private extension Hero {
     var isOnPass: Bool {
         if case .onPass = self { true } else { false }
-    }
-}
-
-// MARK: - 今日のロック予報
-
-private struct PlayfulTimeline: View {
-    let items: [TimelineItem]
-    let dayStart: Date
-    let send: (TodayFeature.Action) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(.todayForecastTitle)
-                .chunkyHeading()
-            VStack(spacing: 0) {
-                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                    PlayfulTimelineRow(item: item, isFromMorning: item.at == dayStart, send: send)
-                    if index < items.count - 1 {
-                        Rectangle()
-                            .fill(Playful.line)
-                            .frame(height: 2)
-                            .padding(.vertical, 12)
-                    }
-                }
-            }
-            .chunkyCard()
-            // 並び順が変わるとき(片づいて下へ移るとき)に、行が弾んで入れ替わる。
-            .animation(.spring(duration: 0.5, bounce: 0.3), value: items.map(\.id))
-        }
-    }
-}
-
-private struct PlayfulTimelineRow: View {
-    let item: TimelineItem
-    let isFromMorning: Bool
-    let send: (TodayFeature.Action) -> Void
-
-    private var isCleared: Bool { item.state == .cleared }
-
-    var body: some View {
-        HStack(spacing: 12) {
-            time
-                .font(.system(.subheadline, design: .rounded, weight: .heavy))
-                .monospacedDigit()
-                .foregroundStyle(item.state == .active ? Playful.coral.face : Playful.subtext)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-                .frame(width: 64, alignment: .leading)
-
-            Button(action: open) {
-                VStack(alignment: .leading, spacing: 7) {
-                    Text(item.title)
-                        .font(.system(.body, design: .rounded, weight: .heavy))
-                        .foregroundStyle(Playful.text)
-                        .strikethrough(isCleared, color: Playful.subtext)
-                        .lineLimit(2)
-                        .multilineTextAlignment(.leading)
-                    detail
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(.rect)
-            }
-            .buttonStyle(.plain)
-            .opacity(isCleared ? 0.5 : 1)
-
-            action
-        }
-        .accessibilityElement(children: .contain)
-    }
-
-    @ViewBuilder
-    private var time: some View {
-        if let at = item.at {
-            if isFromMorning {
-                Text(.todayForecastFromMorning)
-            } else {
-                Text(TimeText.clock(at))
-            }
-        } else {
-            Text(verbatim: "–")
-        }
-    }
-
-    @ViewBuilder
-    private var detail: some View {
-        switch item.kind {
-        case let .goal(progress):
-            ChunkyProgressBar(fraction: progress.fraction, tone: progress.goal.tint.tone)
-            Text(
-                item.state == .optional
-                    ? .todayGoalsNoLockToday
-                    : .todayGoalsProgress(
-                        DurationText.compact(minutes: progress.doneSeconds / 60),
-                        DurationText.compact(minutes: progress.goal.dailyMinutes)
-                    )
-            )
-            .font(.system(.caption, design: .rounded, weight: .bold))
-            .foregroundStyle(Playful.subtext)
-            .monospacedDigit()
-        case let .task(task):
-            Text(.todayTasksDue(TimeText.dayAndClock(task.dueAt)))
-                .font(.system(.caption, design: .rounded, weight: .bold))
-                .foregroundStyle(Playful.subtext)
-        }
-    }
-
-    @ViewBuilder
-    private var action: some View {
-        switch item.kind {
-        case let .goal(progress):
-            Button {
-                send(.startFocusTapped(progress.id))
-            } label: {
-                Image(systemName: isCleared ? "checkmark" : "play.fill")
-                    .contentTransition(.symbolEffect(.replace))
-            }
-            .buttonStyle(.chunkyIcon(isCleared ? Playful.neutral : progress.goal.tint.tone))
-            .accessibilityLabel(Text(.todayCtaStartFocus(progress.goal.title)))
-        case let .task(task):
-            if isCleared {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(Playful.subtext)
-                    .frame(width: 44, height: 44)
-                    .accessibilityHidden(true)
-            } else {
-                Button {
-                    send(.completeTaskTapped(task.id))
-                } label: {
-                    Image(systemName: "checkmark")
-                }
-                .buttonStyle(.chunkyIcon(Playful.neutral))
-                .accessibilityLabel(Text(.todayCtaCompleteTask))
-                .accessibilityRemoveTraits(.isSelected)
-            }
-        }
-    }
-
-    private func open() {
-        switch item.kind {
-        case let .goal(progress): send(.goalTapped(progress.id))
-        case let .task(task): send(.taskTapped(task.id))
-        }
-    }
-}
-
-// MARK: - これからの7日
-
-private struct PlayfulWeek: View {
-    let days: [DayOutlook]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(.todayWeekTitle)
-                .chunkyHeading()
-            HStack(spacing: 6) {
-                ForEach(Array(days.enumerated()), id: \.element.id) { index, day in
-                    cell(day, isToday: index == 0)
-                }
-            }
-        }
-    }
-
-    private func cell(_ day: DayOutlook, isToday: Bool) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
-        return VStack(spacing: 6) {
-            Group {
-                if isToday {
-                    Text(.commonToday)
-                } else {
-                    Text(day.dayStart, format: .dateTime.weekday(.abbreviated))
-                }
-            }
-            .font(.system(.caption2, design: .rounded, weight: .heavy))
-            .foregroundStyle(isToday ? Playful.text : Playful.subtext)
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
-
-            Image(systemName: symbol(for: day.severity))
-                .font(.title3)
-                .foregroundStyle(color(for: day.severity))
-                .frame(height: 24)
-                .accessibilityHidden(true)
-
-            Group {
-                if let first = day.firstLockAt {
-                    if first == day.dayStart {
-                        Text(.todayForecastFromMorning)
-                    } else {
-                        Text(TimeText.clock(first))
-                    }
-                } else {
-                    Text(verbatim: "–")
-                }
-            }
-            .font(.system(.caption2, design: .rounded, weight: .bold))
-            .monospacedDigit()
-            .foregroundStyle(Playful.subtext)
-            .lineLimit(1)
-            .minimumScaleFactor(0.6)
-        }
-        .padding(.vertical, 10)
-        .padding(.horizontal, 2)
-        .frame(maxWidth: .infinity)
-        .background(Playful.surface, in: shape)
-        .overlay { shape.strokeBorder(isToday ? Playful.text : Playful.line, lineWidth: 2) }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(day.dayStart, format: .dateTime.weekday(.wide).month().day()))
-    }
-
-    private func symbol(for severity: DayOutlook.Severity) -> String {
-        switch severity {
-        case .clear: "sun.max.fill"
-        case .routine: "cloud.sun.fill"
-        case .deadline: "cloud.fill"
-        case .heavy: "cloud.bolt.fill"
-        }
-    }
-
-    /// 単色で塗る。多色の記号は、この流儀の平らな見た目に合わない。
-    private func color(for severity: DayOutlook.Severity) -> Color {
-        switch severity {
-        case .clear: Playful.amber.face
-        case .routine: Playful.mint.face
-        case .deadline: Playful.sky.face
-        case .heavy: Playful.coral.face
-        }
     }
 }
