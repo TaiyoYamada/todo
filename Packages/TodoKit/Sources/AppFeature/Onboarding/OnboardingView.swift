@@ -109,7 +109,7 @@ struct OnboardingView: View {
         HStack(alignment: .top, spacing: 16) {
             Image(systemName: symbol)
                 .font(.title3.weight(.bold))
-                .foregroundStyle(tone.face)
+                .foregroundStyle(tone.accent)
                 .frame(width: 44, height: 44)
                 .background(tone.face.opacity(0.16), in: .circle)
                 .accessibilityHidden(true)
@@ -193,7 +193,7 @@ struct OnboardingView: View {
                     Image(systemName: "checkmark.circle.fill")
                 }
                 .font(.headline)
-                .foregroundStyle(tone.face)
+                .foregroundStyle(tone.accent)
                 .accessibilityIdentifier("onboarding.apps.approved")
                 Button {
                     store.send(.chooseAppsTapped)
@@ -204,7 +204,7 @@ struct OnboardingView: View {
             case .denied:
                 Text(.onboardingAppsDenied)
                     .font(.callout.weight(.medium))
-                    .foregroundStyle(Playful.amber.face)
+                    .foregroundStyle(Playful.amber.accent)
             case .notDetermined:
                 Button {
                     store.send(.allowTapped)

@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import DesignSystem
 import Domain
 import SwiftUI
 
@@ -23,7 +24,7 @@ private struct SamplePreview<Content: View>: View {
     }
 
     var body: some View {
-        content.preferredColorScheme(.dark)
+        content.preferredColorScheme(.light)
     }
 }
 
@@ -105,7 +106,7 @@ private struct SamplePreview<Content: View>: View {
             GoalEditorFeature()
         }
     )
-    .preferredColorScheme(.dark)
+    .preferredColorScheme(.light)
 }
 
 #Preview("タスクの追加") {
@@ -125,11 +126,11 @@ private struct SamplePreview<Content: View>: View {
 
 #Preview("タスクの完了") {
     let task = SampleData.world(.locked).tasks[0]
-    return Color.black
+    return Playful.background
         .sheet(isPresented: .constant(true)) {
             TaskCompletionView(
                 store: Store(initialState: TaskCompletionFeature.State(task: task)) { TaskCompletionFeature() }
             )
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
 }
