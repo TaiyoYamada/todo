@@ -117,11 +117,13 @@ private struct FocusChart: View {
                 .sectionLabelStyle()
             Chart(bars) { bar in
                 BarMark(
-                    x: .value("day", bar.day, unit: .day),
-                    y: .value("minutes", bar.minutes),
+                    // 軸の名前は VoiceOver のグラフの読み上げに使われる。文字列のまま渡すと、
+                    // Xcode が訳のないキーとして文言カタログに足してしまうので、カタログの文言を渡す。
+                    x: .value(Text(.insightsChartAxisDay), bar.day, unit: .day),
+                    y: .value(Text(.insightsChartAxisMinutes), bar.minutes),
                     width: .ratio(0.62)
                 )
-                .foregroundStyle(by: .value("goal", bar.goal.title))
+                .foregroundStyle(by: .value(Text(.insightsChartAxisGoal), bar.goal.title))
                 .clipShape(.rect(cornerRadius: 4))
             }
             .chartForegroundStyleScale(
