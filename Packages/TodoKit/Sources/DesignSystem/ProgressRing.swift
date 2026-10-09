@@ -22,25 +22,16 @@ public struct ProgressRing<Center: View>: View {
     public var body: some View {
         ZStack {
             Circle()
-                .stroke(.white.opacity(0.14), lineWidth: lineWidth)
+                .stroke(Playful.line, lineWidth: lineWidth)
             Circle()
                 .trim(from: 0, to: max(0.001, min(1, fraction)))
-                .stroke(
-                    AngularGradient(
-                        colors: [tint.opacity(0.55), tint],
-                        center: .center,
-                        startAngle: .degrees(0),
-                        endAngle: .degrees(360 * max(0.05, fraction))
-                    ),
-                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
-                )
+                .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-                .shadow(color: tint.opacity(0.6), radius: lineWidth, y: 0)
                 // まだ何も進んでいないときは、端の丸だけが点として残るので隠す。
                 .opacity(fraction > 0 ? 1 : 0)
             center
         }
-        .animation(.spring(duration: 0.6), value: fraction)
+        .animation(.spring(duration: 0.6, bounce: 0.3), value: fraction)
         .accessibilityElement(children: .ignore)
         .accessibilityValue(Text(fraction, format: .percent.precision(.fractionLength(0))))
     }
@@ -52,5 +43,5 @@ public struct ProgressRing<Center: View>: View {
     }
     .frame(width: 160, height: 160)
     .padding()
-    .background(.black)
+    .background(Playful.background)
 }
