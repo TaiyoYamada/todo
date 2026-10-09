@@ -4,12 +4,16 @@ public extension View {
     /// `trigger` が変わるたびに、`origin` から波紋を広げる。
     ///
     /// 「視差効果を減らす」が有効なときは何もしない。
-    func ripple(at origin: CGPoint, trigger: some Equatable) -> some View {
+    func ripple(at origin: CGPoint, trigger: some Equatable & Sendable) -> some View {
         modifier(RippleEffect(origin: origin, trigger: trigger))
     }
 }
 
-private struct RippleEffect<Trigger: Equatable>: ViewModifier {
+/// `trigger` が変わるたびに、キーフレームで時間を進めて波紋を描く。
+///
+/// Trigger に Sendable を求めているのは、下のクロージャがメインアクターに隔離されていて、
+/// 型引数の情報(Trigger.Type)も一緒に取り込むため。Sendable でない型だと、並行処理の検査で警告になる。
+private struct RippleEffect<Trigger: Equatable & Sendable>: ViewModifier {
     let origin: CGPoint
     let trigger: Trigger
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
