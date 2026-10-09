@@ -30,7 +30,7 @@
 | | `LiveActivityClient` | 集中の計測を Live Activity として出す窓口 | `Domain`、`SharedCore`、Dependencies |
 | | `SharedCore` | 拡張機能にも入れる部分。中身は下の表 | `Domain`、Apple 標準のみ |
 | | `WidgetUI` | ウィジェットと Live Activity の見た目、その文言カタログ。ウィジェットの見た目をアプリの中に並べる開発用の画面(`WidgetGallery`。デバッグビルドのみ) | `Domain`、`SharedCore`、`DesignSystem` |
-| | `DesignSystem` | 色(`Mood`)、背景、カード、ボタン、進み具合の輪、時間の表示、主役の大きな文字(`Font.hero`)、達成時の演出(Metal のシェーダーによる波紋、光の粒、Core Haptics の振動) | `Domain`、SwiftUI |
+| | `DesignSystem` | 単色の配色(`Playful`、面と縁の組 `PlayfulTone`)、太い枠のカード、押すと沈むボタン、進み具合のバーと輪、吹き出し、錠前のキャラクター(`LockMascot`)、時間の表示、主役の大きな文字(`Font.hero`)、達成時の演出(Metal のシェーダーによる波紋、紙吹雪、Core Haptics の振動)。グラデーション、ぼかし、発光は使わない | `Domain`、SwiftUI |
 
 開発用の画面 `WidgetGallery` は、アプリ本体(`App/Sources/TodoApp.swift`)が直接出します。`AppFeature` は `WidgetUI` に依存しません。見本データは、`AppFeature` の `SampleWorlds` から受け取ります。
 
