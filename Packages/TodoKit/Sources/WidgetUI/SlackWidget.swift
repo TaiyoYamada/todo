@@ -100,13 +100,14 @@ enum SlackContent {
         }
     }
 
-    var mood: Mood {
+    /// 状態ごとの色。ウィジェットは、この色でべた塗りにする。
+    var tone: PlayfulTone {
         switch self {
-        case .setup: .calm
-        case .locked: .locked
-        case .onPass: .warning
-        case .countdown: .calm
-        case .free: .free
+        case .setup: Playful.sky
+        case .locked: Playful.coral
+        case .onPass: Playful.amber
+        case .countdown: Playful.mint
+        case .free: Playful.mint
         }
     }
 }
@@ -127,8 +128,11 @@ struct SlackWidgetBody: View {
     let entry: SlackEntry
     let family: WidgetFamily
 
+    /// いまの内容。色を決めるのに使う。
+    private var current: SlackContent { SlackContent(entry: entry) }
+
     var body: some View {
-        families(SlackContent(entry: entry))
+        families(current)
     }
 
     @ViewBuilder
@@ -151,13 +155,7 @@ struct SlackWidgetBody: View {
                     home(content)
                 }
             }
-            .containerBackground(for: .widget) {
-                LinearGradient(
-                    colors: [content.mood.backdrop[1], content.mood.backdrop[2], content.mood.backdrop[3]],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
+            .containerBackground(for: .widget) { content.tone.face }
         }
     }
 
@@ -180,13 +178,13 @@ struct SlackWidgetBody: View {
                             Text(item.at, style: .time)
                                 .font(.caption2)
                                 .monospacedDigit()
-                                .foregroundStyle(.white.opacity(0.65))
+                                .foregroundStyle(current.tone.onFace.opacity(0.7))
                         }
                     }
                 }
                 Spacer(minLength: 0)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(current.tone.onFace)
             .frame(maxWidth: 124, maxHeight: .infinity, alignment: .topLeading)
             .padding(.top, 2)
         }
@@ -198,7 +196,7 @@ struct SlackWidgetBody: View {
         VStack(alignment: .leading, spacing: 4) {
             label(content)
                 .font(.caption2.weight(.bold))
-                .foregroundStyle(content.mood.accent)
+                .foregroundStyle(content.tone.onFace.opacity(0.75))
             Spacer(minLength: 0)
             headline(content)
                 .font(.system(size: family == .systemSmall ? 30 : 40, weight: .heavy, design: .rounded))
@@ -207,10 +205,10 @@ struct SlackWidgetBody: View {
                 .lineLimit(family == .systemSmall ? 2 : 1)
             detail(content)
                 .font(.caption.weight(.medium))
-                .foregroundStyle(.white.opacity(0.75))
+                .foregroundStyle(content.tone.onFace.opacity(0.75))
                 .lineLimit(2)
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(content.tone.onFace)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     }
 
