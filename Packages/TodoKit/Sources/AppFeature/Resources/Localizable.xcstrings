@@ -953,6 +953,159 @@
         }
       }
     },
+    "mascot.countdown" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "I lock at %1$@ for “%2$@”. Free until then."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ に「%2$@」で閉めるよ。それまでは自由。"
+          }
+        }
+      }
+    },
+    "mascot.countdown.soon" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heads up! I lock at %1$@ for “%2$@”."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "もうすぐだよ。%1$@ に「%2$@」で閉めるからね。"
+          }
+        }
+      }
+    },
+    "mascot.empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tell me one thing you keep putting off."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "後回しにしていること、1つ教えて。"
+          }
+        }
+      }
+    },
+    "mascot.free" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nothing left to lock today. Nice work."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今日はもう閉めないよ。おつかれさま。"
+          }
+        }
+      }
+    },
+    "mascot.free.next" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done for today. Next lock is at %@."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今日はもう閉めないよ。次は %@ から。"
+          }
+        }
+      }
+    },
+    "mascot.locked.goal" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Do %2$@ of “%1$@” and I'll open up."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%1$@」をあと%2$@やったら、開けるよ。"
+          }
+        }
+      }
+    },
+    "mascot.locked.task" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Finish “%@” and I'll open up."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "「%@」を終わらせたら、開けるよ。"
+          }
+        }
+      }
+    },
+    "mascot.locked.taskStarted" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nice, you're on it. Tell me when “%@” is done."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "その調子。「%@」が終わったら教えて。"
+          }
+        }
+      }
+    },
+    "mascot.pass" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pass time. I lock again when it runs out."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "パス中だよ。時間が来たら、また閉めるね。"
+          }
+        }
+      }
+    },
     "notification.start.body" : {
       "extractionState" : "manual",
       "localizations" : {
