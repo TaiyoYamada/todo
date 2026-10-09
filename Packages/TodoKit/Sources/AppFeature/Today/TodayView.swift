@@ -315,7 +315,7 @@ private struct PlayfulHero: View {
                 }
                 .font(.system(.footnote, design: .rounded, weight: .heavy))
                 .monospacedDigit()
-                .foregroundStyle(tone.face)
+                .foregroundStyle(tone.accent)
                 Button {
                     tap(.completeTaskTapped(id))
                 } label: {

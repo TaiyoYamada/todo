@@ -46,7 +46,7 @@
                 }
                 .padding(20)
             }
-            .background(Color.black)
+            .background(Playful.background)
         }
 
         /// ホーム画面のウィジェット。背景を、実物と同じ色でべた塗りにする。

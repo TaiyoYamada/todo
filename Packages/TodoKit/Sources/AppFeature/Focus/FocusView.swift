@@ -193,7 +193,7 @@ private struct FinishedView: View {
                     Image(systemName: "lock.open.fill")
                 }
                 .font(.callout.weight(.semibold))
-                .foregroundStyle(tone.face)
+                .foregroundStyle(tone.accent)
             }
         }
     }

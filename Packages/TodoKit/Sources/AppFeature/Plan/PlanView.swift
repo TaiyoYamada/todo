@@ -111,7 +111,7 @@ struct PlanView: View {
                                 Image(systemName: isPastLimit ? "lock.fill" : "lock.open")
                             }
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(isPastLimit ? Playful.coral.face : Playful.text)
+                            .foregroundStyle(isPastLimit ? Playful.coral.accent : Playful.text)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(.rect)
@@ -163,7 +163,7 @@ struct PlanView: View {
                 Image(systemName: "plus.circle.fill")
             }
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(tone.face)
+            .foregroundStyle(tone.accent)
             .frame(minHeight: 44)
         }
         .buttonStyle(.plain)

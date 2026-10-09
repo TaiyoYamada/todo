@@ -50,7 +50,7 @@ private struct PlayfulTimelineRow: View {
             time
                 .font(.system(.subheadline, design: .rounded, weight: .heavy))
                 .monospacedDigit()
-                .foregroundStyle(item.state == .active ? Playful.coral.face : Playful.subtext)
+                .foregroundStyle(item.state == .active ? Playful.coral.accent : Playful.subtext)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
                 .frame(width: 64, alignment: .leading)
@@ -290,7 +290,7 @@ struct PlayfulLaterTasks: View {
                         Image(systemName: limit <= now ? "lock.fill" : "lock.open")
                     }
                     .font(.system(.caption, design: .rounded, weight: .heavy))
-                    .foregroundStyle(limit <= now ? Playful.coral.face : Playful.text)
+                    .foregroundStyle(limit <= now ? Playful.coral.accent : Playful.text)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(.rect)

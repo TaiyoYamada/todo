@@ -22,6 +22,15 @@ public struct PlayfulTone: Equatable, Sendable {
         self.onFace = onFace
     }
 
+    /// 背景の上にじかに置く文字や記号の色。
+    ///
+    /// 明るい外観では、面の色のままだと白い背景に埋もれて読みにくい。そのときは、暗いほうの縁の色を使う。
+    public var accent: Color {
+        Color(uiColor: UIColor { traits in
+            UIColor(traits.userInterfaceStyle == .dark ? face : edge)
+        })
+    }
+
     /// 1色から、縁と文字の色を作る。目標に付けた色などに使う。
     public init(base: Color) {
         self.init(face: base, edge: base.mix(with: .black, by: 0.24), onFace: .black.opacity(0.82))

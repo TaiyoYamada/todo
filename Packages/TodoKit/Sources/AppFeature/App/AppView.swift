@@ -54,8 +54,9 @@ struct AppView: View {
             }
         }
         .animation(.smooth(duration: 0.5), value: store.onboarding == nil)
-        .preferredColorScheme(.dark)
-        .tint(Playful.mint.face)
+        // 明るいアプリにする、というオーナーの方針で、外観は明るい色に固定している。
+        .preferredColorScheme(.light)
+        .tint(Playful.mint.accent)
         .task { await store.send(.task).finish() }
         .onOpenURL { url in
             if let link = DeepLink(url: url) {
@@ -98,87 +99,23 @@ struct AppView: View {
         }
     }
 
-    /// 画面と、その下のタブ。
-    ///
-    /// OS 標準のタブバーは半透明のガラスになるので使わず、単色のものを自前で置く。
     private var tabs: some View {
-        VStack(spacing: 0) {
-            Group {
-                switch store.selectedTab {
-                case .today:
-                    TodayView(store: store.scope(state: \.today, action: \.today))
-                case .plan:
-                    PlanView(store: store.scope(state: \.plan, action: \.plan))
-                case .insights:
-                    InsightsView(store: store.scope(state: \.insights, action: \.insights))
-                }
+        TabView(selection: $store.selectedTab) {
+            Tab(value: AppFeature.Tab.today) {
+                TodayView(store: store.scope(state: \.today, action: \.today))
+            } label: {
+                Label { Text(.tabToday) } icon: { Image(systemName: "lock.fill") }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            TabBar(selection: $store.selectedTab)
-        }
-        .background(Playful.background.ignoresSafeArea())
-    }
-}
-
-/// 下のタブ。選んだものだけ、太い枠で囲んで色を付ける。
-private struct TabBar: View {
-    @Binding var selection: AppFeature.Tab
-
-    private struct Item {
-        let tab: AppFeature.Tab
-        let title: LocalizedStringResource
-        let symbol: String
-        let identifier: String
-    }
-
-    private let items = [
-        Item(tab: .today, title: .tabToday, symbol: "lock.fill", identifier: "tab.today"),
-        Item(tab: .plan, title: .tabPlan, symbol: "checklist", identifier: "tab.plan"),
-        Item(tab: .insights, title: .tabInsights, symbol: "chart.bar.fill", identifier: "tab.insights"),
-    ]
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Rectangle()
-                .fill(Playful.line)
-                .frame(height: 2)
-            HStack(spacing: 8) {
-                ForEach(items, id: \.identifier) { item in
-                    button(item)
-                }
+            Tab(value: AppFeature.Tab.plan) {
+                PlanView(store: store.scope(state: \.plan, action: \.plan))
+            } label: {
+                Label { Text(.tabPlan) } icon: { Image(systemName: "checklist") }
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 4)
-        }
-        .background(Playful.background)
-        .sensoryFeedback(.selection, trigger: selection)
-    }
-
-    private func button(_ item: Item) -> some View {
-        let isSelected = item.tab == selection
-        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
-        return Button {
-            selection = item.tab
-        } label: {
-            VStack(spacing: 3) {
-                Image(systemName: item.symbol)
-                    .font(.title3.weight(.bold))
-                    .symbolEffect(.bounce, value: isSelected)
-                    .accessibilityHidden(true)
-                Text(item.title)
-                    .font(.system(.caption2, design: .rounded, weight: .heavy))
+            Tab(value: AppFeature.Tab.insights) {
+                InsightsView(store: store.scope(state: \.insights, action: \.insights))
+            } label: {
+                Label { Text(.tabInsights) } icon: { Image(systemName: "chart.bar.fill") }
             }
-            .foregroundStyle(isSelected ? Playful.mint.face : Playful.subtext)
-            .frame(maxWidth: .infinity, minHeight: 50)
-            .background(isSelected ? Playful.mint.face.opacity(0.14) : .clear, in: shape)
-            .overlay { shape.strokeBorder(isSelected ? Playful.mint.face : .clear, lineWidth: 2) }
-            .contentShape(shape)
         }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-        .accessibilityIdentifier(item.identifier)
-        .animation(.spring(duration: 0.3, bounce: 0.4), value: isSelected)
     }
 }

@@ -69,7 +69,7 @@ private struct WeekSummary: View {
             } icon: {
                 Image(systemName: "arrow.up.right")
             }
-            .foregroundStyle(tone.face)
+            .foregroundStyle(tone.accent)
         } else {
             Label {
                 Text(.insightsWeekLess(DurationText.compact(minutes: -difference)))
@@ -173,7 +173,7 @@ private struct CalibrationCard: View {
                 Text(factor, format: .number.precision(.fractionLength(0 ... 2)))
                     .font(.hero(52))
                     .monospacedDigit()
-                    .foregroundStyle(tone.face)
+                    .foregroundStyle(tone.accent)
             }
             Text(explanation)
                 .font(.subheadline)
@@ -204,8 +204,8 @@ private struct TasksSummary: View {
                 .accessibilityIdentifier("insights.tasks.title")
                 .chunkyHeading()
             HStack(alignment: .top, spacing: 10) {
-                stat(insights.tasksBeforeLimit, .insightsTasksBeforeLimit, color: tone.face)
-                stat(insights.tasksAfterLimit, .insightsTasksAfterLimit, color: Playful.amber.face)
+                stat(insights.tasksBeforeLimit, .insightsTasksBeforeLimit, color: tone.accent)
+                stat(insights.tasksAfterLimit, .insightsTasksAfterLimit, color: Playful.amber.accent)
                 stat(insights.tasksWithdrawn, .insightsTasksWithdrawn, color: Playful.subtext)
             }
             Rectangle().fill(Playful.line).frame(height: 2)
