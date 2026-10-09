@@ -30,7 +30,7 @@
                         VStack(alignment: .leading, spacing: 12) {
                             Text(item.name)
                                 .font(.headline)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(Playful.text)
                             HStack(alignment: .top, spacing: 12) {
                                 frame(entry, family: .systemSmall, size: CGSize(width: 158, height: 158))
                                 VStack(alignment: .leading, spacing: 12) {
@@ -49,26 +49,20 @@
             .background(Color.black)
         }
 
-        /// ホーム画面のウィジェット。背景のグラデーションを、実物と同じ色で敷く。
+        /// ホーム画面のウィジェット。背景を、実物と同じ色でべた塗りにする。
         private func frame(_ entry: SlackEntry, family: WidgetFamily, size: CGSize) -> some View {
-            let mood = SlackContent(entry: entry).mood
+            let tone = SlackContent(entry: entry).tone
             return SlackWidgetBody(entry: entry, family: family)
                 .padding(16)
                 .frame(width: size.width, height: size.height)
-                .background(
-                    LinearGradient(
-                        colors: [mood.backdrop[1], mood.backdrop[2], mood.backdrop[3]],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .background(tone.face)
                 .clipShape(.rect(cornerRadius: 24))
         }
 
         /// ロック画面のウィジェット。白い文字で出る。
         private func lockScreen(_ entry: SlackEntry, family: WidgetFamily) -> some View {
             SlackWidgetBody(entry: entry, family: family)
-                .foregroundStyle(.white)
+                .foregroundStyle(Playful.text)
         }
     }
 #endif

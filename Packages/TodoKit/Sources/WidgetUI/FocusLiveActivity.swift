@@ -80,7 +80,7 @@ private struct LockScreenView: View {
                         .lineLimit(1)
                     Text(state.endsAt == nil ? .activityCaptionExtra : .activityCaptionRemaining)
                         .font(.caption)
-                        .foregroundStyle(.white.opacity(0.7))
+                        .foregroundStyle(Playful.subtext)
                 }
                 Spacer(minLength: 8)
                 Clock(state: state)
@@ -90,7 +90,7 @@ private struct LockScreenView: View {
             }
             Bar(state: state, tint: tint)
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(Playful.text)
         .padding(16)
     }
 }

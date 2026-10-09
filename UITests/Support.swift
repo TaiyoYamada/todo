@@ -39,6 +39,15 @@ enum Language {
 enum AppTab: Int {
     case today, plan, insights
 
+    /// タブのボタンに付けてある識別子。
+    var identifier: String {
+        switch self {
+        case .today: "tab.today"
+        case .plan: "tab.plan"
+        case .insights: "tab.insights"
+        }
+    }
+
     /// アプリの `-sampleTab` に渡す名前。「今日」は初期値なので渡さない。
     var launchArgument: String? {
         switch self {
@@ -171,11 +180,9 @@ extension XCUIApplication {
         descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", prefix)).firstMatch
     }
 
-    /// 下のタブを切り替える。
-    ///
-    /// タブのボタンは並び順で選ぶ。OS が作るボタンには識別子を確実に付けられず、名前は言語で変わるため。
+    /// 下のタブを切り替える。タブは自前の部品なので、識別子で選ぶ。
     func selectTab(_ tab: AppTab) {
-        let button = tabBars.firstMatch.buttons.element(boundBy: tab.rawValue)
+        let button = element(tab.identifier)
         XCTAssertTrue(button.waitForExistence(timeout: appearTimeout), "タブが見つからない")
         button.tap()
     }

@@ -28,7 +28,7 @@ public struct HoldToConfirmButton<Label: View>: View {
     public var body: some View {
         HStack(spacing: 12) {
             ZStack {
-                Circle().stroke(.white.opacity(0.2), lineWidth: 3)
+                Circle().stroke(Playful.line, lineWidth: 3)
                 Circle()
                     .trim(from: 0, to: isPressing ? 1 : 0)
                     .stroke(tint, style: StrokeStyle(lineWidth: 3, lineCap: .round))
@@ -41,13 +41,14 @@ public struct HoldToConfirmButton<Label: View>: View {
             .frame(width: 22, height: 22)
             label
         }
-        .font(.subheadline.weight(.semibold))
-        .foregroundStyle(.white.opacity(0.92))
+        .font(.system(.subheadline, design: .rounded, weight: .heavy))
+        .foregroundStyle(Playful.text)
         .padding(.vertical, 13)
         .padding(.horizontal, 18)
         .frame(maxWidth: .infinity)
-        .background(.white.opacity(isPressing ? 0.2 : 0.1), in: .capsule)
-        .contentShape(.capsule)
+        .background(Playful.surface, in: .rect(cornerRadius: 16))
+        .overlay { RoundedRectangle(cornerRadius: 16).strokeBorder(isPressing ? tint : Playful.line, lineWidth: 2) }
+        .contentShape(.rect(cornerRadius: 16))
         .scaleEffect(isPressing ? 0.98 : 1)
         .animation(.easeOut(duration: 0.2), value: isPressing)
         .onLongPressGesture(minimumDuration: seconds, maximumDistance: 60) {

@@ -8,12 +8,23 @@ struct OnboardingView: View {
     @Bindable var store: StoreOf<OnboardingFeature>
     @FocusState private var isTitleFocused: Bool
 
-    private var mood: Mood {
+    /// 段階ごとの主役の色。
+    private var tone: PlayfulTone {
+        switch store.step {
+        case .hook: Playful.coral
+        case .mechanism: Playful.amber
+        case .goal, .apps: Playful.sky
+        case .ready: Playful.mint
+        }
+    }
+
+    /// 段階ごとの、キャラクターの気分。
+    private var mascotMood: LockMascot.Mood {
         switch store.step {
         case .hook: .locked
-        case .mechanism: .warning
-        case .goal, .apps: .calm
-        case .ready: .free
+        case .mechanism: .nervous
+        case .goal, .apps: .happy
+        case .ready: .calm
         }
     }
 
@@ -21,6 +32,14 @@ struct OnboardingView: View {
         VStack(spacing: 0) {
             progress
                 .padding(.top, 12)
+
+            // 段階が変わるたびに、キャラクターの表情と色が変わる。
+            // 文字を入力している間は、キーボードに場所を譲って隠す。
+            if !isTitleFocused {
+                LockMascot(mood: mascotMood, tone: tone)
+                    .padding(.top, 28)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
+            }
 
             Group {
                 switch store.step {
@@ -42,10 +61,11 @@ struct OnboardingView: View {
         }
         .padding(.horizontal, 24)
         .padding(.bottom, 20)
-        .foregroundStyle(.white)
-        .background { AuroraBackground(mood: mood) }
-        .environment(\.mood, mood)
+        .foregroundStyle(Playful.text)
+        .background(Playful.background.ignoresSafeArea())
+        .environment(\.tone, tone)
         .animation(.smooth(duration: 0.45), value: store.step)
+        .animation(.spring(duration: 0.35, bounce: 0.3), value: isTitleFocused)
         .sensoryFeedback(.impact(weight: .light), trigger: store.step)
     }
 
@@ -60,7 +80,7 @@ struct OnboardingView: View {
                 .minimumScaleFactor(0.7)
             Text(.onboardingHookBody)
                 .font(.title3.weight(.medium))
-                .foregroundStyle(.white.opacity(0.8))
+                .foregroundStyle(Playful.text)
             Spacer()
             Spacer()
         }
@@ -89,13 +109,13 @@ struct OnboardingView: View {
         HStack(alignment: .top, spacing: 16) {
             Image(systemName: symbol)
                 .font(.title3.weight(.bold))
-                .foregroundStyle(mood.accent)
+                .foregroundStyle(tone.face)
                 .frame(width: 44, height: 44)
-                .background(mood.accent.opacity(0.16), in: .circle)
+                .background(tone.face.opacity(0.16), in: .circle)
                 .accessibilityHidden(true)
             Text(text)
                 .font(.body.weight(.medium))
-                .foregroundStyle(.white.opacity(0.9))
+                .foregroundStyle(Playful.text)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 10)
         }
@@ -116,11 +136,12 @@ struct OnboardingView: View {
             .accessibilityIdentifier("onboarding.goalTitle")
             .submitLabel(.done)
             .padding(18)
-            .glassEffect(.regular, in: .rect(cornerRadius: 20))
+            .background(Playful.surface, in: .rect(cornerRadius: 20))
+            .overlay { RoundedRectangle(cornerRadius: 20).strokeBorder(Playful.line, lineWidth: 2) }
 
             VStack(alignment: .leading, spacing: 10) {
                 Text(.goalDailyHeader)
-                    .sectionLabelStyle()
+                    .chunkyHeading()
                 HStack(spacing: 10) {
                     ForEach(OnboardingFeature.minutesPresets, id: \.self) { minutes in
                         let isSelected = minutes == store.goalMinutes
@@ -131,9 +152,9 @@ struct OnboardingView: View {
                                 .font(.headline)
                                 .monospacedDigit()
                                 .frame(maxWidth: .infinity, minHeight: 48)
-                                .foregroundStyle(isSelected ? .black.opacity(0.85) : .white)
+                                .foregroundStyle(isSelected ? .black.opacity(0.85) : Playful.text)
                                 .background(
-                                    isSelected ? AnyShapeStyle(mood.accent) : AnyShapeStyle(.white.opacity(0.14)),
+                                    isSelected ? AnyShapeStyle(tone.face) : AnyShapeStyle(Playful.line),
                                     in: .capsule
                                 )
                         }
@@ -144,7 +165,7 @@ struct OnboardingView: View {
             }
             Text(.onboardingGoalNote)
                 .font(.footnote)
-                .foregroundStyle(.white.opacity(0.65))
+                .foregroundStyle(Playful.subtext)
             Spacer()
             Spacer()
         }
@@ -162,7 +183,7 @@ struct OnboardingView: View {
                 .minimumScaleFactor(0.7)
             Text(.onboardingAppsBody)
                 .font(.body.weight(.medium))
-                .foregroundStyle(.white.opacity(0.8))
+                .foregroundStyle(Playful.text)
 
             switch store.authorization {
             case .approved:
@@ -172,25 +193,25 @@ struct OnboardingView: View {
                     Image(systemName: "checkmark.circle.fill")
                 }
                 .font(.headline)
-                .foregroundStyle(mood.accent)
+                .foregroundStyle(tone.face)
                 .accessibilityIdentifier("onboarding.apps.approved")
                 Button {
                     store.send(.chooseAppsTapped)
                 } label: {
                     Label { Text(.settingsShieldChoose) } icon: { Image(systemName: "lock.app.dashed") }
                 }
-                .buttonStyle(.quiet)
+                .buttonStyle(.chunkySecondary)
             case .denied:
                 Text(.onboardingAppsDenied)
                     .font(.callout.weight(.medium))
-                    .foregroundStyle(Mood.warning.accent)
+                    .foregroundStyle(Playful.amber.face)
             case .notDetermined:
                 Button {
                     store.send(.allowTapped)
                 } label: {
                     Label { Text(.onboardingAppsAllow) } icon: { Image(systemName: "hourglass") }
                 }
-                .buttonStyle(.quiet)
+                .buttonStyle(.chunkySecondary)
                 .accessibilityIdentifier("onboarding.allow")
                 .disabled(store.isRequestingAuthorization)
             }
@@ -212,19 +233,13 @@ struct OnboardingView: View {
     private var ready: some View {
         VStack(spacing: 18) {
             Spacer()
-            Image(systemName: "checkmark.seal.fill")
-                .font(.hero(88, weight: .bold))
-                .foregroundStyle(mood.accent)
-                .symbolEffect(.bounce, value: store.step)
-                .shadow(color: mood.accent.opacity(0.6), radius: 28)
-                .accessibilityHidden(true)
             Text(.onboardingReadyTitle)
                 .accessibilityIdentifier("onboarding.step.ready")
                 .font(.hero(38))
                 .multilineTextAlignment(.center)
             Text(.onboardingReadyBody)
                 .font(.body.weight(.medium))
-                .foregroundStyle(.white.opacity(0.8))
+                .foregroundStyle(Playful.text)
                 .multilineTextAlignment(.center)
             Spacer()
             Spacer()
@@ -237,7 +252,7 @@ struct OnboardingView: View {
         HStack(spacing: 6) {
             ForEach(OnboardingFeature.Step.allCases, id: \.self) { step in
                 Capsule()
-                    .fill(.white.opacity(step.rawValue <= store.step.rawValue ? 0.9 : 0.22))
+                    .fill(step.rawValue <= store.step.rawValue ? tone.face : Playful.line)
                     .frame(height: 4)
             }
         }
@@ -252,7 +267,7 @@ struct OnboardingView: View {
                 } label: {
                     Text(.onboardingStart)
                 }
-                .buttonStyle(.hero)
+                .buttonStyle(.chunkyPrimary)
                 .accessibilityIdentifier("onboarding.start")
             } else {
                 Button {
@@ -261,7 +276,7 @@ struct OnboardingView: View {
                 } label: {
                     Text(store.step == .apps && store.authorization != .approved ? .onboardingLater : .onboardingNext)
                 }
-                .buttonStyle(.hero)
+                .buttonStyle(.chunkyPrimary)
                 .disabled(!store.canAdvance)
                 .accessibilityIdentifier("onboarding.next")
             }
@@ -270,7 +285,7 @@ struct OnboardingView: View {
             } label: {
                 Text(.onboardingBack)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(Playful.subtext)
                     .frame(minHeight: 36)
             }
             .opacity(store.step == .hook ? 0 : 1)

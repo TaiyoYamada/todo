@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 中心から光の粒がはじける演出。今日の分を終えた瞬間に重ねる。
+/// 中心から紙吹雪がはじける演出。今日の分を終えた瞬間に重ねる。
 ///
 /// `trigger` が変わるたびに1回だけ再生する。粒の位置は毎フレーム計算で求めるので、
 /// 状態を持たず、何度再生しても同じ動きになる。
@@ -57,16 +57,16 @@ public struct CelebrationBurst: View {
             let opacity = (1 - progress) * (0.5 + 0.5 * Self.noise(seed * 4.123))
             let color = colors.isEmpty ? Color.white : colors[index % colors.count]
 
+            // 紙吹雪の1枚。単色の小さな四角を、飛びながら回す。
             var particle = context
-            particle.opacity = opacity
-            particle.addFilter(.blur(radius: radius * 0.35))
+            particle.opacity = min(1, opacity * 1.6)
+            particle.translateBy(x: point.x, y: point.y)
+            particle.rotate(by: .radians(progress * 9 * (Self.noise(seed * 9.17) - 0.5) + angle))
             particle.fill(
-                Path(ellipseIn: CGRect(
-                    x: point.x - radius,
-                    y: point.y - radius,
-                    width: radius * 2,
-                    height: radius * 2
-                )),
+                Path(
+                    roundedRect: CGRect(x: -radius, y: -radius * 0.6, width: radius * 2, height: radius * 1.2),
+                    cornerRadius: 1.5
+                ),
                 with: .color(color)
             )
         }

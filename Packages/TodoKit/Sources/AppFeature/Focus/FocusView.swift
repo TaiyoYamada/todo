@@ -7,9 +7,9 @@ struct FocusView: View {
     let store: StoreOf<FocusFeature>
 
     var body: some View {
-        let mood = Mood.focus(store.goal.tint)
+        let tone = store.goal.tint.tone
         ZStack {
-            AuroraBackground(mood: mood)
+            Playful.background.ignoresSafeArea()
             switch store.phase {
             case .running:
                 RunningView(store: store)
@@ -19,8 +19,8 @@ struct FocusView: View {
                     .transition(.scale(scale: 0.92).combined(with: .opacity))
             }
         }
-        .environment(\.mood, mood)
-        .foregroundStyle(.white)
+        .environment(\.tone, tone)
+        .foregroundStyle(Playful.text)
         // 今日の分に達した瞬間、画面の中央上から波紋を広げる。
         .ripple(at: CGPoint(x: 200, y: 320), trigger: reachedTarget)
         .animation(.spring(duration: 0.6), value: store.phase)
@@ -40,7 +40,7 @@ private extension FocusView {
 
 private struct RunningView: View {
     let store: StoreOf<FocusFeature>
-    @Environment(\.mood) private var mood
+    @Environment(\.tone) private var tone
 
     var body: some View {
         VStack(spacing: 0) {
@@ -60,13 +60,13 @@ private struct RunningView: View {
                 ProgressRing(
                     fraction: store.goal.dailySeconds == 0 ? 1 : done / Double(store.goal.dailySeconds),
                     lineWidth: 18,
-                    tint: mood.accent
+                    tint: tone.face
                 ) {
                     VStack(spacing: 6) {
                         clock
                         Text(caption)
                             .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.white.opacity(0.7))
+                            .foregroundStyle(Playful.subtext)
                     }
                 }
                 .frame(width: 290, height: 290)
@@ -79,7 +79,7 @@ private struct RunningView: View {
             } label: {
                 Label { Text(.focusStop) } icon: { Image(systemName: "stop.fill") }
             }
-            .buttonStyle(.quiet)
+            .buttonStyle(.chunkySecondary)
             .accessibilityIdentifier("focus.stop")
             .padding(.bottom, 44)
         }
@@ -110,19 +110,15 @@ private struct RunningView: View {
 private struct FinishedView: View {
     let store: StoreOf<FocusFeature>
     let summary: FocusFeature.State.Summary
-    @Environment(\.mood) private var mood
+    @Environment(\.tone) private var tone
     @State private var appeared = false
 
     var body: some View {
         VStack(spacing: 18) {
             Spacer()
 
-            Image(systemName: summary.reachedTarget ? "checkmark.seal.fill" : "pause.circle.fill")
-                .font(.hero(96, weight: .bold))
-                .foregroundStyle(mood.accent)
-                .symbolEffect(.bounce, value: appeared)
-                .shadow(color: mood.accent.opacity(0.7), radius: 30)
-                .accessibilityHidden(true)
+            // 今日の分を終えたら、掛け金を開いて喜ぶ。途中で止めたときは、見守っている。
+            LockMascot(mood: summary.reachedTarget ? .happy : .watching, tone: tone)
 
             Text(summary.reachedTarget ? .focusFinishedTitleDone : .focusFinishedTitlePaused)
                 .accessibilityIdentifier("focus.finished.title")
@@ -131,7 +127,7 @@ private struct FinishedView: View {
 
             Text(.focusFinishedSession(DurationText.compact(seconds: summary.sessionSeconds)))
                 .font(.title3.weight(.medium))
-                .foregroundStyle(.white.opacity(0.8))
+                .foregroundStyle(Playful.text)
 
             lockLine
                 .padding(.top, 4)
@@ -144,7 +140,7 @@ private struct FinishedView: View {
                 } label: {
                     Text(.commonClose)
                 }
-                .buttonStyle(.hero)
+                .buttonStyle(.chunkyPrimary)
                 .accessibilityIdentifier("focus.close")
 
                 Button {
@@ -152,7 +148,7 @@ private struct FinishedView: View {
                 } label: {
                     Text(summary.reachedTarget ? .focusContinueExtra : .focusContinue)
                 }
-                .buttonStyle(.quiet)
+                .buttonStyle(.chunkySecondary)
                 .accessibilityIdentifier("focus.continue")
             }
             .padding(.bottom, 36)
@@ -160,8 +156,11 @@ private struct FinishedView: View {
         .padding(.horizontal, 24)
         .background {
             if summary.reachedTarget {
-                CelebrationBurst(colors: [mood.accent, .white, mood.accent.opacity(0.7)], trigger: appeared ? 1 : 0)
-                    .ignoresSafeArea()
+                CelebrationBurst(
+                    colors: [tone.face, Playful.amber.face, Playful.sky.face, Playful.coral.face],
+                    trigger: appeared ? 1 : 0
+                )
+                .ignoresSafeArea()
             }
         }
         .onAppear {
@@ -185,7 +184,7 @@ private struct FinishedView: View {
                 Image(systemName: "lock.fill")
             }
             .font(.callout.weight(.semibold))
-            .foregroundStyle(.white.opacity(0.75))
+            .foregroundStyle(Playful.subtext)
         case .free:
             if summary.reachedTarget {
                 Label {
@@ -194,7 +193,7 @@ private struct FinishedView: View {
                     Image(systemName: "lock.open.fill")
                 }
                 .font(.callout.weight(.semibold))
-                .foregroundStyle(mood.accent)
+                .foregroundStyle(tone.face)
             }
         }
     }

@@ -5,7 +5,7 @@ import SwiftUI
 
 struct TaskCompletionView: View {
     let store: StoreOf<TaskCompletionFeature>
-    private let mood = Mood.free
+    private let tone = Playful.mint
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -22,7 +22,7 @@ struct TaskCompletionView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text(.completionQuestion)
                     .font(.subheadline.weight(.semibold))
-                ChipRow(values: store.options, selection: store.actualMinutes, tint: mood.accent) {
+                ChipRow(values: store.options, selection: store.actualMinutes, tint: tone.face) {
                     store.send(.optionTapped($0))
                 }
                 Group {
@@ -48,7 +48,7 @@ struct TaskCompletionView: View {
             } label: {
                 Label { Text(.completionConfirm) } icon: { Image(systemName: "checkmark") }
             }
-            .buttonStyle(.hero)
+            .buttonStyle(.chunkyPrimary)
             .accessibilityIdentifier("completion.confirm")
 
             Button {
@@ -62,7 +62,7 @@ struct TaskCompletionView: View {
             .accessibilityIdentifier("completion.cancel")
         }
         .padding(24)
-        .environment(\.mood, mood)
+        .environment(\.tone, tone)
         .sensoryFeedback(.selection, trigger: store.actualMinutes)
         .presentationDetents([.height(400)])
         .presentationDragIndicator(.visible)

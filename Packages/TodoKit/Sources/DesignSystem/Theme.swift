@@ -2,16 +2,9 @@ import Domain
 import SwiftUI
 import UIKit
 
-/// 画面の作り方の流儀。見比べるために、いまは2つを切り替えられるようにしている。
-public enum UIStyle: String, Sendable {
-    /// 流れるグラデーションとガラスのカード(最初の版)。
-    case aurora
-    /// 単色、太い枠、沈むボタン、キャラクター。質感ではなく動きで見せる。
-    case playful
-}
-
 public extension EnvironmentValues {
-    @Entry var uiStyle: UIStyle = .aurora
+    /// いまの画面の主役の色。ロックの状態や、目標の色から決まる。部品はここから色を取る。
+    @Entry var tone: PlayfulTone = Playful.mint
 }
 
 /// 「面」と、その下に見える「縁」の色の組。縁を少しずらして見せることで、押せる厚みを出す。
@@ -35,7 +28,8 @@ public struct PlayfulTone: Equatable, Sendable {
     }
 }
 
-/// この流儀で使う色。グラデーション、ぼかし、発光は使わず、すべて単色で塗る。
+/// アプリ全体で使う色。グラデーション、ぼかし、発光は使わず、すべて単色で塗る。
+/// 質感ではなく、動きで楽しく見せる方針のため。
 public enum Playful {
     public static let background = Color(light: 0xFFFFFF, dark: 0x10161D)
     public static let surface = Color(light: 0xFFFFFF, dark: 0x17212B)
@@ -65,6 +59,20 @@ public enum Playful {
 }
 
 public extension Goal.Tint {
+    /// 目標に付けた色。
+    var color: Color {
+        switch self {
+        case .indigo: Color(hex: 0x6B73FF)
+        case .blue: Color(hex: 0x3D9EFF)
+        case .teal: Color(hex: 0x29CCCC)
+        case .green: Color(hex: 0x42D985)
+        case .orange: Color(hex: 0xFF9E38)
+        case .pink: Color(hex: 0xFF6BA8)
+        case .purple: Color(hex: 0xB870FF)
+        case .red: Color(hex: 0xFF615C)
+        }
+    }
+
     /// 目標の色から作った、面と縁の組。
     var tone: PlayfulTone { PlayfulTone(base: color) }
 }

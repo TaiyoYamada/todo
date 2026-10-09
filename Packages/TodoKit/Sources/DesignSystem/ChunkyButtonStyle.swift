@@ -61,7 +61,26 @@ public struct ChunkyIconButtonStyle: ButtonStyle {
     }
 }
 
+/// 画面でいちばん大事な操作のボタン。色は、いまの画面の主役の色(`\.tone`)に合わせる。
+public struct ChunkyPrimaryButtonStyle: ButtonStyle {
+    @Environment(\.tone) private var tone
+
+    public init() {}
+
+    public func makeBody(configuration: Configuration) -> some View {
+        ChunkyButtonStyle(tone: tone).makeBody(configuration: configuration)
+    }
+}
+
+public extension ButtonStyle where Self == ChunkyPrimaryButtonStyle {
+    /// いちばん大事な操作。
+    static var chunkyPrimary: ChunkyPrimaryButtonStyle { ChunkyPrimaryButtonStyle() }
+}
+
 public extension ButtonStyle where Self == ChunkyButtonStyle {
+    /// 控えめな操作。
+    static var chunkySecondary: ChunkyButtonStyle { ChunkyButtonStyle(tone: Playful.neutral) }
+
     static func chunky(_ tone: PlayfulTone) -> ChunkyButtonStyle { ChunkyButtonStyle(tone: tone) }
 }
 

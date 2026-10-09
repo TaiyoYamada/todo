@@ -13,21 +13,12 @@ struct TodoApp: App {
                     // ウィジェットの見た目を並べた、開発用の画面。
                     WidgetGallery(worlds: SampleWorlds.all)
                 } else {
-                    RootView(sampleScenario: Self.sampleScenario, initialTab: Self.sampleTab, uiStyle: Self.uiStyle)
+                    RootView(sampleScenario: Self.sampleScenario, initialTab: Self.sampleTab)
                 }
             #else
-                RootView(sampleScenario: Self.sampleScenario, initialTab: Self.sampleTab, uiStyle: Self.uiStyle)
+                RootView(sampleScenario: Self.sampleScenario, initialTab: Self.sampleTab)
             #endif
         }
-    }
-
-    /// 起動引数 `-uiStyle playful` で、もう1つの見た目に切り替える。見比べるためのもので、開発用の構成でだけ有効。
-    private static var uiStyle: String? {
-        #if DEV
-            UserDefaults.standard.string(forKey: "uiStyle")
-        #else
-            nil
-        #endif
     }
 
     /// 起動引数 `-sampleTab <タブ>` で、最初に開くタブを選ぶ。画面の撮影用で、開発用の構成でだけ有効。

@@ -139,7 +139,7 @@ struct GoalEditorView: View {
                         .frame(width: 28, height: 28)
                         .overlay {
                             if candidate == store.goal.tint {
-                                Circle().strokeBorder(.white, lineWidth: 3)
+                                Circle().strokeBorder(Playful.text, lineWidth: 3)
                             }
                         }
                         .frame(maxWidth: .infinity, minHeight: 44)
