@@ -7,12 +7,15 @@ import SwiftUI
 /// アプリの入口。アプリ本体からは、この View だけが見える。
 public struct RootView: View {
     @State private var store: StoreOf<AppFeature>
+    private let style: UIStyle
 
     /// - Parameters:
     ///   - sampleScenario: 見本データの状態の名前(`locked` など)。指定すると、
     ///     保存データの代わりにメモリ上の見本データで動く。開発用の構成でだけ渡す。
     ///   - initialTab: 最初に開くタブの名前(`plan`、`insights`)。画面の撮影用。
-    public init(sampleScenario: String? = nil, initialTab: String? = nil) {
+    ///   - uiStyle: 画面の作り方の流儀の名前(`playful`)。2つの流儀を見比べるためのもの。
+    public init(sampleScenario: String? = nil, initialTab: String? = nil, uiStyle: String? = nil) {
+        style = uiStyle.flatMap(UIStyle.init(rawValue:)) ?? .aurora
         let scenario = sampleScenario.flatMap(SampleData.Scenario.init(rawValue:))
         var state = AppFeature.State()
         switch initialTab {
@@ -33,12 +36,14 @@ public struct RootView: View {
 
     public var body: some View {
         AppView(store: store)
+            .environment(\.uiStyle, style)
     }
 }
 
 struct AppView: View {
     @Bindable var store: StoreOf<AppFeature>
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.uiStyle) private var uiStyle
 
     var body: some View {
         Group {
@@ -101,7 +106,12 @@ struct AppView: View {
     private var tabs: some View {
         TabView(selection: $store.selectedTab) {
             Tab(value: AppFeature.Tab.today) {
-                TodayView(store: store.scope(state: \.today, action: \.today))
+                switch uiStyle {
+                case .aurora:
+                    TodayView(store: store.scope(state: \.today, action: \.today))
+                case .playful:
+                    PlayfulTodayView(store: store.scope(state: \.today, action: \.today))
+                }
             } label: {
                 Label { Text(.tabToday) } icon: { Image(systemName: "timer") }
             }
