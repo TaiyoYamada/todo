@@ -7,7 +7,7 @@ import SwiftUI
 struct InsightsView: View {
     let store: StoreOf<InsightsFeature>
     @Dependency(\.calendar) private var calendar
-    private let mood = Mood.calm
+    private let tone = Playful.mint
 
     var body: some View {
         let world = store.board.world
@@ -27,12 +27,12 @@ struct InsightsView: View {
                 .padding(.bottom, 40)
             }
             .scrollIndicators(.hidden)
-            .background { AuroraBackground(mood: mood) }
+            .background(Playful.background.ignoresSafeArea())
             .navigationTitle(Text(.tabInsights))
             .toolbarBackground(.hidden, for: .navigationBar)
         }
-        .environment(\.mood, mood)
-        .foregroundStyle(.white)
+        .environment(\.tone, tone)
+        .foregroundStyle(Playful.text)
     }
 }
 
@@ -40,13 +40,13 @@ struct InsightsView: View {
 
 private struct WeekSummary: View {
     let insights: Insights
-    @Environment(\.mood) private var mood
+    @Environment(\.tone) private var tone
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(.insightsWeekTitle)
                 .accessibilityIdentifier("insights.week.title")
-                .sectionLabelStyle()
+                .chunkyHeading()
             Text(DurationText.compact(minutes: insights.thisWeekSeconds / 60))
                 .font(.hero(52))
                 .monospacedDigit()
@@ -54,7 +54,7 @@ private struct WeekSummary: View {
             comparison
                 .font(.subheadline.weight(.semibold))
         }
-        .glassCard()
+        .chunkyCard()
     }
 
     @ViewBuilder
@@ -62,21 +62,21 @@ private struct WeekSummary: View {
         let difference = (insights.thisWeekSeconds - insights.lastWeekSeconds) / 60
         if insights.lastWeekSeconds == 0, insights.thisWeekSeconds == 0 {
             Text(.insightsWeekEmpty)
-                .foregroundStyle(.white.opacity(0.65))
+                .foregroundStyle(Playful.subtext)
         } else if difference >= 0 {
             Label {
                 Text(.insightsWeekMore(DurationText.compact(minutes: max(1, difference))))
             } icon: {
                 Image(systemName: "arrow.up.right")
             }
-            .foregroundStyle(mood.accent)
+            .foregroundStyle(tone.face)
         } else {
             Label {
                 Text(.insightsWeekLess(DurationText.compact(minutes: -difference)))
             } icon: {
                 Image(systemName: "arrow.down.right")
             }
-            .foregroundStyle(.white.opacity(0.65))
+            .foregroundStyle(Playful.subtext)
         }
     }
 }
@@ -114,7 +114,7 @@ private struct FocusChart: View {
         VStack(alignment: .leading, spacing: 14) {
             Text(.insightsChartTitle)
                 .accessibilityIdentifier("insights.chart.title")
-                .sectionLabelStyle()
+                .chunkyHeading()
             Chart(bars) { bar in
                 BarMark(
                     // 軸の名前は VoiceOver のグラフの読み上げに使われる。文字列のまま渡すと、
@@ -133,16 +133,16 @@ private struct FocusChart: View {
             .chartXAxis {
                 AxisMarks(values: .stride(by: .day, count: 2)) { _ in
                     AxisValueLabel(format: .dateTime.day(), centered: true)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .foregroundStyle(Playful.subtext)
                 }
             }
             .chartYAxis {
                 AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { value in
-                    AxisGridLine().foregroundStyle(.white.opacity(0.12))
+                    AxisGridLine().foregroundStyle(Playful.subtext)
                     AxisValueLabel {
                         if let minutes = value.as(Int.self) {
                             Text(DurationText.compact(minutes: minutes))
-                                .foregroundStyle(.white.opacity(0.6))
+                                .foregroundStyle(Playful.subtext)
                         }
                     }
                 }
@@ -150,7 +150,7 @@ private struct FocusChart: View {
             .chartLegend(position: .bottom, alignment: .leading)
             .frame(height: 210)
         }
-        .glassCard()
+        .chunkyCard()
     }
 }
 
@@ -159,27 +159,27 @@ private struct FocusChart: View {
 private struct CalibrationCard: View {
     let calibration: EstimateCalibration
     let factor: Double
-    @Environment(\.mood) private var mood
+    @Environment(\.tone) private var tone
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(.insightsCalibrationTitle)
                 .accessibilityIdentifier("insights.calibration.title")
-                .sectionLabelStyle()
+                .chunkyHeading()
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(verbatim: "×")
                     .font(.system(.title, design: .rounded, weight: .bold))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(Playful.subtext)
                 Text(factor, format: .number.precision(.fractionLength(0 ... 2)))
                     .font(.hero(52))
                     .monospacedDigit()
-                    .foregroundStyle(mood.accent)
+                    .foregroundStyle(tone.face)
             }
             Text(explanation)
                 .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.75))
+                .foregroundStyle(Playful.subtext)
         }
-        .glassCard()
+        .chunkyCard()
     }
 
     private var explanation: LocalizedStringResource {
@@ -196,19 +196,19 @@ private struct CalibrationCard: View {
 private struct TasksSummary: View {
     let insights: Insights
     let passLimit: Int
-    @Environment(\.mood) private var mood
+    @Environment(\.tone) private var tone
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(.insightsTasksTitle)
                 .accessibilityIdentifier("insights.tasks.title")
-                .sectionLabelStyle()
+                .chunkyHeading()
             HStack(alignment: .top, spacing: 10) {
-                stat(insights.tasksBeforeLimit, .insightsTasksBeforeLimit, color: mood.accent)
-                stat(insights.tasksAfterLimit, .insightsTasksAfterLimit, color: Mood.warning.accent)
-                stat(insights.tasksWithdrawn, .insightsTasksWithdrawn, color: .white.opacity(0.7))
+                stat(insights.tasksBeforeLimit, .insightsTasksBeforeLimit, color: tone.face)
+                stat(insights.tasksAfterLimit, .insightsTasksAfterLimit, color: Playful.amber.face)
+                stat(insights.tasksWithdrawn, .insightsTasksWithdrawn, color: Playful.subtext)
             }
-            Divider().overlay(.white.opacity(0.15))
+            Rectangle().fill(Playful.line).frame(height: 2)
             LabeledContent {
                 Text(.insightsPassesValue(insights.passesThisWeek, passLimit))
                     .font(.body.weight(.semibold))
@@ -216,9 +216,9 @@ private struct TasksSummary: View {
             } label: {
                 Label { Text(.insightsPassesLabel) } icon: { Image(systemName: "hourglass") }
             }
-            .foregroundStyle(.white.opacity(0.85))
+            .foregroundStyle(Playful.text)
         }
-        .glassCard()
+        .chunkyCard()
     }
 
     private func stat(_ value: Int, _ title: LocalizedStringResource, color: Color) -> some View {
@@ -229,7 +229,7 @@ private struct TasksSummary: View {
                 .foregroundStyle(color)
             Text(title)
                 .font(.caption.weight(.medium))
-                .foregroundStyle(.white.opacity(0.7))
+                .foregroundStyle(Playful.subtext)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

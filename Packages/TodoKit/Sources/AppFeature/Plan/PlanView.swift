@@ -5,7 +5,7 @@ import SwiftUI
 
 struct PlanView: View {
     let store: StoreOf<PlanFeature>
-    private let mood = Mood.calm
+    private let tone = Playful.mint
 
     var body: some View {
         NavigationStack {
@@ -21,19 +21,19 @@ struct PlanView: View {
                 .padding(.bottom, 40)
             }
             .scrollIndicators(.hidden)
-            .background { AuroraBackground(mood: mood) }
+            .background(Playful.background.ignoresSafeArea())
             .navigationTitle(Text(.tabPlan))
             .toolbarBackground(.hidden, for: .navigationBar)
         }
-        .environment(\.mood, mood)
-        .foregroundStyle(.white)
+        .environment(\.tone, tone)
+        .foregroundStyle(Playful.text)
     }
 
     private var goals: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(.planGoalsTitle)
                 .accessibilityIdentifier("plan.goals.title")
-                .sectionLabelStyle()
+                .chunkyHeading()
             ForEach(store.board.world.activeGoals) { goal in
                 Button {
                     store.send(.goalTapped(goal.id))
@@ -43,7 +43,7 @@ struct PlanView: View {
                             .font(.body.weight(.semibold))
                             .foregroundStyle(.black.opacity(0.8))
                             .frame(width: 44, height: 44)
-                            .background(goal.tint.color.gradient, in: .circle)
+                            .background(goal.tint.color, in: .circle)
                             .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 3) {
                             Text(goal.title)
@@ -51,12 +51,12 @@ struct PlanView: View {
                                 .lineLimit(1)
                             Text(subtitle(for: goal))
                                 .font(.footnote)
-                                .foregroundStyle(.white.opacity(0.65))
+                                .foregroundStyle(Playful.subtext)
                         }
                         Spacer(minLength: 0)
                         Image(systemName: "chevron.right")
                             .font(.footnote.weight(.semibold))
-                            .foregroundStyle(.white.opacity(0.4))
+                            .foregroundStyle(Playful.subtext)
                             .accessibilityHidden(true)
                     }
                     .contentShape(.rect)
@@ -66,14 +66,14 @@ struct PlanView: View {
             addButton(.todayAddGoal) { store.send(.addGoalTapped) }
                 .accessibilityIdentifier("plan.addGoal")
         }
-        .glassCard()
+        .chunkyCard()
     }
 
     private var tasks: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text(.planTasksTitle)
                 .accessibilityIdentifier("plan.tasks.title")
-                .sectionLabelStyle()
+                .chunkyHeading()
             ForEach(store.openTasks) { task in
                 let limit = store.board.world.startLimit(of: task)
                 let isPastLimit = limit <= store.board.status.now
@@ -81,11 +81,9 @@ struct PlanView: View {
                     Button {
                         store.send(.completeTaskTapped(task.id))
                     } label: {
-                        Image(systemName: "circle")
-                            .font(.title2)
-                            .foregroundStyle(.white.opacity(0.7))
-                            .frame(width: 44, height: 44)
+                        Image(systemName: "checkmark")
                     }
+                    .buttonStyle(.chunkyIcon(Playful.neutral))
                     .accessibilityLabel(Text(.todayCtaCompleteTask))
                     // チェックマークの記号は「選択中」として読み上げられてしまう。まだ完了していないので、その情報を外す。
                     .accessibilityRemoveTraits(.isSelected)
@@ -106,14 +104,14 @@ struct PlanView: View {
                                 )
                             )
                             .font(.footnote)
-                            .foregroundStyle(.white.opacity(0.65))
+                            .foregroundStyle(Playful.subtext)
                             Label {
                                 Text(.todayTasksStartLimit(TimeText.dayAndClock(limit)))
                             } icon: {
                                 Image(systemName: isPastLimit ? "lock.fill" : "lock.open")
                             }
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(isPastLimit ? Mood.locked.accent : .white.opacity(0.75))
+                            .foregroundStyle(isPastLimit ? Playful.coral.face : Playful.text)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(.rect)
@@ -124,14 +122,14 @@ struct PlanView: View {
             addButton(.todayAddTask) { store.send(.addTaskTapped) }
                 .accessibilityIdentifier("plan.addTask")
         }
-        .glassCard()
+        .chunkyCard()
     }
 
     private var closedTasks: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(.planClosedTitle)
                 .accessibilityIdentifier("plan.closed.title")
-                .sectionLabelStyle()
+                .chunkyHeading()
             ForEach(store.closedTasks) { task in
                 Button {
                     store.send(.taskTapped(task.id))
@@ -139,11 +137,11 @@ struct PlanView: View {
                     HStack(spacing: 12) {
                         // 完了か取り下げかは、この印でしか分からない。読み上げでも区別できるようにする。
                         Image(systemName: task.withdrawnAt == nil ? "checkmark.circle.fill" : "minus.circle")
-                            .foregroundStyle(.white.opacity(0.5))
+                            .foregroundStyle(Playful.subtext)
                             .accessibilityLabel(Text(task.withdrawnAt == nil ? .commonDone : .insightsTasksWithdrawn))
                         Text(task.title)
-                            .strikethrough(task.withdrawnAt == nil, color: .white.opacity(0.4))
-                            .foregroundStyle(.white.opacity(0.6))
+                            .strikethrough(task.withdrawnAt == nil, color: Playful.subtext)
+                            .foregroundStyle(Playful.subtext)
                             .lineLimit(1)
                         Spacer(minLength: 0)
                     }
@@ -154,7 +152,7 @@ struct PlanView: View {
                 .buttonStyle(.plain)
             }
         }
-        .glassCard()
+        .chunkyCard()
     }
 
     private func addButton(_ title: LocalizedStringResource, action: @escaping () -> Void) -> some View {
@@ -165,7 +163,7 @@ struct PlanView: View {
                 Image(systemName: "plus.circle.fill")
             }
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(mood.accent)
+            .foregroundStyle(tone.face)
             .frame(minHeight: 44)
         }
         .buttonStyle(.plain)

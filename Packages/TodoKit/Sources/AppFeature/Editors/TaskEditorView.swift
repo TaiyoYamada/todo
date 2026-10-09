@@ -6,9 +6,9 @@ import SwiftUI
 struct TaskEditorView: View {
     @Bindable var store: StoreOf<TaskEditorFeature>
     @FocusState private var isTitleFocused: Bool
-    @Environment(\.mood) private var mood
+    @Environment(\.tone) private var tone
 
-    private let tint = Mood.calm.accent
+    private let tint = Playful.mint.face
 
     var body: some View {
         NavigationStack {
